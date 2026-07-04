@@ -75,8 +75,8 @@ class AlarmAlertActivity : AppCompatActivity() {
             val serviceIntent = Intent(this, AlarmService::class.java)
             stopService(serviceIntent)
             
-            // キャラクター経験値を付与（起床ボーナス：50EXP）
-            addCharExp(50)
+            // キャラクター経験値を付与
+            addCharExp()
             
             // 繰り返し設定がある場合、次回のスケジュールを行う
             if (alarmId != null) {
@@ -321,31 +321,47 @@ class AlarmAlertActivity : AppCompatActivity() {
     }
 
     // キャラクター経験値を加算するロジック（アラーム用）
-    private fun addCharExp(amount: Int) {
+    private fun addCharExp() {
         val prefs = getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
         val totalExp = prefs.getLong("totalExp", 0L)
-        val newTotalExp = totalExp + amount
-        
-        fun calculateLevel(exp: Long): Int {
-            var lv = 1
-            var next = 100L
-            while (exp >= next) {
-                lv++
-                next = (100 * Math.pow(lv.toDouble(), 1.6)).toLong()
-            }
-            return lv
+        val now = System.currentTimeMillis()
+        val lastRewardTime = prefs.getLong("last_alarm_reward_millis", 0L)
+
+        // 0-12時(AM)か12-24時(PM)かの判定
+        val calNow = Calendar.getInstance()
+        val calLast = Calendar.getInstance().apply { timeInMillis = lastRewardTime }
+
+        val isSameAmPm = calNow.get(Calendar.YEAR) == calLast.get(Calendar.YEAR) &&
+                calNow.get(Calendar.DAY_OF_YEAR) == calLast.get(Calendar.DAY_OF_YEAR) &&
+                (calNow.get(Calendar.HOUR_OF_DAY) < 12) == (calLast.get(Calendar.HOUR_OF_DAY) < 12)
+
+        if (isSameAmPm) {
+            // すでにこの時間帯にレベルアップ済みなら少なめのEXP（あるいは0）
+            val bonusExp = 10L
+            prefs.edit().putLong("totalExp", totalExp + bonusExp).apply()
+            Toast.makeText(this, "起床成功！ (この時間帯は既にレベルアップ済みです)", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        val oldLevel = calculateLevel(totalExp)
-        val newLevel = calculateLevel(newTotalExp)
-
-        prefs.edit().putLong("totalExp", newTotalExp).apply()
-
-        if (newLevel > oldLevel) {
-            Toast.makeText(this, "CHARACTER LEVEL UP! Lv.$newLevel になりました！", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(this, "起床成功！ キャラクターに ${amount}EXP 付与されました。", Toast.LENGTH_SHORT).show()
+        // 1レベル＝100 EXPの固定制
+        fun getThreshold(lv: Int): Long {
+            return (lv - 1) * 100L
         }
+
+        var currentLv = 1
+        while (totalExp >= currentLv * 100L) {
+            currentLv++
+        }
+
+        // 次のレベルの閾値になるように調整（確定1レベル上昇）
+        val newTotalExp = currentLv * 100L
+
+        prefs.edit()
+            .putLong("totalExp", newTotalExp)
+            .putLong("last_alarm_reward_millis", now)
+            .apply()
+
+        Toast.makeText(this, "CHARACTER LEVEL UP! Lv.${currentLv + 1} になりました！", Toast.LENGTH_LONG).show()
     }
 
     private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {

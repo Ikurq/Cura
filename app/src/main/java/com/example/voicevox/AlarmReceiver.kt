@@ -45,22 +45,6 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             // Regular Alarm Logic
-            val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            
-            // 1. Vacation Mode Check
-            if (appPrefs.getBoolean("vacation_mode", false)) {
-                android.util.Log.d("AlarmReceiver", "Alarm skipped due to Vacation Mode")
-                return
-            }
-
-            // 2. Holiday Check
-            if (appPrefs.getBoolean("skip_holidays", false)) {
-                if (HolidayHelper.isJapaneseHoliday(Calendar.getInstance())) {
-                    android.util.Log.d("AlarmReceiver", "Alarm skipped due to Japanese Holiday")
-                    return
-                }
-            }
-
             val audioFilePath = intent.getStringExtra("AUDIO_FILE_PATH")
             if (audioFilePath == null) {
                 // If this is triggered without a file path, it's likely a malformed intent

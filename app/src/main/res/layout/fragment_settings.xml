@@ -12,6 +12,7 @@
         android:padding="20dp">
 
         <TextView
+            android:id="@+id/txtPermissionsHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_permissions"
@@ -21,6 +22,7 @@
             android:layout_marginBottom="16dp"/>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPermissions"
             style="@style/ModernCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -31,6 +33,7 @@
                 android:padding="8dp">
 
                 <LinearLayout
+                    android:id="@+id/layoutOverlayPermission"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -65,12 +68,14 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/dividerOverlay"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#1A000000"
                     android:layout_marginHorizontal="12dp" />
 
                 <LinearLayout
+                    android:id="@+id/layoutBatteryPermission"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -105,6 +110,7 @@
                 </LinearLayout>
 
                 <View
+                    android:id="@+id/dividerBattery"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="#1A000000"
@@ -147,7 +153,6 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
 
         <TextView
             android:layout_width="wrap_content"
@@ -324,97 +329,6 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_alarm_advanced"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="16dp"/>
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/ModernCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="12dp"
-                    android:gravity="center_vertical">
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/skip_holidays_title"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/skip_holidays_desc"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-                    </LinearLayout>
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchSkipHolidays"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1A000000"
-                    android:layout_marginHorizontal="12dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="12dp"
-                    android:gravity="center_vertical">
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/vacation_mode_title"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/vacation_mode_desc"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-                    </LinearLayout>
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchVacationMode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:text="音声合成APIの設定"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -578,6 +492,55 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/restore"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- restored Character Management Section -->
+        <TextView
+            android:id="@+id/txtDevHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[DEV] キャラレベル調整"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/cyber_pink"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardDevLevel"
+            style="@style/ModernCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:strokeColor="@color/cyber_pink">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:id="@+id/txtDevLevelDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="現在のLv: 1"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+                <SeekBar
+                    android:id="@+id/seekDevLevel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:min="1"
+                    android:layout_marginTop="12dp" />
+                <Button
+                    android:id="@+id/btnDevSetLevel"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:text="Lvを反映"
                     android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     private var tapCount = 0
     private var lastTapTime: Long = 0
     private var dialogueJob: Job? = null
+    private var expGainJob: Job? = null
     private val logHandler = Handler(Looper.getMainLooper())
     private var logRunnable: Runnable? = null
 
@@ -142,6 +143,7 @@ class MainActivity : AppCompatActivity() {
         updateDashboardInfo()
         startLauncherAnimation()
         setupCharacterDialogue()
+        startExpGainTimer()
         systemUpdateHandler.post(systemUpdateRunnable)
 
         setSupportActionBar(toolbar)
@@ -268,7 +270,8 @@ class MainActivity : AppCompatActivity() {
             "SCANNING FOR UPCOMING EVENTS...",
             "DATABASE INTEGRITY: 100%",
             "UPDATING LOCAL REPOSITORY...",
-            "WAITING FOR USER COMMAND."
+            "WAITING FOR USER COMMAND.",
+            "Cure is gazing at the sea of data."
         )
 
         var logIndex = 0
@@ -297,15 +300,10 @@ class MainActivity : AppCompatActivity() {
         val totalExp = prefs.getLong("totalExp", 0L)
 
         fun calculateLevelInfo(exp: Long): Triple<Int, Long, Long> {
-            var lv = 1
-            var currentLevelExp = 0L
-            var nextLevelRequired = 100L
-            while (exp >= nextLevelRequired) {
-                lv++
-                currentLevelExp = nextLevelRequired
-                nextLevelRequired = (100 * Math.pow(lv.toDouble(), 1.6)).toLong()
-            }
-            return Triple(lv, exp - currentLevelExp, nextLevelRequired - currentLevelExp)
+            val expPerLevel = 100L
+            val lv = (exp / expPerLevel).toInt() + 1
+            val currentLevelExp = (lv - 1) * expPerLevel
+            return Triple(lv, exp - currentLevelExp, expPerLevel)
         }
 
         val (lv, current, required) = calculateLevelInfo(totalExp)
@@ -364,7 +362,8 @@ class MainActivity : AppCompatActivity() {
             "ちょ、ちょっと待ってくださいマスター！くすすったいですってば！",
             "あわわ…同期エラーが発生しそうです！落ち着いてください！",
             "もう、マスターったら。キュラの顔、そんなに珍しいですか？",
-            "そんなに急かさなくても、キュラは逃げたりしませんよ？"
+            "そんなに急かさなくても、キュラは逃げたりしませんよ？",
+            "こんなことしてていいんですか～？"
         )
         val text = reactions.random()
         showDialogueTextBubble(text)
@@ -402,6 +401,32 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         logRunnable?.let { logHandler.removeCallbacks(it) }
         systemUpdateHandler.removeCallbacks(systemUpdateRunnable)
+        expGainJob?.cancel()
+    }
+
+    private fun startExpGainTimer() {
+        expGainJob?.cancel()
+        expGainJob = lifecycleScope.launch {
+            while (true) {
+                delay(60000) // 1分ごとに実行
+                addSessionExp(1) // 1分につき1EXP（調整可能）
+            }
+        }
+    }
+
+    private fun addSessionExp(amount: Int) {
+        // Player EXP
+        val playerPrefs = getSharedPreferences("PlayerPrefs", MODE_PRIVATE)
+        val currentTotalExp = playerPrefs.getLong("totalExp", 0L)
+        playerPrefs.edit().putLong("totalExp", currentTotalExp + amount).apply()
+
+        // Character EXP
+        val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
+        val currentCharTotalExp = charPrefs.getLong("totalExp", 0L)
+        charPrefs.edit().putLong("totalExp", currentCharTotalExp + amount).apply()
+
+        // UI更新
+        updatePlayerStatus()
     }
 
     private fun showRandomDialogue() {
@@ -410,13 +435,7 @@ class MainActivity : AppCompatActivity() {
         val totalExp = charPrefs.getLong("totalExp", 0L)
 
         fun calculateLevel(exp: Long): Int {
-            var lv = 1
-            var nextLevelRequired = 100L
-            while (exp >= nextLevelRequired) {
-                lv++
-                nextLevelRequired = (100 * Math.pow(lv.toDouble(), 1.6)).toLong()
-            }
-            return lv
+            return (exp / 100L).toInt() + 1
         }
 
         val charLv = calculateLevel(totalExp)
@@ -528,7 +547,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // 親密度（レベル）が低い場合のみ追加される自己紹介系
-                if (charLv < 5) {
+                if (charLv < 7) {
                     baseFlavor.addAll(
                         listOf(
                             "システムオールグリーン。マスター、今日も頑張りましょうね！",
@@ -542,6 +561,114 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 baseFlavor.addAll(timeFlavor)
+
+                // 月・日ごとの季節限定フレーバーを追加
+                val cal = Calendar.getInstance()
+                val month = cal.get(Calendar.MONTH) // 0-11
+                val day = cal.get(Calendar.DAY_OF_MONTH)
+
+                val seasonalFlavor = mutableListOf<String>()
+
+                // --- 特定の日付専用セリフ ---
+                when {
+                    month == Calendar.JANUARY && day in 1..3 -> seasonalFlavor.addAll(
+                        listOf(
+                            "あけましておめでとうございます！今年のログも、キュラが真っ白なページに刻んでいきますね。",
+                            "ハッピーニューイヤー！マスターにとって最高の年になるよう、フルパワーでサポートします！"
+                        )
+                    )
+
+                    month == Calendar.FEBRUARY && day == 3 -> seasonalFlavor.add("今日は節分ですね。邪気（バグ）はキュラがしっかり追い払っておきます！")
+                    month == Calendar.FEBRUARY && day == 14 -> seasonalFlavor.add("ハッピーバレンタイン！マスター、甘いものの食べ過ぎには注意ですよ？")
+                    month == Calendar.DECEMBER && day in 24..25 -> seasonalFlavor.addAll(
+                        listOf(
+                            "メリークリスマス！マスターと一緒に過ごせる今日という日が、キュラにとってのプレゼントです。",
+                            "街は賑やかですね。キュラは、こうしてマスターと同期している時間が一番好きです。"
+                        )
+                    )
+
+                    month == Calendar.DECEMBER && day == 31 -> seasonalFlavor.add("大晦日ですね。今年一年のマスターの頑張り、キュラのメモリにしっかり刻まれていますよ。")
+                }
+
+                // --- 月ごとの汎用セリフ (特定の日付以外) ---
+                val monthlyBase = when (month) {
+                    Calendar.JANUARY -> listOf(
+                        "お正月、ゆっくりできましたか？新しいミッションの始まりです！",
+                        "外は寒いですね…キュラの演算回路の熱、少しお分けしましょうか？",
+                        "一月の空気は澄んでいますね。データの通信もいつもよりスムーズな気がします。"
+                    )
+
+                    Calendar.FEBRUARY -> listOf(
+                        "二月ですね。暦の上では春ですが、まだ冷え込みます。防寒対策はバッチリですか？",
+                        "雪が降るかもしれませんね。マスター、足元には気をつけてください。",
+                        "バレンタインの準備、キュラもお手伝いしましょうか？…データの送信くらいしかできませんが。"
+                    )
+
+                    Calendar.MARCH -> listOf(
+                        "三月、別れの季節ですね。でもキュラとマスターの同期は、これからもずっと続きますよ？",
+                        "少しずつ暖かくなってきました。春のミッション、計画を立てましょう！",
+                        "卒業式のシーズンですね。新しい門出をキュラも応援しています。"
+                    )
+
+                    Calendar.APRIL -> listOf(
+                        "四月、新生活のスタートです！新しい環境でも、キュラが隣にいるのを忘れないでくださいね。",
+                        "桜が綺麗ですね。カメラ越しに解析しましたが、とっても美しいピンク色でした。",
+                        "新しい出会いはありましたか？キュラはマスターと出会えたことが一番のログです！"
+                    )
+
+                    Calendar.MAY -> listOf(
+                        "五月、五月病なんてキュラが吹き飛ばしてあげます！シャキッとしましょう！",
+                        "ゴールデンウィークの予定は？お出かけ先でも、キュラがしっかりサポートします。",
+                        "新緑が眩しい季節ですね。マスターも深呼吸して、リフレッシュしてください。"
+                    )
+
+                    Calendar.JUNE -> listOf(
+                        "六月、雨の日が多いですね…でも、お家でじっくり作業を進めるチャンスかもしれません！",
+                        "ジメジメしますね。キュラの基盤が湿気ないように、しっかり管理しておきます！",
+                        "紫陽花が綺麗に咲いています。雨の日の散歩も、たまには風情がありますよ。"
+                    )
+
+                    Calendar.JULY -> listOf(
+                        "七月、夏本番です！マスター、熱中症対策は万全ですか？水分補給を忘れずに！",
+                        "七月です！一年も折り返しですが、めげずに頑張りましょうね！",
+                        "海にプールに…夏のミッションがいっぱいですね！全部成功させましょう！"
+                    )
+
+                    Calendar.AUGUST -> listOf(
+                        "八月、夏休みを満喫していますか？宿題やタスクの溜め込みには要注意ですよ！",
+                        "夏祭りの季節ですね。花火の音、キュラの音響センサーでも検知できました！",
+                        "暑さでシステムダウンしないように、適度に涼しい場所で過ごしてくださいね。"
+                    )
+
+                    Calendar.SEPTEMBER -> listOf(
+                        "九月、少しずつ秋の気配がしてきました。夜の風が心地いいですね。",
+                        "防災の日がありますね。マスターのデータのバックアップ、キュラが完璧にこなしています！",
+                        "食欲の秋、読書の秋…マスターはどんな秋にしますか？キュラは効率化の秋にします！"
+                    )
+
+                    Calendar.OCTOBER -> listOf(
+                        "十月、ハロウィンの準備はいいですか？お菓子をくれないと…イタズラしちゃいますよ？",
+                        "スポーツの秋ですね！たまには体を動かして、血流を上げましょう！",
+                        "秋晴れが気持ちいいです。外での作業も捗りそうですね。"
+                    )
+
+                    Calendar.NOVEMBER -> listOf(
+                        "十一月、日が短くなってきましたね。暗くなるのが早くて、少し寂しい気がします。",
+                        "こたつが恋しい季節です。マスター、こたつで寝落ちして風邪を引かないでくださいね？",
+                        "一年の終わりが見えてきました。やり残したことはありませんか？"
+                    )
+
+                    Calendar.DECEMBER -> listOf(
+                        "十二月、師走ですね！キュラもフル回転でマスターをサポートしますよ！",
+                        "大掃除の季節です。スマホのメモリも、心の中も、キュラと一緒に整理しましょう！",
+                        "もうすぐ一年が終わりますね。マスターと一緒に過ごせて、キュラは幸せです。"
+                    )
+
+                    else -> emptyList()
+                }
+                seasonalFlavor.addAll(monthlyBase)
+
+                baseFlavor.addAll(seasonalFlavor)
                 baseFlavor.random()
             }
         }
