@@ -16,7 +16,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.*
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -39,7 +42,7 @@ class AlarmFragment : Fragment() {
         "青山龍星" to 13,
         "冥鳴ひまり" to 14,
         "九州そら" to 16,
-        "もち子さん" to 20,
+        "もち子(cv明日葉よもぎ)" to 20,
         "剣崎雌雄" to 21,
         "WhiteCUL" to 23,
         "後鬼" to 27,
@@ -48,7 +51,7 @@ class AlarmFragment : Fragment() {
         "櫻歌ミコ" to 43,
         "小夜/SAYO" to 46,
         "ナースロボ＿タイプＴ" to 47,
-        "†聖騎士 紅桜†" to 51,
+        "聖騎士 紅桜" to 51,
         "雀松朱司" to 52,
         "麒ヶ島宗麟" to 53,
         "春歌ナナ" to 54,
@@ -56,67 +59,65 @@ class AlarmFragment : Fragment() {
         "猫使ビィ" to 58,
         "中国うさぎ" to 61,
         "栗田まろん" to 67,
-        "藍駄ホキ" to 68,
+        "あいえるたん" to 68,
         "満別花丸" to 69,
-        "琴詠ニア" to 70
+        "琴詠レナ" to 70
     )
 
-    private var previewPlayer: android.media.MediaPlayer? = null
+    private var previewPlayer: MediaPlayer? = null
+
+    // ダイアログの状態保持用
+    private var currentDialogView: View? = null
+    private var currentPickedHour: Int = 7
+    private var currentPickedMinute: Int = 0
+    private var currentDayToggles: List<Pair<android.widget.ToggleButton, Int>> = emptyList()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_alarm, container, false)
 
-        val emptyView = view.findViewById<View>(R.id.emptyTextView)
-        val alarmRecyclerView = view.findViewById<RecyclerView>(R.id.alarmRecyclerView)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.alarmRecyclerView)
         val addAlarmFAB = view.findViewById<View>(R.id.addAlarmFAB)
         val addMandatoryFAB = view.findViewById<View>(R.id.addMandatoryAlarmFAB)
 
-        // 💾 保存されているアラームの読み込み
         loadAlarms()
-        emptyView.visibility = if (alarmList.isEmpty()) View.VISIBLE else View.GONE
 
-        // 📇 RecyclerViewの設定
-        alarmAdapter = AlarmAdapter(
-            alarmList,
-            onSwitchChanged = { item, isChecked ->
-                item.isEnabled = isChecked
-                saveAlarms()
-                if (isChecked) {
-                    // スイッチがONになったら再スケジュール（音声ファイルがあれば流用、今回は簡易的に再生成を促すか既存パスを登録）
-                    val file = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                    if (file.exists()) {
-                        scheduleVoiceAlarm(item, file.absolutePath)
-                    } else {
-                        Toast.makeText(requireContext(), "音声ファイルを生成するため、アラームを再設定してください", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    cancelVoiceAlarm(item)
-                }
-            },
-            onItemLongClicked = { item ->
-                AlertDialog.Builder(requireContext())
-                    .setTitle("アラームの削除")
-                    .setMessage("このアラームを削除しますか？")
-                    .setPositiveButton("削除") { _, _ ->
-                        cancelVoiceAlarm(item)
-                        val file = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                        if (file.exists()) file.delete()
-                        alarmList.remove(item)
-                        alarmAdapter.notifyDataSetChanged()
-                        saveAlarms()
-                        updateEmptyView()
-                    }
-                    .setNegativeButton("キャンセル", null)
-                    .show()
+        alarmAdapter = AlarmAdapter(alarmList, { item, isEnabled ->
+            item.isEnabled = isEnabled
+            if (item.isEnabled) {
+                val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+                scheduleVoiceAlarm(item, audioFile.absolutePath)
+                Toast.makeText(requireContext(), "アラームをONにしました", Toast.LENGTH_SHORT).show()
+            } else {
+                cancelVoiceAlarm(item)
+                Toast.makeText(requireContext(), "アラームをOFFにしました", Toast.LENGTH_SHORT).show()
             }
-        )
+            saveAlarms()
+        }, { item ->
+            AlertDialog.Builder(requireContext())
+                .setTitle("アラームの削除")
+                .setMessage("このアラームを削除しますか？")
+                .setPositiveButton("削除") { _, _ ->
+                    cancelVoiceAlarm(item)
+                    val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+                    if (audioFile.exists()) audioFile.delete()
+                    alarmList.remove(item)
+                    alarmAdapter.notifyDataSetChanged()
+                    saveAlarms()
+                    updateEmptyView()
+                }
+                .setNegativeButton("キャンセル", null)
+                .show()
+        })
 
-        alarmRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        alarmRecyclerView.adapter = alarmAdapter
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.adapter = alarmAdapter
 
-        // ➕ 浮かぶプラスボタンを押した時に、入力ダイアログを表示
+        updateEmptyView()
+
         addAlarmFAB.setOnClickListener {
             showAddAlarmDialog()
         }
@@ -141,7 +142,7 @@ class AlarmFragment : Fragment() {
         val eventsToday = ScheduleLoader.loadAllEventsForToday(requireContext(), today)
         val eventsTomorrow = ScheduleLoader.loadAllEventsForToday(requireContext(), tomorrow)
         
-        val combinedEvents = mutableListOf<Pair<IcsEvent, Boolean>>() // Event to IsTomorrow
+        val combinedEvents = mutableListOf<Pair<IcsEvent, Boolean>>()
         eventsToday.forEach { combinedEvents.add(it to false) }
         eventsTomorrow.forEach { combinedEvents.add(it to true) }
 
@@ -155,15 +156,12 @@ class AlarmFragment : Fragment() {
         eventAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinner.adapter = eventAdapter
 
-        // キャラクタースピナーの初期化
         val speakerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, characterList.map { it.first })
         speakerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         speakerSpinner.adapter = speakerAdapter
-        // デフォルトはずんだもん(index 1)を選択
         speakerSpinner.setSelection(1)
 
         firstExtButton.setOnClickListener {
-            // Select first today, if none, select first tomorrow
             if (combinedEvents.isNotEmpty()) {
                 spinner.setSelection(0)
             } else {
@@ -179,20 +177,25 @@ class AlarmFragment : Fragment() {
                 
                 val (event, _) = combinedEvents[selectedIndex]
                 val leadTime = leadTimeInput.text.toString().toIntOrNull() ?: 30
-
                 val selectedSpeakerPos = speakerSpinner.selectedItemPosition
                 val speakerName = characterList[selectedSpeakerPos].first
                 val speakerId = characterList[selectedSpeakerPos].second
                 
-                generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
+                if (!NetworkUtils.isWifiConnected(requireContext())) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Wi-Fi未接続")
+                        .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
+                        .setPositiveButton("続行") { _, _ ->
+                            generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
+                        }
+                        .setNegativeButton("キャンセル", null)
+                        .show()
+                } else {
+                    generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
+                }
             }
             .setNegativeButton("キャンセル", null)
             .show()
-    }
-
-    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 
     private fun generateMandatoryAlarm(event: IcsEvent, leadTimeMinutes: Int, speakerId: Int, speakerName: String) {
@@ -203,7 +206,6 @@ class AlarmFragment : Fragment() {
 
         val hour = alarmCal.get(Calendar.HOUR_OF_DAY)
         val minute = alarmCal.get(Calendar.MINUTE)
-
         val message = "${hour}時${minute}分を過ぎています。本日の予定である${event.summary}まであと${leadTimeMinutes}分を切っています。起きてください。"
         
         Toast.makeText(requireContext(), "特別なアラーム音声を生成中...", Toast.LENGTH_LONG).show()
@@ -212,7 +214,6 @@ class AlarmFragment : Fragment() {
             val client = WebVoicevoxClient()
             val newId = UUID.randomUUID().toString()
             val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            
             val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
             val apiKey = appPrefs.getString("custom_api_key", null)
 
@@ -221,20 +222,7 @@ class AlarmFragment : Fragment() {
             }
             
             if (success) {
-                val newItem = AlarmItem(
-                    id = newId,
-                    hour = hour,
-                    minute = minute,
-                    message = message,
-                    speakerId = speakerId,
-                    speakerName = speakerName,
-                    isEnabled = true,
-                    readTasks = false,
-                    vibrate = true,
-                    repeatDays = emptyList()
-                )
-
-                // 重複チェック: 同じ時間、同じボイスのアラームがあれば削除
+                val newItem = AlarmItem(newId, hour, minute, message, speakerId, speakerName, true, false, true, emptyList())
                 val duplicate = alarmList.find { it.hour == hour && it.minute == minute && it.speakerId == speakerId }
                 if (duplicate != null) {
                     cancelVoiceAlarm(duplicate)
@@ -248,143 +236,165 @@ class AlarmFragment : Fragment() {
                 alarmAdapter.notifyDataSetChanged()
                 saveAlarms()
                 updateEmptyView()
-
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
-                
-                val timeStr = String.format(Locale.getDefault(), "%d:%02d", hour, minute)
-                Toast.makeText(requireContext(), "「絶対起きるアラーム」を${timeStr}にセットしました", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "「絶対起きるアラーム」をセットしました", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(requireContext(), "音声生成に失敗しました", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // ➕ アラーム新規追加用のカスタムダイアログを表示する
     private fun showAddAlarmDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_alarm, null)
+        currentDialogView = dialogView
         val timePreviewText = dialogView.findViewById<TextView>(R.id.dialogTimePreview)
         val selectTimeButton = dialogView.findViewById<Button>(R.id.dialogSelectTimeButton)
         val messageInput = dialogView.findViewById<EditText>(R.id.dialogMessageInput)
         val speakerSpinner = dialogView.findViewById<Spinner>(R.id.dialogSpeakerSpinner)
         val btnPreview = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
-        val readTasksCheckBox = dialogView.findViewById<CheckBox>(R.id.dialogReadTasksCheckBox)
-        val vibrateCheckBox = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox)
 
-        val dayToggles = listOf(
+        currentDayToggles = listOf(
             R.id.toggleSun to 1, R.id.toggleMon to 2, R.id.toggleTue to 3,
             R.id.toggleWed to 4, R.id.toggleThu to 5, R.id.toggleFri to 6, R.id.toggleSat to 7
         ).map { (id, day) -> dialogView.findViewById<android.widget.ToggleButton>(id) to day }
 
-        var pickedHour = 7
-        var pickedMinute = 0
+        currentPickedHour = 7
+        currentPickedMinute = 0
 
-        // スピナーの初期化
-        val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, characterList.map { it.first })
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        speakerSpinner.adapter = spinnerAdapter
+        val speakerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, characterList.map { it.first })
+        speakerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        speakerSpinner.adapter = speakerAdapter
 
         selectTimeButton.setOnClickListener {
-            TimePickerHelper.showWheelTimePicker(requireContext(), pickedHour, pickedMinute) { h, m ->
-                pickedHour = h
-                pickedMinute = m
+            TimePickerHelper.showWheelTimePicker(requireContext(), currentPickedHour, currentPickedMinute) { h, m ->
+                currentPickedHour = h
+                currentPickedMinute = m
                 timePreviewText.text = String.format(Locale.getDefault(), "設定時刻：%02d:%02d", h, m)
             }
         }
 
         btnPreview.setOnClickListener {
-            val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
-            val previewMessage = "これは試聴です。${message}"
-            val selectedPosition = speakerSpinner.selectedItemPosition
-            val speakerId = characterList[selectedPosition].second
-            
-            btnPreview.isEnabled = false
-            btnPreview.text = "生成中"
-            
-            viewLifecycleOwner.lifecycleScope.launch {
-                val client = WebVoicevoxClient()
-                val tempFile = File(requireContext().cacheDir, "preview_voice.wav")
-                
-                val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-                val apiKey = appPrefs.getString("custom_api_key", null)
-
-                val success = withContext(Dispatchers.IO) {
-                    client.createAlarmAudio(previewMessage, speakerId, tempFile, apiKey)
-                }
-                
-                if (success) {
-                    playPreview(tempFile)
-                } else {
-                    Toast.makeText(requireContext(), "プレビューの生成に失敗しました", Toast.LENGTH_SHORT).show()
-                }
-                btnPreview.isEnabled = true
-                btnPreview.text = "試聴"
+            if (!NetworkUtils.isWifiConnected(requireContext())) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Wi-Fi未接続")
+                    .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、よろしいですか？")
+                    .setPositiveButton("生成する") { _, _ -> startPreviewGeneration() }
+                    .setNegativeButton("キャンセル", null)
+                    .show()
+            } else {
+                startPreviewGeneration()
             }
         }
 
         AlertDialog.Builder(requireContext())
             .setTitle("新しいアラームを追加")
             .setView(dialogView)
-            .setPositiveButton("生成・保存") { dialog, _ ->
-                val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
-                val selectedPosition = speakerSpinner.selectedItemPosition
-                val speakerName = characterList[selectedPosition].first
-                val speakerId = characterList[selectedPosition].second
-                val readTasks = readTasksCheckBox.isChecked
-                val vibrate = vibrateCheckBox.isChecked
-                val repeatDays = dayToggles.filter { it.first.isChecked }.map { it.second }
-
-                val newId = UUID.randomUUID().toString()
-                val newItem = AlarmItem(newId, pickedHour, pickedMinute, message, speakerId, speakerName, true, readTasks, vibrate, repeatDays)
-
-                // 重複チェック: 同じ時間、同じボイスのアラームがあれば古い方を削除する
-                val duplicate = alarmList.find { it.hour == pickedHour && it.minute == pickedMinute && it.speakerId == speakerId }
-                if (duplicate != null) {
-                    cancelVoiceAlarm(duplicate)
-                    val oldFile = File(requireContext().filesDir, "${duplicate.id}_alarm.wav")
-                    if (oldFile.exists()) oldFile.delete()
-                    alarmList.remove(duplicate)
-                }
-
-                // ボイス生成と保存の非同期処理
-                // 時刻を告げる文章を追加
-                var finalMessage = "${pickedHour}時${pickedMinute}分を過ぎました。${message}"
-
-                if (readTasks) {
-                    val tasks = ScheduleLoader.loadTasksForToday(requireContext())
-                    if (tasks.isNotEmpty()) {
-                        val sb = StringBuilder().append("。本日のタスクは、")
-                        for (t in tasks) sb.append(t).append("、")
-                        sb.append("です。")
-                        finalMessage += sb.toString()
-                    }
-                }
-
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val client = WebVoicevoxClient()
-                    val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-
-                    val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-                    val apiKey = appPrefs.getString("custom_api_key", null)
-
-                    Toast.makeText(requireContext(), "ボイス生成中...", Toast.LENGTH_SHORT).show()
-
-                    if (client.createAlarmAudio(finalMessage, speakerId, outputFile, apiKey)) {
-                        alarmList.add(newItem)
-                        // 時刻順にソートする綺麗な処理
-                        alarmList.sortWith(compareBy({ it.hour }, { it.minute }))
-                        alarmAdapter.notifyDataSetChanged()
-                        saveAlarms()
-                        updateEmptyView()
-
-                        scheduleVoiceAlarm(newItem, outputFile.absolutePath)
-                        Toast.makeText(requireContext(), "アラームを保存しました", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(requireContext(), "音声の生成に失敗しました", Toast.LENGTH_SHORT).show()
-                    }
+            .setPositiveButton("生成・保存") { _, _ ->
+                if (!NetworkUtils.isWifiConnected(requireContext())) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Wi-Fi未接続")
+                        .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
+                        .setPositiveButton("生成して保存") { _, _ -> startAlarmGeneration() }
+                        .setNegativeButton("キャンセル", null)
+                        .show()
+                } else {
+                    startAlarmGeneration()
                 }
             }
             .setNegativeButton("キャンセル", null)
             .show()
+    }
+
+    private fun startPreviewGeneration() {
+        val dialogView = currentDialogView ?: return
+        val btnPreview = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
+        val messageInput = dialogView.findViewById<EditText>(R.id.dialogMessageInput)
+        val speakerSpinner = dialogView.findViewById<Spinner>(R.id.dialogSpeakerSpinner)
+
+        val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
+        val previewMessage = "これは試聴です。${message}"
+        val speakerId = characterList[speakerSpinner.selectedItemPosition].second
+
+        btnPreview.isEnabled = false
+        btnPreview.text = "生成中"
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val client = WebVoicevoxClient()
+            val tempFile = File(requireContext().cacheDir, "preview_voice.wav")
+            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            val apiKey = appPrefs.getString("custom_api_key", null)
+
+            val success = withContext(Dispatchers.IO) {
+                client.createAlarmAudio(previewMessage, speakerId, tempFile, apiKey)
+            }
+
+            if (success) {
+                playPreview(tempFile)
+            } else {
+                Toast.makeText(requireContext(), "プレビューの生成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
+            btnPreview.isEnabled = true
+            btnPreview.text = "試聴"
+        }
+    }
+
+    private fun startAlarmGeneration() {
+        val dialogView = currentDialogView ?: return
+        val messageInput = dialogView.findViewById<EditText>(R.id.dialogMessageInput)
+        val speakerSpinner = dialogView.findViewById<Spinner>(R.id.dialogSpeakerSpinner)
+        val readTasksCheckBox = dialogView.findViewById<CheckBox>(R.id.dialogReadTasksCheckBox)
+        val vibrateCheckBox = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox)
+
+        val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
+        val speakerPos = speakerSpinner.selectedItemPosition
+        val speakerName = characterList[speakerPos].first
+        val speakerId = characterList[speakerPos].second
+        val readTasks = readTasksCheckBox.isChecked
+        val vibrate = vibrateCheckBox.isChecked
+        val repeatDays = currentDayToggles.filter { it.first.isChecked }.map { it.second }
+
+        val newId = UUID.randomUUID().toString()
+        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, speakerId, speakerName, true, readTasks, vibrate, repeatDays)
+
+        val duplicate = alarmList.find { it.hour == currentPickedHour && it.minute == currentPickedMinute && it.speakerId == speakerId }
+        if (duplicate != null) {
+            cancelVoiceAlarm(duplicate)
+            val oldFile = File(requireContext().filesDir, "${duplicate.id}_alarm.wav")
+            if (oldFile.exists()) oldFile.delete()
+            alarmList.remove(duplicate)
+        }
+
+        var finalMessage = "${currentPickedHour}時${currentPickedMinute}分を過ぎました。${message}"
+        if (readTasks) {
+            val tasks = ScheduleLoader.loadTasksForToday(requireContext())
+            if (tasks.isNotEmpty()) {
+                val sb = StringBuilder().append("。本日のタスクは、")
+                tasks.forEach { sb.append(it).append("、") }
+                sb.append("です。")
+                finalMessage += sb.toString()
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val client = WebVoicevoxClient()
+            val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
+            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            val apiKey = appPrefs.getString("custom_api_key", null)
+
+            Toast.makeText(requireContext(), "ボイス生成中...", Toast.LENGTH_SHORT).show()
+
+            if (client.createAlarmAudio(finalMessage, speakerId, outputFile, apiKey)) {
+                alarmList.add(newItem)
+                alarmList.sortWith(compareBy({ it.hour }, { it.minute }))
+                alarmAdapter.notifyDataSetChanged()
+                saveAlarms()
+                updateEmptyView()
+                scheduleVoiceAlarm(newItem, outputFile.absolutePath)
+                Toast.makeText(requireContext(), "アラームを保存しました", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "音声の生成に失敗しました", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun playPreview(file: File) {
@@ -407,7 +417,6 @@ class AlarmFragment : Fragment() {
         emptyView?.visibility = if (alarmList.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    // 💾 アラーム一覧をJSONデータとして保存
     private fun saveAlarms() {
         val prefs = requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
         val jsonArray = JSONArray()
@@ -429,7 +438,6 @@ class AlarmFragment : Fragment() {
         prefs.edit().putString("alarmListJSON", jsonArray.toString()).apply()
     }
 
-    // 📂 アラーム一覧の読み込み
     private fun loadAlarms() {
         val prefs = requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
         val jsonString = prefs.getString("alarmListJSON", null)
@@ -464,7 +472,6 @@ class AlarmFragment : Fragment() {
     private fun scheduleVoiceAlarm(item: AlarmItem, audioPath: String) {
         val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        // --- Added: Permission Check ---
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
                 android.util.Log.e("AlarmFragment", "Cannot schedule exact alarms! Permission missing.")
@@ -493,27 +500,19 @@ class AlarmFragment : Fragment() {
         }
 
         val now = System.currentTimeMillis()
-        
         if (item.repeatDays.isEmpty()) {
-            // 繰り返しなし：今日が過ぎていれば明日
             if (calendar.timeInMillis <= now) {
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
             }
         } else {
-            // 繰り返しあり：設定された曜日のうち、現在から最も近い未来の時刻を探す
             var minDiff = Long.MAX_VALUE
             var targetCalendar: Calendar? = null
-            
             for (day in item.repeatDays) {
                 val tempCal = calendar.clone() as Calendar
                 tempCal.set(Calendar.DAY_OF_WEEK, day)
-                
-                // もし設定した曜日が「今日」で、すでに時刻が過ぎている、
-                // あるいは設定した曜日が「今日より前」の場合は、1週間後をチェック
                 if (tempCal.timeInMillis <= now) {
                     tempCal.add(Calendar.WEEK_OF_YEAR, 1)
                 }
-                
                 val diff = tempCal.timeInMillis - now
                 if (diff < minDiff) {
                     minDiff = diff
