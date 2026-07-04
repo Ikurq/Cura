@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Outer Shield / Aura -->
+    <path
+        android:fillColor="#1A3B82F6"
+        android:pathData="M100,20 C144,20 180,56 180,100 C180,144 144,180 100,180 C56,180 20,144 20,100 C20,56 56,20 100,20" />
+    <!-- Bot Body -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M70,80 L130,80 L140,140 L60,140 Z" />
+    <!-- Bot Head -->
+    <path
+        android:fillColor="#60A5FA"
+        android:pathData="M80,45 L120,45 C125,45 130,50 130,55 L130,75 L70,75 L70,55 C70,50 75,45 80,45" />
+    <!-- Bot Eye -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M85,55 L115,55 L115,65 L85,65 Z" />
+    <!-- Accessory (Antenna) -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M100,30 L100,45 M95,30 L105,30" />
+</vector>

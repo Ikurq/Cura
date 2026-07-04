@@ -1,0 +1,93 @@
+<resources>
+    <string name="app_name">Cura</string>
+
+    <!-- Navigation -->
+    <string name="nav_alarm">Wake (アラーム)</string>
+    <string name="nav_tasks">Task (タスク)</string>
+    <string name="nav_timetable">Quest (予定)</string>
+    <string name="nav_attendance">Link (出欠管理)</string>
+    <string name="nav_settings">Config (設定)</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_credits">Credits</string>
+    <string name="nav_tutorial">Manual</string>
+
+    <!-- Main Activity -->
+    <string name="welcome_title">Cura Online</string>
+    <string name="welcome_subtitle">あなたの学生生活を、守護・整理（キュレート）します</string>
+
+    <!-- Alarm Fragment -->
+    <string name="title_alarm">アラーム</string>
+    <string name="no_alarms">アラームが設定されていません</string>
+    <string name="tap_plus_alarm">＋ボタンから新しく作成しましょう</string>
+    <string name="new_alarm">新しいアラーム</string>
+    <string name="mandatory">重要予定</string>
+
+    <!-- Task Fragment -->
+    <string name="title_tasks">タスクリスト</string>
+    <string name="no_tasks">タスクがありません</string>
+    <string name="tap_plus_task">＋ボタンから最初のタスクを追加しましょう</string>
+    <string name="new_task">新しいタスク</string>
+
+    <!-- Attendance Manager -->
+    <string name="title_attendance">出欠管理カウンター</string>
+    <string name="attend">出席</string>
+    <string name="late">遅刻</string>
+    <string name="absent">欠席</string>
+    <string name="total_classes">全 %1$d 回</string>
+    <string name="not_decided">未決定</string>
+    <string name="not_recorded">未記録</string>
+
+    <!-- Settings -->
+    <string name="settings_permissions">権限設定</string>
+    <string name="overlay_title">他のアプリの上に重ねて表示</string>
+    <string name="overlay_desc">アラーム画面を最前面に出すために必要です</string>
+    <string name="battery_title">バッテリー最適化の除外</string>
+    <string name="battery_desc">アラームを確実に鳴らすために推奨します</string>
+    <string name="fullscreen_title">全画面通知の許可</string>
+    <string name="fullscreen_desc">ロック画面でアラームを表示するために必要です</string>
+    <string name="settings_notification">通知設定</string>
+    <string name="mandatory_reminder_title">絶対起きるアラームのリマインド</string>
+    <string name="mandatory_reminder_desc">0時にアラームが未設定なら通知</string>
+    <string name="task_notification_title">タスクの締切通知</string>
+    <string name="task_notification_desc">締切の1時間前に通知します</string>
+    <string name="event_notification_title">予定の直前通知</string>
+    <string name="event_notification_desc">予定の10分前に通知します</string>
+    <string name="settings_calendar">カレンダー管理</string>
+    <string name="add_calendar">追加する</string>
+    <string name="settings_presets">スケジュールのプリセット</string>
+    <string name="settings_alarm_advanced">アラーム詳細設定</string>
+    <string name="skip_holidays_title">祝日はアラームを鳴らさない</string>
+    <string name="skip_holidays_desc">日本の祝日に合わせて自動でスキップします</string>
+    <string name="vacation_mode_title">長期休暇モード (一括停止)</string>
+    <string name="vacation_mode_desc">ONの間、全てのアラームを一時停止します</string>
+    <string name="settings_storage">ストレージ管理</string>
+    <string name="voice_cache_title">音声キャッシュ</string>
+    <string name="cache_size_prefix">使用量: %1$.1f MB</string>
+    <string name="delete">削除</string>
+    <string name="settings_backup">バックアップ</string>
+    <string name="backup_title">データの保存・復元</string>
+    <string name="backup_desc">全ての設定と記録をファイルに保存します</string>
+    <string name="save">保存</string>
+    <string name="restore">復元</string>
+
+    <!-- Dialogs -->
+    <string name="add_event_title">予定の追加</string>
+    <string name="select_from_preset">保存済みから選択</string>
+    <string name="genre_hint">ジャンル (例: バイト、講義)</string>
+    <string name="select_time">開始時間を選択</string>
+    <string name="location_hint">場所</string>
+    <string name="save_as_preset">この内容をプリセットとして保存する</string>
+    <string name="track_attendance">出席/記録を管理する (授業など)</string>
+    <string name="repeat_weekly">毎週繰り返す (年度末 3/31 まで)</string>
+    <string name="alarm_message_label">アラーム時に読み上げるセリフ</string>
+    <string name="preview">試聴</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">キャンセル</string>
+    <string name="setting">設定</string>
+    <string name="permitted">許可済み</string>
+    <string name="close">閉じる</string>
+    <string name="add">追加</string>
+    <string name="finish">完了</string>
+</resources>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Cyber / Near-Future Palette -->
+    <color name="cyber_cyan">#06B6D4</color>
+    <color name="cyber_cyan_dark">#0891B2</color>
+    <color name="cyber_pink">#F472B6</color>
+    <color name="cyber_pink_dark">#DB2777</color>
+    <color name="cyber_lime">#84CC16</color>
+    <color name="cyber_lime_dark">#65A30D</color>
+    <color name="cyber_border">#1E293B</color>
+    <color name="cyber_surface">#880F172A</color> <!-- More transparent for better Glassmorphism -->
+    <color name="cyber_grid">#111E293B</color>
+
+    <color name="primary">#06B6D4</color> <!-- Changed to Cyber Cyan -->
+    <color name="primary_container">#1E293B</color>
+    <color name="secondary">#64748B</color>
+    <color name="accent">#3B82F6</color>
+
+    <!-- Backgrounds -->
+    <color name="background">#020617</color> <!-- Rich Deep Navy Black -->
+    <color name="surface">#0F172A</color>    <!-- Lighter Navy for cards -->
+    <color name="error">#F43F5E</color>
+
+    <!-- UI Elements -->
+    <color name="outline">#1E293B</color>
+    <color name="outline_high">#334155</color>
+
+    <!-- Text Colors (High Legibility) -->
+    <color name="text_primary">#F8FAFC</color>   <!-- Near White -->
+    <color name="text_secondary">#94A3B8</color> <!-- Muted Slate -->
+    <color name="text_tertiary">#475569</color>
+
+    <!-- Day Selection -->
+    <color name="day_unselected">#1E293B</color>
+    <color name="day_selected">#3B82F6</color>
+
+    <color name="colorPrimary">#3B82F6</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+
+    <!-- Priority Colors (Vibrant on Dark) -->
+    <color name="priority_5">#F43F5E</color>
+    <color name="priority_4">#FBBF24</color>
+    <color name="priority_3">#3B82F6</color>
+    <color name="priority_2">#10B981</color>
+    <color name="priority_1">#475569</color>
+
+    <!-- Social Game Style Colors -->
+    <color name="hp_bar">#10B981</color> <!-- Green -->
+    <color name="mp_bar">#3B82F6</color> <!-- Blue -->
+    <color name="exp_bar">#FBBF24</color> <!-- Yellow/Gold -->
+    <color name="rank_label">#F43F5E</color> <!-- Pink/Red -->
+    <color name="button_quest">#FF8C00</color> <!-- Orange -->
+    <color name="button_gacha">#9370DB</color> <!-- Purple -->
+</resources>

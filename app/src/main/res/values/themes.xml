@@ -1,0 +1,112 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.VoiceVoxアラーム" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Action color (Accent) -->
+        <item name="colorTertiary">@color/accent</item>
+        <item name="colorOnTertiary">@color/white</item>
+
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOutline">@color/outline</item>
+
+        <!-- Background and Surfaces -->
+        <item name="android:windowBackground">@drawable/bg_cyber_deep_blue</item>
+        <item name="android:navigationBarColor">@color/background</item>
+
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+    </style>
+
+    <style name="Theme.VoiceVoxアラーム" parent="Base.Theme.VoiceVoxアラーム" />
+
+    <style name="CyberCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">2dp</item> <!-- Sharper corners for a technical look -->
+        <item name="cardElevation">4dp</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">@color/cyber_cyan</item>
+        <item name="cardBackgroundColor">@color/cyber_surface</item>
+    </style>
+
+    <style name="ModernCard" parent="CyberCard" />
+
+    <style name="CyberTypography.Header" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textStyle">bold|italic</item>
+        <item name="android:letterSpacing">0.2</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/cyber_cyan</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <style name="CyberTypography.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="CyberTypography.Label" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textStyle">italic</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.1</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="CyberButton" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.15</item>
+        <item name="android:textStyle">bold|italic</item>
+        <item name="cornerRadius">0dp</item> <!-- Sharp industrial corners -->
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">@color/cyber_cyan</item>
+    </style>
+
+    <style name="SharpTextPrimary">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="ToolbarTitle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="LauncherButton" parent="Widget.Material3.Button.TonalButton">
+        <item name="android:layout_width">280dp</item>
+        <item name="android:layout_height">80dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">24dp</item>
+    </style>
+
+    <style name="GachaButton" parent="Widget.Material3.Button.ElevatedButton">
+        <item name="android:layout_width">280dp</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">@color/outline_high</item>
+    </style>
+
+    <style name="CalendarDateTextAppearance">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="CalendarWeekDayTextAppearance">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+</resources>

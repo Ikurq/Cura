@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="クレジット"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="音声合成ソフトウェア"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/ModernCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="VOICEVOX"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="https://voicevox.hiroshiba.jp/"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用キャラクター"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/ModernCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="本アプリでは以下のキャラクターの音声を使用しています。各キャラクターの利用規約に従ってご利用ください。"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/creditsCharactersList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="・VOICEVOX:四国めたん\n・VOICEVOX:ずんだもん\n・VOICEVOX:春日部つむぎ\n・VOICEVOX:雨晴はう\n・VOICEVOX:波音リツ\n・VOICEVOX:玄野武宏\n・VOICEVOX:白上虎太郎\n・VOICEVOX:青山龍星\n・VOICEVOX:冥鳴ひまり\n・VOICEVOX:九州そら\n・VOICEVOX:もち子さん\n・VOICEVOX:剣崎雌雄\n・VOICEVOX:WhiteCUL\n・VOICEVOX:後鬼\n・VOICEVOX:No.7\n・VOICEVOX:ちび式じい\n・VOICEVOX:櫻歌ミコ\n・VOICEVOX:小夜/SAYO\n・VOICEVOX:ナースロボ＿タイプＴ\n・VOICEVOX:†聖騎士 紅桜†\n・VOICEVOX:雀松朱司\n・VOICEVOX:麒ヶ島宗麟\n・VOICEVOX:春歌ナナ\n・VOICEVOX:猫使アル\n・VOICEVOX:猫使ビィ\n・VOICEVOX:中国うさぎ\n・VOICEVOX:栗田まろん\n・VOICEVOX:藍駄ホキ\n・VOICEVOX:満別花丸\n・VOICEVOX:琴詠ニア"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="4dp"
+                    android:textColor="@color/text_primary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="※各音声の権利はそれぞれの制作者様に帰属します。"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+</ScrollView>

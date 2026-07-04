@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/dialogTimePreview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="設定時刻：07:00"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/dialogSelectTimeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/select_time"
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="繰り返す曜日 (未選択で1回のみ)"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+        <ToggleButton android:id="@+id/toggleSun" android:layout_width="40dp" android:layout_height="40dp" android:textOn="日" android:textOff="日" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleMon" android:layout_width="40dp" android:layout_height="40dp" android:textOn="月" android:textOff="月" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleTue" android:layout_width="40dp" android:layout_height="40dp" android:textOn="火" android:textOff="火" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleWed" android:layout_width="40dp" android:layout_height="40dp" android:textOn="水" android:textOff="水" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleThu" android:layout_width="40dp" android:layout_height="40dp" android:textOn="木" android:textOff="木" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleFri" android:layout_width="40dp" android:layout_height="40dp" android:textOn="金" android:textOff="金" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+        <ToggleButton android:id="@+id/toggleSat" android:layout_width="40dp" android:layout_height="40dp" android:textOn="土" android:textOff="土" android:textSize="12sp" android:background="@drawable/bg_day_toggle" android:textColor="@color/selector_day_text" android:layout_margin="2dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/alarm_message_label"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp"/>
+
+    <EditText
+        android:id="@+id/dialogMessageInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/genre_hint"
+        android:text="時間です。起きてください。"
+        android:inputType="text"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="キャラクター"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+        <Spinner
+            android:id="@+id/dialogSpeakerSpinner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"/>
+        <Button
+            android:id="@+id/btnPreviewVoice"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/preview"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/dialogReadTasksCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="今日のタスクも一緒に読み上げる" />
+
+    <CheckBox
+        android:id="@+id/dialogVibrateCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="バイブレーションを有効にする"
+        android:checked="true" />
+
+</LinearLayout>
