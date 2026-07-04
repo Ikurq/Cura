@@ -173,6 +173,33 @@
                             app:layout_constraintHorizontal_weight="1.3"
                             app:layout_constraintHorizontal_bias="0.0"/>
 
+                        <!-- Dialogue Bubble (Independent Overlay) -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/dialogueBubble"
+                            style="@style/CyberCard"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintStart_toEndOf="@id/characterImage"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            android:layout_marginStart="-32dp"
+                            android:layout_marginEnd="16dp"
+                            android:layout_marginTop="32dp"
+                            app:strokeColor="@color/cyber_cyan"
+                            android:alpha="0.0"
+                            android:elevation="12dp"
+                            tools:alpha="1.0">
+                            <TextView
+                                android:id="@+id/dialogueText"
+                                style="@style/CyberTypography.Body"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="12dp"
+                                android:text="マスター、今日も一日頑張りましょう！"
+                                android:textSize="14sp"
+                                android:fontFamily="sans-serif-medium"/>
+                        </com.google.android.material.card.MaterialCardView>
+
                         <View
                             android:id="@+id/characterTouchTarget"
                             android:layout_width="0dp"
@@ -349,33 +376,6 @@
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
                         </LinearLayout>
-
-                        <!-- Dialogue Bubble (Independent Overlay) -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/dialogueBubble"
-                            style="@style/CyberCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintStart_toEndOf="@id/characterImage"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="16dp"
-                            android:layout_marginTop="32dp"
-                            app:strokeColor="@color/cyber_cyan"
-                            android:alpha="0.0"
-                            android:elevation="12dp"
-                            tools:alpha="1.0">
-                            <TextView
-                                android:id="@+id/dialogueText"
-                                style="@style/CyberTypography.Body"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:padding="12dp"
-                                android:text="マスター、今日も一日頑張りましょう！"
-                                android:textSize="14sp"
-                                android:fontFamily="sans-serif-medium"/>
-                        </com.google.android.material.card.MaterialCardView>
 
                         <!-- Decorative Rotating Core (Stay here or move near time?) -->
                         <ImageView
