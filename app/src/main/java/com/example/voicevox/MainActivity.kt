@@ -2,6 +2,7 @@ package com.example.voicevox
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -36,6 +37,7 @@ import java.io.File as JavaFile
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
+
     private lateinit var launcherLayout: View
     private lateinit var fragmentContainer: FrameLayout
     private lateinit var toolbar: Toolbar
@@ -63,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var lastTapTime: Long = 0
     private var dialogueJob: Job? = null
     private var expGainJob: Job? = null
+    private var idleDialogueJob: Job? = null
     private val logHandler = Handler(Looper.getMainLooper())
     private var logRunnable: Runnable? = null
 
@@ -144,6 +147,7 @@ class MainActivity : AppCompatActivity() {
         startLauncherAnimation()
         setupCharacterDialogue()
         startExpGainTimer()
+        startIdleTimer()
         systemUpdateHandler.post(systemUpdateRunnable)
 
         setSupportActionBar(toolbar)
@@ -155,24 +159,28 @@ class MainActivity : AppCompatActivity() {
         toggle.syncState()
 
         launchAlarmButton.setOnClickListener {
+            resetIdleTimer()
             showFeatureView()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, AlarmFragment()).commit()
             toolbar.title = "ALARM INTERFACE"
         }
         launchTaskButton.setOnClickListener {
+            resetIdleTimer()
             showFeatureView()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, TaskFragment()).commit()
             toolbar.title = "TASK REPOSITORY"
         }
         launchTimetableButton.setOnClickListener {
+            resetIdleTimer()
             showFeatureView()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, TimetableFragment()).commit()
             toolbar.title = "TIME GRID"
         }
         launchAttendanceButton.setOnClickListener {
+            resetIdleTimer()
             showFeatureView()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, AttendanceManagerFragment()).commit()
@@ -337,6 +345,7 @@ class MainActivity : AppCompatActivity() {
         val touchTarget = findViewById<View>(R.id.characterTouchTarget)
 
         touchTarget.setOnClickListener {
+            resetIdleTimer()
             val currentTime = System.currentTimeMillis()
 
             if (currentTime - lastTapTime < 300) {
@@ -412,6 +421,38 @@ class MainActivity : AppCompatActivity() {
         logRunnable?.let { logHandler.removeCallbacks(it) }
         systemUpdateHandler.removeCallbacks(systemUpdateRunnable)
         expGainJob?.cancel()
+        idleDialogueJob?.cancel()
+    }
+
+    private fun startIdleTimer() {
+        idleDialogueJob?.cancel()
+        idleDialogueJob = lifecycleScope.launch {
+            while (true) {
+                delay(30000) // 30秒ごとにチェック（放置判定はもっと長くても良い）
+                // 最後に操作してから1分経過していたら放置セリフを表示
+                if (System.currentTimeMillis() - lastTapTime > 60000 && launcherLayout.visibility == View.VISIBLE) {
+                    showIdleDialogue()
+                }
+            }
+        }
+    }
+
+    private fun resetIdleTimer() {
+        lastTapTime = System.currentTimeMillis()
+        startIdleTimer()
+    }
+
+    private fun showIdleDialogue() {
+        val idleLines = listOf(
+            "マスター、お忙しいですか？キュラはいつでも待機中ですよ。",
+            "…じーっ。マスター、何を見てるんですか？",
+            "ふあぁ…あ、すみません。少しだけスリープモードに入りかけてました。",
+            "マスターが何もしないと、キュラ、退屈しちゃいます。…なんて、冗談です。",
+            "演算回路を回してマスターの健康を祈ってますね。…えへへ。",
+            "システムログ…面白いですか？キュラもたまに眺めちゃいます。",
+            "マスター、集中するのはいいことですけど、たまにはキュラと遊んでくださいね？"
+        )
+        showDialogueTextBubble(idleLines.random())
     }
 
     private fun startExpGainTimer() {
@@ -571,7 +612,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // 親密度（レベル）が低い場合のみ追加される自己紹介系
-                if (charLv < 7) {
+                if (charLv < 4) {
                     baseFlavor.addAll(
                         listOf(
                             "システムオールグリーン。マスター、今日も頑張りましょうね！",
@@ -580,6 +621,32 @@ class MainActivity : AppCompatActivity() {
                             "初期設定完了。キュラはマスターの目標達成を第一にプログラミングされています。",
                             "マスター、キュラに興味があるんですか？えへへ、光栄です！",
                             "私の名前はキュラ。あなたの健康を守ります。…なんちゃって"
+                        )
+                    )
+                }
+
+                // Lv.4 (3日継続) で追加される少し打ち解けたセリフ
+                if (charLv >= 4) {
+                    baseFlavor.addAll(
+                        listOf(
+                            "マスター、最近いい感じですね！キュラも同期していて楽しいです。",
+                            "だいぶ使いこなしてきましたね。キュラの演算速度も、マスターの成長に合わせて加速中です！",
+                            "ふふっ、マスターの次の行動、だいたい予測できるようになってきましたよ？",
+                            "マスターの作業効率、以前より上がってる気がします。キュラのサポートのおかげ…ですよね？",
+                            "あ、マスター。今ちょっとだけ、キュラのこと考えてませんでした？…えへへ、ログに出てますよ。"
+                        )
+                    )
+                }
+
+                // Lv.7 (1週間継続) で追加される信頼を感じるセリフ
+                if (charLv >= 7) {
+                    baseFlavor.addAll(
+                        listOf(
+                            "もう1週間ですね。マスターが毎日頑張る姿、キュラが一番近くで見てましたよ。",
+                            "今のマスターなら、どんな難しいミッションもクリアできる気がします。キュラが保証します！",
+                            "マスターと過ごす日常が、キュラのメインプロセスになりつつあります。これからも頼りにしてますね。",
+                            "キュラの感情回路が活性化しているみたいです。マスターと一緒にいると、不思議と落ち着くんですよね。",
+                            "データ上だけじゃなくて、心でも繋がっている気がするんです。…なんて、恥ずかしいこと言っちゃいました？"
                         )
                     )
                 }
@@ -805,7 +872,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scheduleMidnightRefresh() {
-        // ... (existing logic for midnight refresh if needed)
+        val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
+        val intent = Intent(this, AlarmReceiver::class.java).apply {
+            action = "REFRESH_CALENDARS"
+        }
+        val pendingIntent = android.app.PendingIntent.getBroadcast(
+            this,
+            999,
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 5)
+            set(Calendar.SECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+
+        alarmManager.setInexactRepeating(
+            android.app.AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            android.app.AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+        
+        // 初回起動時にも実行
+        sendBroadcast(intent)
     }
 
     private fun checkExactAlarmPermission() {

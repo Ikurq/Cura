@@ -1,92 +1,68 @@
 package com.example.voicevox
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.example.voicevox.databinding.FragmentSettingsBinding
-import kotlin.math.pow
+import org.json.JSONArray
 
 class SettingsFragment : Fragment() {
-
-    private var _binding: FragmentSettingsBinding? = null
-    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
-        return binding.root
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_settings_main, container, false)
+
+        val menuPresets = view.findViewById<View>(R.id.menuPresets)
+        
+        // プリセットが空ならメニューを非表示にする
+        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val presetJson = prefs.getString("presetListJSON", "[]")
+        val hasPresets = try {
+            JSONArray(presetJson).length() > 0
+        } catch (e: Exception) {
+            false
+        }
+        
+        menuPresets.visibility = if (hasPresets) View.VISIBLE else View.GONE
+
+        view.findViewById<View>(R.id.menuPermissions).setOnClickListener {
+            navigateTo(SettingsPermissionsFragment())
+        }
+        view.findViewById<View>(R.id.menuCalendar).setOnClickListener {
+            navigateTo(SettingsCalendarFragment())
+        }
+        view.findViewById<View>(R.id.menuPresets).setOnClickListener {
+            navigateTo(SettingsPresetsFragment())
+        }
+        view.findViewById<View>(R.id.menuVoice).setOnClickListener {
+            navigateTo(SettingsVoiceFragment())
+        }
+        view.findViewById<View>(R.id.menuDev).setOnClickListener {
+            navigateTo(SettingsDevFragment())
+        }
+
+        return view
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        setupPermissions()
-        setupDevSettings()
-    }
-
-    private fun setupPermissions() {
-        binding.btnRequestOverlayPermission.setOnClickListener {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${requireContext().packageName}"))
-            startActivity(intent)
+    private fun navigateTo(fragment: Fragment) {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .addToBackStack(null)
+            .commit()
+        
+        val title = when(fragment) {
+            is SettingsPermissionsFragment -> "システム権限と通知"
+            is SettingsCalendarFragment -> "外部カレンダーの設定"
+            is SettingsPresetsFragment -> "スケジュールの設定"
+            is SettingsVoiceFragment -> "音声合成とストレージ"
+            is SettingsDevFragment -> "開発者オプション"
+            else -> "設定"
         }
-
-        binding.btnRequestBatteryPermission.setOnClickListener {
-            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-            startActivity(intent)
-        }
-
-        binding.btnRequestFullScreenPermission.setOnClickListener {
-            // Full screen intent permission is handled in manifest, but on some devices you might want to open settings
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${requireContext().packageName}"))
-            startActivity(intent)
-        }
-    }
-
-    private fun setupDevSettings() {
-        val charPrefs = requireContext().getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
-        val charTotalExp = charPrefs.getLong("totalExp", 0L)
-
-        fun calculateLevel(exp: Long): Int {
-            return (exp / 100L).toInt() + 1
-        }
-
-        val currentLv = calculateLevel(charTotalExp)
-        binding.seekDevLevel.progress = currentLv
-        binding.txtDevLevelDisplay.text = "現在のLv: $currentLv"
-
-        binding.btnDevSetLevel.setOnClickListener {
-            val targetLevel = binding.seekDevLevel.progress
-            
-            // 1レベル100EXPの固定制
-            val targetExp = (targetLevel - 1) * 100L
-
-            charPrefs.edit().putLong("totalExp", targetExp).apply()
-            
-            Toast.makeText(requireContext(), "キャラレベルを $targetLevel に設定しました", Toast.LENGTH_SHORT).show()
-            binding.txtDevLevelDisplay.text = "現在のLv: $targetLevel"
-        }
-
-        binding.seekDevLevel.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.txtDevLevelDisplay.text = "現在のLv: $progress"
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
-        })
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        (activity as? MainActivity)?.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.title = title
     }
 }
