@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_alarm"
+        android:icon="@android:drawable/ic_lock_idle_alarm"
+        android:title="アラーム" />
+    <item
+        android:id="@+id/nav_tasks"
+        android:icon="@android:drawable/ic_menu_my_calendar"
+        android:title="タスク" />
+    <item
+        android:id="@+id/nav_timetable"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="予定" />
+</menu>

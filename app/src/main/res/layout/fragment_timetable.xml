@@ -173,12 +173,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="24dp"
-                android:text="@string/add"
+                android:layout_margin="16dp"
+                android:text="新しい予定"
                 android:textColor="@color/white"
                 app:icon="@android:drawable/ic_input_add"
                 app:iconTint="@color/white"
-                app:backgroundTint="@color/cyber_cyan"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+                app:backgroundTint="@color/cyber_cyan" />
         </FrameLayout>
     </LinearLayout>

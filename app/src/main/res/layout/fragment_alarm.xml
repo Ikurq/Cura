@@ -72,25 +72,23 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
-        android:text="@string/new_alarm"
+        android:layout_margin="16dp"
+        android:text="新しいアラーム"
         android:textColor="@color/white"
         app:icon="@android:drawable/ic_input_add"
         app:iconTint="@color/white"
-        app:backgroundTint="@color/cyber_lime"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+        app:backgroundTint="@color/cyber_lime" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/addMandatoryAlarmFAB"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
-        android:layout_margin="24dp"
-        android:text="@string/mandatory"
+        android:layout_margin="16dp"
+        android:text="強制アラーム"
         android:textColor="@color/white"
         app:icon="@android:drawable/ic_lock_idle_alarm"
         app:iconTint="@color/white"
-        app:backgroundTint="@color/error"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+        app:backgroundTint="@color/error" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

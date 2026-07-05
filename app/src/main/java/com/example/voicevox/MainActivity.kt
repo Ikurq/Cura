@@ -24,6 +24,7 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -94,13 +95,11 @@ class MainActivity : AppCompatActivity() {
         launcherLayout = findViewById(R.id.launcherLayout)
         fragmentContainer = findViewById(R.id.fragmentContainer)
         toolbar = findViewById(R.id.toolbar)
-        val navigationView = findViewById<NavigationView>(R.id.navigationView)
+        val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottomNavigation)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                } else if (supportFragmentManager.backStackEntryCount > 0) {
+                if (supportFragmentManager.backStackEntryCount > 0) {
                     supportFragmentManager.popBackStack()
                 } else if (launcherLayout.isGone) {
                     showLauncherView()
@@ -153,103 +152,65 @@ class MainActivity : AppCompatActivity() {
         systemUpdateHandler.post(systemUpdateRunnable)
 
         setSupportActionBar(toolbar)
-        val toggle = ActionBarDrawerToggle(
-            this, drawerLayout, toolbar,
-            android.R.string.ok, android.R.string.cancel
-        )
-        drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_home_house)
 
         launchAlarmButton.setOnClickListener {
             resetIdleTimer()
-            showFeatureView()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, AlarmFragment()).commit()
-            toolbar.title = "ALARM INTERFACE"
+            bottomNavigation.selectedItemId = R.id.nav_alarm
         }
         launchTaskButton.setOnClickListener {
             resetIdleTimer()
-            showFeatureView()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, TaskFragment()).commit()
-            toolbar.title = "TASK REPOSITORY"
+            bottomNavigation.selectedItemId = R.id.nav_tasks
         }
         launchTimetableButton.setOnClickListener {
             resetIdleTimer()
-            showFeatureView()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, TimetableFragment()).commit()
-            toolbar.title = "TIME GRID"
+            bottomNavigation.selectedItemId = R.id.nav_timetable
         }
         launchAttendanceButton.setOnClickListener {
             resetIdleTimer()
+            bottomNavigation.selectedItemId = R.id.nav_timetable
             showFeatureView()
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, AttendanceManagerFragment()).commit()
             toolbar.title = "ATTENDANCE"
         }
 
-        navigationView.setNavigationItemSelectedListener { item ->
+        bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_alarm -> {
                     showFeatureView()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainer, AlarmFragment()).commit()
-                    toolbar.title = "アラーム設定"
+                    toolbar.title = "ALARM INTERFACE"
                 }
-
                 R.id.nav_tasks -> {
                     showFeatureView()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainer, TaskFragment()).commit()
-                    toolbar.title = "タスクリスト"
+                    toolbar.title = "TASK REPOSITORY"
                 }
-
                 R.id.nav_timetable -> {
                     showFeatureView()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainer, TimetableFragment()).commit()
-                    toolbar.title = "スケジュール"
-                }
-
-                R.id.nav_attendance -> {
-                    showFeatureView()
-                    supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, AttendanceManagerFragment()).commit()
-                    toolbar.title = "出欠管理カウンター"
-                }
-
-                R.id.nav_settings -> {
-                    showFeatureView()
-                    supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, SettingsFragment()).commit()
-                    toolbar.title = "アプリ設定"
-                }
-
-                R.id.nav_credits -> {
-                    showFeatureView()
-                    supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, CreditsFragment()).commit()
-                    toolbar.title = "クレジット"
-                }
-
-                R.id.nav_tutorial -> {
-                    startActivity(Intent(this, TutorialActivity::class.java))
-                }
-
-                R.id.nav_home -> {
-                    showLauncherView()
+                    toolbar.title = "TIME GRID"
                 }
             }
-            drawerLayout.closeDrawers()
             true
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        showLauncherView()
+        return true
+    }
+
     private fun checkFirstLaunchTutorial() {
+        // チュートリアル機能を削除したため、チェックのみ行いフラグを立てる
         val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
         if (!prefs.getBoolean("tutorial_finished", false)) {
-            startActivity(Intent(this, TutorialActivity::class.java))
+            prefs.edit { putBoolean("tutorial_finished", true) }
         }
     }
 
@@ -918,6 +879,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showLauncherView() {
+        if (launcherLayout.isVisible) return // すでにホーム表示中なら何もしない（無限ループ防止）
         launcherLayout.visibility = View.VISIBLE
         toolbar.visibility = View.GONE
         fragmentContainer.visibility = View.GONE

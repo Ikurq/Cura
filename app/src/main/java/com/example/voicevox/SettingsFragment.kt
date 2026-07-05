@@ -45,6 +45,9 @@ class SettingsFragment : Fragment() {
         view.findViewById<View>(R.id.menuDev).setOnClickListener {
             navigateTo(SettingsDevFragment())
         }
+        view.findViewById<View>(R.id.menuCredits).setOnClickListener {
+            navigateTo(CreditsFragment())
+        }
 
         return view
     }
@@ -61,6 +64,7 @@ class SettingsFragment : Fragment() {
             is SettingsPresetsFragment -> "スケジュールの設定"
             is SettingsVoiceFragment -> "音声合成とストレージ"
             is SettingsDevFragment -> "開発者オプション"
+            is CreditsFragment -> "クレジット"
             else -> "設定"
         }
         (activity as? MainActivity)?.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.title = title
