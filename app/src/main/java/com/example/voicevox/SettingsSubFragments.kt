@@ -3,6 +3,7 @@ package com.example.voicevox
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -10,6 +11,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
@@ -57,10 +60,66 @@ class SettingsPermissionsFragment : Fragment() {
 
 // --- 2. External Calendar ---
 class SettingsCalendarFragment : Fragment() {
+    
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        val switch = view?.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSyncDeviceCalendar)
+        if (isGranted) {
+            saveSyncPreference(true)
+            switch?.isChecked = true
+        } else {
+            saveSyncPreference(false)
+            switch?.isChecked = false
+            Toast.makeText(requireContext(), "カレンダーの権限が拒否されました", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_calendar, container, false)
+        setupDeviceSync(view)
         setupCalendar(view)
         return view
+    }
+
+    private fun setupDeviceSync(view: View) {
+        val syncSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSyncDeviceCalendar)
+        val menuSelect = view.findViewById<View>(R.id.menuSelectCalendars)
+        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        
+        val isSyncEnabled = prefs.getBoolean("sync_device_calendar", false)
+        syncSwitch.isChecked = isSyncEnabled
+        menuSelect.visibility = if (isSyncEnabled) View.VISIBLE else View.GONE
+
+        syncSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_CALENDAR) 
+                    == PackageManager.PERMISSION_GRANTED) {
+                    saveSyncPreference(true)
+                    menuSelect.visibility = View.VISIBLE
+                } else {
+                    syncSwitch.isChecked = false
+                    requestPermissionLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+                }
+            } else {
+                saveSyncPreference(false)
+                menuSelect.visibility = View.GONE
+            }
+        }
+
+        menuSelect.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, SettingsCalendarSelectionFragment())
+                .addToBackStack(null)
+                .commit()
+            (activity as? MainActivity)?.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.title = "カレンダーの選択"
+        }
+    }
+
+    private fun saveSyncPreference(enabled: Boolean) {
+        requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit {
+            putBoolean("sync_device_calendar", enabled)
+        }
     }
 
     private fun setupCalendar(view: View) {
@@ -209,6 +268,56 @@ class SettingsVoiceFragment : Fragment() {
                 }.setNegativeButton("いいえ", null).show()
         }
         update()
+    }
+}
+
+// --- 6. Device Calendar Selection ---
+class SettingsCalendarSelectionFragment : Fragment() {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_settings_calendar_selection, container, false)
+        val listContainer = view.findViewById<LinearLayout>(R.id.layoutCalendarSelectionList)
+        setupSelectionList(listContainer)
+        return view
+    }
+
+    private fun setupSelectionList(container: LinearLayout) {
+        val calendars = DeviceCalendarLoader.getAllCalendars(requireContext())
+        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val selectedIdsJson = prefs.getString("selected_calendar_ids", "[]")
+        val selectedIds = mutableSetOf<Long>()
+        try {
+            val arr = JSONArray(selectedIdsJson)
+            for (i in 0 until arr.length()) selectedIds.add(arr.getLong(i))
+        } catch (e: Exception) {}
+
+        if (calendars.isEmpty()) {
+            container.addView(TextView(requireContext()).apply {
+                text = "同期可能なカレンダーが見つかりません"
+                setPadding(16, 16, 16, 16)
+            })
+            return
+        }
+
+        calendars.forEach { cal ->
+            val checkBox = CheckBox(requireContext()).apply {
+                text = "${cal.name} (${cal.account})"
+                isChecked = selectedIds.isEmpty() || selectedIds.contains(cal.id)
+                setPadding(16, 24, 16, 24)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) selectedIds.add(cal.id) else selectedIds.remove(cal.id)
+                    saveIds(selectedIds)
+                }
+            }
+            container.addView(checkBox)
+        }
+    }
+
+    private fun saveIds(ids: Set<Long>) {
+        val arr = JSONArray()
+        ids.forEach { arr.put(it) }
+        requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit {
+            putString("selected_calendar_ids", arr.toString())
+        }
     }
 }
 

@@ -48,6 +48,13 @@ object ScheduleLoader {
             } catch (e: Exception) {}
         }
 
+        // 3. Load Device Calendar Events
+        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        if (appPrefs.getBoolean("sync_device_calendar", false)) {
+            val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(context, targetDate)
+            allEvents.addAll(deviceEvents)
+        }
+
         return allEvents.sortedBy { it.startTime }
     }
 

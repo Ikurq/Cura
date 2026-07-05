@@ -368,9 +368,10 @@ class TimetableFragment : Fragment() {
         loadTasksForDate(date, rawEvents)
         addCustomEventsForDate(date, rawEvents)
         addCachedIcsEventsForDate(date, rawEvents)
+        addDeviceEventsForDate(date, rawEvents)
 
         val filteredEvents = when (currentFilter) {
-            FilterType.EXTERNAL -> rawEvents.filter { it.type == "📅 外部予定" || it.type == "🎓 予定" }
+            FilterType.EXTERNAL -> rawEvents.filter { it.type == "📅 外部予定" || it.type == "🎓 予定" || it.type == "📱 端末予定" }
             FilterType.TASK -> rawEvents.filter { it.type == "📝 タスク" }
             FilterType.COMPLETED -> rawEvents.filter { it.type == "✅ 完了報告" }
             FilterType.ALL -> rawEvents.filter { it.type != "✅ 完了報告" }
@@ -450,6 +451,31 @@ class TimetableFragment : Fragment() {
             list.add(ScheduleItem(
                 "ext_${event.summary}_${event.startTime}", timeStr, event.summary, "📅 外部予定", sortTime, event.location, 
                 isCustom = false, isAttendanceTracked = isTracked, attendanceStatus = status, startTimeMillis = event.startTime
+            ))
+        }
+    }
+
+    private fun addDeviceEventsForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
+        val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        if (!appPrefs.getBoolean("sync_device_calendar", false)) return
+
+        val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(requireContext(), targetDate)
+        val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+        
+        deviceEvents.forEach { event ->
+            val timeStr = sdfTime.format(Date(event.startTime))
+            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
+            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            
+            list.add(ScheduleItem(
+                id = "dev_${event.summary}_${event.startTime}",
+                time = timeStr,
+                title = event.summary,
+                type = "📱 端末予定",
+                sortTime = sortTime,
+                location = event.location,
+                isCustom = false,
+                startTimeMillis = event.startTime
             ))
         }
     }
