@@ -181,11 +181,18 @@ class AlarmFragment : Fragment() {
                 val speakerName = characterList[selectedSpeakerPos].first
                 val speakerId = characterList[selectedSpeakerPos].second
                 
-                if (!NetworkUtils.isWifiConnected(requireContext())) {
+                val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
+
+                if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
                     AlertDialog.Builder(requireContext())
                         .setTitle("Wi-Fi未接続")
                         .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
                         .setPositiveButton("続行") { _, _ ->
+                            generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
+                        }
+                        .setNeutralButton("今後表示しない") { _, _ ->
+                            appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
                             generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
                         }
                         .setNegativeButton("キャンセル", null)
@@ -274,11 +281,18 @@ class AlarmFragment : Fragment() {
         }
 
         btnPreview.setOnClickListener {
-            if (!NetworkUtils.isWifiConnected(requireContext())) {
+            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
+
+            if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
                 AlertDialog.Builder(requireContext())
                     .setTitle("Wi-Fi未接続")
                     .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、よろしいですか？")
                     .setPositiveButton("生成する") { _, _ -> startPreviewGeneration() }
+                    .setNeutralButton("今後表示しない") { _, _ ->
+                        appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
+                        startPreviewGeneration()
+                    }
                     .setNegativeButton("キャンセル", null)
                     .show()
             } else {
@@ -290,11 +304,18 @@ class AlarmFragment : Fragment() {
             .setTitle("新しいアラームを追加")
             .setView(dialogView)
             .setPositiveButton("生成・保存") { _, _ ->
-                if (!NetworkUtils.isWifiConnected(requireContext())) {
+                val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+                val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
+
+                if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
                     AlertDialog.Builder(requireContext())
                         .setTitle("Wi-Fi未接続")
                         .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
                         .setPositiveButton("生成して保存") { _, _ -> startAlarmGeneration() }
+                        .setNeutralButton("今後表示しない") { _, _ ->
+                            appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
+                            startAlarmGeneration()
+                        }
                         .setNegativeButton("キャンセル", null)
                         .show()
                 } else {
