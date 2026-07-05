@@ -10,12 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.*
-import kotlin.math.pow
 
 // --- 1. Permissions & Notifications ---
 class SettingsPermissionsFragment : Fragment() {
@@ -28,14 +29,14 @@ class SettingsPermissionsFragment : Fragment() {
 
     private fun setupPermissions(view: View) {
         view.findViewById<Button>(R.id.btnRequestOverlayPermission).setOnClickListener {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${requireContext().packageName}"))
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${requireContext().packageName}".toUri())
             startActivity(intent)
         }
         view.findViewById<Button>(R.id.btnRequestBatteryPermission).setOnClickListener {
             startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
         view.findViewById<Button>(R.id.btnRequestFullScreenPermission).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${requireContext().packageName}")))
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${requireContext().packageName}".toUri()))
         }
     }
 
@@ -46,11 +47,11 @@ class SettingsPermissionsFragment : Fragment() {
         val s3 = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchEventNotification)
 
         s1.isChecked = prefs.getBoolean("mandatory_reminder", true)
-        s1.setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("mandatory_reminder", c).apply() }
+        s1.setOnCheckedChangeListener { _, c -> prefs.edit { putBoolean("mandatory_reminder", c) } }
         s2.isChecked = prefs.getBoolean("task_notification", true)
-        s2.setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("task_notification", c).apply() }
+        s2.setOnCheckedChangeListener { _, c -> prefs.edit { putBoolean("task_notification", c) } }
         s3.isChecked = prefs.getBoolean("event_notification", true)
-        s3.setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("event_notification", c).apply() }
+        s3.setOnCheckedChangeListener { _, c -> prefs.edit { putBoolean("event_notification", c) } }
     }
 }
 
@@ -81,11 +82,11 @@ class SettingsCalendarFragment : Fragment() {
                 
                 itemView.findViewById<View>(R.id.btnDeleteCalendar).setOnClickListener {
                     AlertDialog.Builder(requireContext()).setTitle("カレンダーの削除")
-                        .setMessage("${name} を削除しますか？")
+                        .setMessage("$name を削除しますか？")
                         .setPositiveButton("削除") { _, _ ->
                             val newList = JSONArray()
                             for (j in 0 until list.length()) if (i != j) newList.put(list.getJSONObject(j))
-                            prefs.edit().putString("calendarSourcesJSON", newList.toString()).apply()
+                            prefs.edit { putString("calendarSourcesJSON", newList.toString()) }
                             refresh()
                         }.setNegativeButton("キャンセル", null).show()
                 }
@@ -104,7 +105,7 @@ class SettingsCalendarFragment : Fragment() {
                 val n = nameIn.text.toString(); val u = urlIn.text.toString()
                 if (n.isNotEmpty() && u.isNotEmpty()) {
                     val cur = JSONArray(prefs.getString("calendarSourcesJSON", "[]")).put(JSONObject().apply { put("name", n); put("url", u) })
-                    prefs.edit().putString("calendarSourcesJSON", cur.toString()).apply()
+                    prefs.edit { putString("calendarSourcesJSON", cur.toString()) }
                     refresh(); dialog.dismiss()
                 }
             }
@@ -148,11 +149,11 @@ class SettingsPresetsFragment : Fragment() {
                 
                 itemView.findViewById<View>(R.id.btnDeletePreset).setOnClickListener {
                     AlertDialog.Builder(requireContext()).setTitle("プリセットの削除")
-                        .setMessage("${genre} を削除しますか？")
+                        .setMessage("$genre を削除しますか？")
                         .setPositiveButton("削除") { _, _ ->
                             val newList = JSONArray()
                             for (j in 0 until list.length()) if (i != j) newList.put(list.getJSONObject(j))
-                            prefs.edit().putString("presetListJSON", newList.toString()).apply()
+                            prefs.edit { putString("presetListJSON", newList.toString()) }
                             refresh()
                         }.setNegativeButton("キャンセル", null).show()
                 }
@@ -184,7 +185,7 @@ class SettingsVoiceFragment : Fragment() {
         btnApply.setOnClickListener {
             val k = edit.text.toString().trim()
             if (k.isNotEmpty()) {
-                prefs.edit().putString("custom_api_key", k).apply()
+                prefs.edit { putString("custom_api_key", k) }
                 txtKey.text = "現在のキー: $k"; edit.setText(""); Toast.makeText(context, "適用完了", Toast.LENGTH_SHORT).show()
             }
         }
@@ -197,7 +198,7 @@ class SettingsVoiceFragment : Fragment() {
             var size = 0L
             File(requireContext().filesDir, "voice_cache").let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
             requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { size += it.length() }
-            txtSize.text = String.format("使用量: %.2f MB", size / (1024.0 * 1024.0))
+            txtSize.text = String.format(Locale.getDefault(), "使用量: %.2f MB", size / (1024.0 * 1024.0))
         }
         btnClear.setOnClickListener {
             AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("全音声を削除？")
@@ -229,7 +230,7 @@ class SettingsDevFragment : Fragment() {
         val curLv = (prefs.getLong("totalExp", 0L) / 100L).toInt() + 1
         seek.progress = curLv; txtLv.text = "現在のLv: $curLv"
         btn.setOnClickListener {
-            prefs.edit().putLong("totalExp", (seek.progress - 1) * 100L).apply()
+            prefs.edit { putLong("totalExp", (seek.progress - 1) * 100L) }
             txtLv.text = "現在のLv: ${seek.progress}"
             Toast.makeText(context, "設定完了", Toast.LENGTH_SHORT).show()
         }

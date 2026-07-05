@@ -21,7 +21,8 @@
             android:layout_height="32dp"
             android:src="@android:drawable/ic_menu_today"
             app:tint="@color/cyber_cyan"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Calendar Icon" />
 
         <LinearLayout
             android:layout_width="0dp"

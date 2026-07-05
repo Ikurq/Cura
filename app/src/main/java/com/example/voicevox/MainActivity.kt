@@ -2,7 +2,6 @@ package com.example.voicevox
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -19,8 +18,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.edit
 import androidx.core.view.GravityCompat
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
@@ -33,6 +34,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.io.File as JavaFile
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity() {
 
@@ -409,7 +411,7 @@ class MainActivity : AppCompatActivity() {
 
         dialogueJob?.cancel()
         dialogueJob = lifecycleScope.launch {
-            delay(3000)
+            delay(3000.milliseconds)
             dialogueBubble.animate().alpha(0f).setDuration(500).withEndAction {
                 tapCount = 0 // Reset tap count when dialogue disappears
             }.start()
@@ -428,9 +430,9 @@ class MainActivity : AppCompatActivity() {
         idleDialogueJob?.cancel()
         idleDialogueJob = lifecycleScope.launch {
             while (true) {
-                delay(30000) // 30秒ごとにチェック（放置判定はもっと長くても良い）
+                delay(30000.milliseconds) // 30秒ごとにチェック
                 // 最後に操作してから1分経過していたら放置セリフを表示
-                if (System.currentTimeMillis() - lastTapTime > 60000 && launcherLayout.visibility == View.VISIBLE) {
+                if (System.currentTimeMillis() - lastTapTime > 60000 && launcherLayout.isVisible) {
                     showIdleDialogue()
                 }
             }
@@ -459,8 +461,8 @@ class MainActivity : AppCompatActivity() {
         expGainJob?.cancel()
         expGainJob = lifecycleScope.launch {
             while (true) {
-                delay(60000) // 1分ごとに実行
-                addSessionExp(1) // 1分につき1EXP（調整可能）
+                delay(60000.milliseconds) // 1分ごとに実行
+                addSessionExp(1) // 1分につき1EXP
             }
         }
     }
@@ -469,12 +471,12 @@ class MainActivity : AppCompatActivity() {
         // Player EXP
         val playerPrefs = getSharedPreferences("PlayerPrefs", MODE_PRIVATE)
         val currentTotalExp = playerPrefs.getLong("totalExp", 0L)
-        playerPrefs.edit().putLong("totalExp", currentTotalExp + amount).apply()
+        playerPrefs.edit { putLong("totalExp", currentTotalExp + amount) }
 
         // Character EXP
         val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
         val currentCharTotalExp = charPrefs.getLong("totalExp", 0L)
-        charPrefs.edit().putLong("totalExp", currentCharTotalExp + amount).apply()
+        charPrefs.edit { putLong("totalExp", currentCharTotalExp + amount) }
 
         // UI更新
         updatePlayerStatus()
@@ -908,34 +910,21 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
-                // Requesting permission
+                // Requesting permission logic could go here
             }
         }
     }
 
     private fun checkOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                // Silent check
-            }
+        if (!Settings.canDrawOverlays(this)) {
+            // Silent check
         }
     }
 
     private fun checkBatteryOptimization() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
-            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                // Silent check
-            }
-        }
-    }
-
-    private fun checkFullScreenIntentPermission() {
-        if (Build.VERSION.SDK_INT >= 34) {
-            val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-            if (!nm.canUseFullScreenIntent()) {
-                // Silent check
-            }
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            // Silent check
         }
     }
 
