@@ -314,7 +314,6 @@ class TimetableFragment : Fragment() {
             saveIcsCache(allEvents)
             withContext(Dispatchers.Main) {
                 notifyFragments()
-                Toast.makeText(requireContext(), "更新完了", Toast.LENGTH_SHORT).show()
             }
         }
     }
