@@ -16,6 +16,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -23,6 +27,17 @@ import java.util.*
 
 // --- 1. Permissions & Notifications ---
 class SettingsPermissionsFragment : Fragment() {
+    
+    private val requestCalendarLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(requireContext(), "カレンダー権限が許可されました", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(requireContext(), "カレンダー権限が拒否されました", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_permissions, container, false)
         setupPermissions(view)
@@ -40,6 +55,9 @@ class SettingsPermissionsFragment : Fragment() {
         }
         view.findViewById<Button>(R.id.btnRequestFullScreenPermission).setOnClickListener {
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${requireContext().packageName}".toUri()))
+        }
+        view.findViewById<Button>(R.id.btnRequestCalendarPermission).setOnClickListener {
+            requestCalendarLauncher.launch(android.Manifest.permission.READ_CALENDAR)
         }
     }
 
@@ -237,15 +255,58 @@ class SettingsVoiceFragment : Fragment() {
         val txtKey = view.findViewById<TextView>(R.id.txtCurrentApiKey)
         val edit = view.findViewById<EditText>(R.id.editApiKey)
         val btnApply = view.findViewById<Button>(R.id.btnApplyApiKey)
-        txtKey.text = "現在のキー: ${prefs.getString("custom_api_key", "(デフォルト)")}"
-        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/api/")))
+        val layoutInput = view.findViewById<View>(R.id.layoutApiKeyInput)
+        val btnOpenPage = view.findViewById<View>(R.id.btnOpenApiKeyPage)
+        
+        val currentKey = prefs.getString("custom_api_key", null)
+        
+        fun updateLockState(key: String?) {
+            if (key != null) {
+                txtKey.text = "現在のキー: $key (ロック済み)"
+                layoutInput.visibility = View.GONE
+                btnOpenPage.visibility = View.GONE
+            } else {
+                txtKey.text = "現在のキー: (デフォルト)"
+                layoutInput.visibility = View.VISIBLE
+                btnOpenPage.visibility = View.VISIBLE
+                edit.isEnabled = true
+                btnApply.isEnabled = true
+                btnApply.text = "適用する"
+            }
         }
+
+        updateLockState(currentKey)
+
+        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/su-shikiapis/")))
+        }
+
         btnApply.setOnClickListener {
             val k = edit.text.toString().trim()
-            if (k.isNotEmpty()) {
-                prefs.edit { putString("custom_api_key", k) }
-                txtKey.text = "現在のキー: $k"; edit.setText(""); Toast.makeText(context, "適用完了", Toast.LENGTH_SHORT).show()
+            if (k.isEmpty()) return@setOnClickListener
+
+            btnApply.isEnabled = false
+            btnApply.text = "検証中..."
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val client = WebVoicevoxClient()
+                val tempFile = File(requireContext().cacheDir, "api_test.wav")
+                
+                // テスト用の短い音声生成でキーの有効性をチェック
+                val success = withContext(Dispatchers.IO) {
+                    client.createAlarmAudio("テスト", 3, tempFile, k, useCache = false)
+                }
+
+                if (success) {
+                    prefs.edit { putString("custom_api_key", k) }
+                    updateLockState(k)
+                    edit.setText("")
+                    Toast.makeText(context, "APIキーを認証・ロックしました", Toast.LENGTH_SHORT).show()
+                } else {
+                    btnApply.isEnabled = true
+                    btnApply.text = "適用する"
+                    Toast.makeText(context, "キーの認証に失敗しました。正しいか確認してください。", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
