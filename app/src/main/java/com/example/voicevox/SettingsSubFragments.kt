@@ -224,6 +224,11 @@ class SettingsPresetsFragment : Fragment() {
                 itemView.findViewById<TextView>(R.id.txtPresetGenre).text = genre
                 itemView.findViewById<TextView>(R.id.txtPresetInfo).text = infoText.toString()
                 
+                // 編集機能を追加 (カードタップ)
+                itemView.setOnClickListener {
+                    showEditPresetDialog(obj, i) { refresh() }
+                }
+                
                 itemView.findViewById<View>(R.id.btnDeletePreset).setOnClickListener {
                     AlertDialog.Builder(requireContext()).setTitle("プリセットの削除")
                         .setMessage("$genre を削除しますか？")
@@ -238,6 +243,64 @@ class SettingsPresetsFragment : Fragment() {
             }
         }
         refresh()
+    }
+
+    private fun showEditPresetDialog(originalObj: JSONObject, index: Int, onComplete: () -> Unit) {
+        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_schedule_event, null)
+        val genreInput = dialogView.findViewById<EditText>(R.id.editEventGenre)
+        val locationInput = dialogView.findViewById<EditText>(R.id.editEventLocation)
+        val btnSelectTime = dialogView.findViewById<Button>(R.id.btnSelectEventTime)
+        
+        // プリセット編集に不要な要素を隠す
+        dialogView.findViewById<View>(R.id.presetChipGroup)?.visibility = View.GONE
+        dialogView.findViewById<View>(R.id.btnToggleAdvancedSettings)?.visibility = View.GONE
+        dialogView.findViewById<View>(R.id.layoutAdvancedSettings)?.visibility = View.GONE
+
+        // タイトルを「編集」に変更
+        dialogView.findViewById<TextView>(android.R.id.text1)?.text = "プリセットの編集"
+
+        // 初期値をセット
+        genreInput.setText(originalObj.getString("genre"))
+        locationInput.setText(originalObj.optString("location", ""))
+        var selectedHour = originalObj.optInt("hour", 9)
+        var selectedMinute = originalObj.optInt("minute", 0)
+        btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", selectedHour, selectedMinute)
+
+        btnSelectTime.setOnClickListener {
+            TimePickerHelper.showWheelTimePicker(requireContext(), selectedHour, selectedMinute) { h, m ->
+                selectedHour = h; selectedMinute = m
+                btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("プリセットの編集")
+            .setView(dialogView)
+            .setPositiveButton("保存") { _, _ ->
+                val genre = genreInput.text.toString()
+                if (genre.isEmpty()) return@setPositiveButton
+
+                val list = JSONArray(prefs.getString("presetListJSON", "[]"))
+                val newObj = JSONObject().apply {
+                    put("genre", genre)
+                    put("location", locationInput.text.toString())
+                    put("hour", selectedHour)
+                    put("minute", selectedMinute)
+                }
+                
+                // 指定インデックスを差し替え
+                val newList = JSONArray()
+                for (i in 0 until list.length()) {
+                    if (i == index) newList.put(newObj) else newList.put(list.getJSONObject(i))
+                }
+                
+                prefs.edit { putString("presetListJSON", newList.toString()) }
+                onComplete()
+                Toast.makeText(requireContext(), "プリセットを更新しました", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("キャンセル", null)
+            .show()
     }
 }
 

@@ -18,10 +18,16 @@ class SettingsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_settings_main, container, false)
 
         val menuPresets = view.findViewById<View>(R.id.menuPresets)
+        val menuDev = view.findViewById<View>(R.id.menuDev)
+
+        // 開発者モードの状態をチェック
+        val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val isDevUnlocked = appPrefs.getBoolean("developer_mode_unlocked", false)
+        menuDev.visibility = if (isDevUnlocked) View.VISIBLE else View.GONE
         
         // プリセットが空ならメニューを非表示にする
-        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val presetJson = prefs.getString("presetListJSON", "[]")
+        val schedulePrefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val presetJson = schedulePrefs.getString("presetListJSON", "[]")
         val hasPresets = try {
             JSONArray(presetJson).length() > 0
         } catch (e: Exception) {

@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
 
     private var tapCount = 0
     private var lastTapTime: Long = 0
+    private var devUnlockTapCount = 0
     private var dialogueJob: Job? = null
     private var expGainJob: Job? = null
     private var idleDialogueJob: Job? = null
@@ -235,6 +236,23 @@ class MainActivity : AppCompatActivity() {
 
         // 4. Dynamic System Log
         val systemLogText = findViewById<TextView>(R.id.systemLogText)
+        val sysLogLabel = findViewById<View>(R.id.sysLogLabel)
+        
+        sysLogLabel.setOnClickListener {
+            val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+            if (prefs.getBoolean("developer_mode_unlocked", false)) return@setOnClickListener
+
+            devUnlockTapCount++
+            if (devUnlockTapCount >= 7) {
+                prefs.edit { putBoolean("developer_mode_unlocked", true) }
+                android.widget.Toast.makeText(this, "デバッガー権限を取得しました！", android.widget.Toast.LENGTH_SHORT).show()
+                devUnlockTapCount = 0
+            } else if (devUnlockTapCount > 2) {
+                val remaining = 7 - devUnlockTapCount
+                android.widget.Toast.makeText(this, "デバッガーになるまであと $remaining 回...", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
         val logs = listOf(
             "CURA_OS v2.0: INITIALIZING... OK.",
             "Cura is currently tidying up your memory fragments.",

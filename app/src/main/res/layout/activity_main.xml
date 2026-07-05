@@ -523,13 +523,16 @@
                         android:alpha="0.6"
                         app:layout_constraintTop_toBottomOf="@id/characterSection">
                         <TextView
+                            android:id="@+id/sysLogLabel"
                             style="@style/CyberTypography.Label"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="SYS_LOG:"
                             android:textColor="@color/cyber_cyan"
                             android:textSize="10sp"
-                            android:layout_marginEnd="8dp"/>
+                            android:layout_marginEnd="8dp"
+                            android:clickable="true"
+                            android:focusable="true"/>
                         <TextView
                             android:id="@+id/systemLogText"
                             style="@style/CyberTypography.Label"
