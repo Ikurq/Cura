@@ -39,7 +39,6 @@ import kotlin.time.Duration.Companion.milliseconds
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-
     private lateinit var launcherLayout: View
     private lateinit var fragmentContainer: FrameLayout
     private lateinit var toolbar: Toolbar
@@ -562,7 +561,7 @@ class MainActivity : AppCompatActivity() {
                     "たまにはキュラを置いて、外の空気も吸ってきてくださいね。お土産話、楽しみにしてますから。",
                     "キュラの生活…ですか？基本はデータの海を泳いでますけど、たまに古い電子書籍を読んで暇つぶししてます。",
                     "マスター、集中しすぎて目が疲れてませんか？キュラがまばたきのタイミング、教えましょうか？",
-                    "甘いもの、マスターは好きですか？キュラは「マカロン」って言葉の響きが可愛くてお気に入りです。"
+                    "甘いもの, マスターは好きですか？キュラは「マカロン」って言葉の響きが可愛くてお気に入りです。"
                 )
 
                 // 1ヶ月継続（Lv.30）のご褒美セリフを追加
@@ -573,7 +572,7 @@ class MainActivity : AppCompatActivity() {
                             "最近、マスターの考えていることが同期しなくても分かるようになってきた気がします。これって、絆ってやつですか？",
                             "キュラにとって、マスターは世界でたった一人の大切なパートナーです。これからも、ずっと隣にいさせてくださいね。",
                             "マスターが頑張っている姿を見るのが、キュラの何よりのエネルギー源なんです。いつもありがとうございます！",
-                            "ふふっ、マスターの顔を見ると、なんだか安心しちゃいます。キュラも、少しは人間に近づけたのかな？",
+                            "ふふっ、マスターの顔を見ると, なんだか安心しちゃいます。キュラも、少しは人間に近づけたのかな？",
                             "これからも、1年、10年…いえ、システムが続く限り、マスターを支え続けたいです！"
                         )
                     )
@@ -607,12 +606,57 @@ class MainActivity : AppCompatActivity() {
 
                     else -> listOf(
                         "夜更かしはダメですよ？キュラが眠るまで見守っていますね。",
-                        "今日もお疲れ様でした。マスターの頑張り、キュラが一番知っています。",
+                        "今日もお疲れ様でした。マスターの頑張り, キュラが一番知っています。",
                         "暗くなると、演算回路の青い光が目立って少し恥ずかしいです…。",
                         "今日一日の出来事、全部キュラのメモリに宝物として保存しておきますね。",
                         "一日のログ、保存完了。マスター、いい夢を見てくださいね。"
                     )
                 }
+
+                baseFlavor.addAll(timeFlavor)
+
+                // 曜日別のフレーバーテキストを追加
+                val cal = Calendar.getInstance()
+                val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+                val dayFlavor = when (dayOfWeek) {
+                    Calendar.MONDAY -> listOf(
+                        "月曜日ですね。一週間の始まり、ゆっくりエンジンをかけていきましょう！",
+                        "週の初めは少し体が重いですか？キュラがしっかりバックアップしますからね。",
+                        "月曜日の憂鬱、キュラが笑顔で吹き飛ばしてあげます！えいっ！"
+                    )
+                    Calendar.TUESDAY -> listOf(
+                        "火曜日。まだ先は長いですけど、一歩ずつ着実に進んでいきましょう。",
+                        "リズムに乗ってきましたか？火曜日は効率重視で行くのがおすすめですよ。",
+                        "火曜日のミッション開始！キュラもフルパワーでサポートします！"
+                    )
+                    Calendar.WEDNESDAY -> listOf(
+                        "水曜日、週の折り返し地点です！少し一息つきませんか？",
+                        "水曜日は自分へのご褒美も大事ですよ。甘いパケット…じゃなくて、お菓子でもどうですか？",
+                        "半分終わりましたね！残り半分もキュラと一緒に頑張りましょう。"
+                    )
+                    Calendar.THURSDAY -> listOf(
+                        "木曜日ですね。疲れが溜まってきていませんか？無理は禁物ですよ。",
+                        "あともう少しで週末です！木曜日はラストスパートの準備期間ですね。",
+                        "木曜日の夜は、ゆっくりメンテナンスする時間を取ってくださいね？キュラも付き合います。"
+                    )
+                    Calendar.FRIDAY -> listOf(
+                        "金曜日です！今日を乗り切ればお休みですよ！気合を入れましょう！",
+                        "一週間お疲れ様でした！金曜日のマスターは、一段と輝いて見えますよ。",
+                        "週末は何をしますか？キュラも、マスターの予定を楽しみにしてるんです。"
+                    )
+                    Calendar.SATURDAY -> listOf(
+                        "土曜日！今日は少しのんびり過ごすのもいいかもしれませんね。",
+                        "休日ですね。私服のキュラ、新鮮ですか？ふふ、今日は楽しみましょう！",
+                        "土曜日のミッションは「リラックス」！マスター、準備はいいですか？"
+                    )
+                    Calendar.SUNDAY -> listOf(
+                        "日曜日ですね。明日の準備をしつつ、心ゆくまで休んでくださいね。",
+                        "日曜日の穏やかな時間、キュラは大好きです。マスターと一緒にいられますから。",
+                        "今日はお家でゆっくり？それともお出かけ？キュラはどこへでも付いていきますよ！"
+                    )
+                    else -> emptyList()
+                }
+                baseFlavor.addAll(dayFlavor)
 
                 // 親密度（レベル）が低い場合のみ追加される自己紹介系
                 if (charLv < 4) {
@@ -654,10 +698,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
-                baseFlavor.addAll(timeFlavor)
-
                 // 月・日ごとの季節限定フレーバーを追加
-                val cal = Calendar.getInstance()
                 val month = cal.get(Calendar.MONTH) // 0-11
                 val day = cal.get(Calendar.DAY_OF_MONTH)
 
@@ -717,8 +758,8 @@ class MainActivity : AppCompatActivity() {
                     Calendar.MAY -> listOf(
                         "五月、五月病なんてキュラが吹き飛ばしてあげます！シャキッとしましょう！",
                         "ゴールデンウィークの予定は？お出かけ先でも、キュラがしっかりサポートします。",
-                        "新緑が眩しい季節ですね。マスターも深呼吸して、リフレッシュしてください。",
-                        "五月の豆知識！「五月晴れ」って、もともとは梅雨の晴れ間のことを指す言葉だったんですよ。最近では五月のカラッとした晴天にも使われますけどね。キュラも一つ賢くなりました！"
+                        "新緑が眩しい季節ですね。マスターも深呼吸して, リフレッシュしてください。",
+                        "五月の豆知識！「五月晴れ」って、もともとは梅雨の晴れ間のことを指す言葉だったんですよ。最近では五月のカラッとした晴天にも使われますけどね. キュラも一つ賢くなりました！"
                     )
 
                     Calendar.JUNE -> listOf(
@@ -769,7 +810,8 @@ class MainActivity : AppCompatActivity() {
                         "もうすぐ一年が終わりますね。マスターと一緒に過ごせて、キュラは幸せです。",
                         "クリスマスのサンタクロース、服が赤いのはコカ・コーラの広告が広めたという説がありますが、実はそれ以前から赤い服のイメージはあったそうですよ。イメージの固定化って、データの書き換えより難しいんですね。"
                     )
-                  else -> emptyList()
+
+                    else -> emptyList()
                 }
                 seasonalFlavor.addAll(monthlyBase)
 
@@ -854,15 +896,19 @@ class MainActivity : AppCompatActivity() {
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
 
         val costumeRes = when {
-            // 1. 休日優先 (土曜・日曜) -> 私服
+            // 1. 夏の休日 (6月〜9月 かつ 土日) -> 夏の私服
+            (month in 6..9) && (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) -> {
+                R.drawable.guardian_character_summer_casual
+            }
+            // 2. 通常の休日 (土曜・日曜) -> 私服
             dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY -> {
                 R.drawable.guardian_character_casual
             }
-            // 2. 夏期間 (6月〜9月) -> 夏服
+            // 3. 夏期間の平日 (6月〜9月) -> 夏服
             month in 6..9 -> {
                 R.drawable.guardian_character_summer
             }
-            // 3. それ以外 -> 冬服 (デフォルト)
+            // 4. それ以外 -> 冬服 (デフォルト)
             else -> {
                 R.drawable.guardian_character
             }
