@@ -148,6 +148,7 @@ class MainActivity : AppCompatActivity() {
         updateDashboardInfo()
         startLauncherAnimation()
         setupCharacterDialogue()
+        updateCharacterCostume() // 追加：衣装の更新
         startExpGainTimer()
         startIdleTimer()
         systemUpdateHandler.post(systemUpdateRunnable)
@@ -843,6 +844,31 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updatePlayerStatus()
         updateDashboardInfo()
+        updateCharacterCostume() // 戻ってきたときにも衣装を再チェック
+    }
+
+    private fun updateCharacterCostume() {
+        val characterImage = findViewById<android.widget.ImageView>(R.id.characterImage)
+        val cal = Calendar.getInstance()
+        val month = cal.get(Calendar.MONTH) + 1 // 0-11 -> 1-12
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+
+        val costumeRes = when {
+            // 1. 休日優先 (土曜・日曜) -> 私服
+            dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY -> {
+                R.drawable.guardian_character_casual
+            }
+            // 2. 夏期間 (6月〜9月) -> 夏服
+            month in 6..9 -> {
+                R.drawable.guardian_character_summer
+            }
+            // 3. それ以外 -> 冬服 (デフォルト)
+            else -> {
+                R.drawable.guardian_character
+            }
+        }
+
+        characterImage.setImageResource(costumeRes)
     }
 
     private fun showLauncherView() {
