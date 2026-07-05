@@ -345,7 +345,7 @@ class AlarmAlertActivity : AppCompatActivity() {
             // すでにこの時間帯にレベルアップ済みなら少なめのEXP（あるいは0）
             val bonusExp = 10L
             prefs.edit().putLong("totalExp", totalExp + bonusExp).apply()
-            Toast.makeText(this, "起床成功！ (この時間帯は既にレベルアップ済みです)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "おはようございます！起床成功です！", Toast.LENGTH_SHORT).show()
             return
         }
 

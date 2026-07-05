@@ -22,7 +22,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="音声合成ソフトウェア"
+            android:text="音声合成ソフトウェア / API"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -49,6 +49,27 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="https://voicevox.hiroshiba.jp/"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="4dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1A000000"
+                    android:layout_marginVertical="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WEB版VOICEVOX API (su-shiki)"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="https://voicevox.su-shiki.com/"
                     android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp" />
