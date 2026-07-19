@@ -594,4 +594,64 @@
 
     </LinearLayout>
 
+    <!-- 起動時オーバーレイ (演出案A改: Loading) -->
+    <FrameLayout
+        android:id="@+id/initialLoadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0F172A"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="100dp">
+
+        <ImageView
+            android:id="@+id/initialCharacterImage"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:src="@drawable/guardian_character"
+            android:scaleType="fitCenter"
+            android:layout_gravity="center"
+            android:alpha="0.2" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:gravity="bottom">
+
+            <TextView
+                android:id="@+id/loadingLogText"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:fontFamily="monospace"
+                android:textColor="@color/cyber_cyan"
+                android:textSize="12sp"
+                android:alpha="0.8"
+                android:text="" />
+
+            <ProgressBar
+                android:id="@+id/loadingProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="16dp"
+                android:progress="0"
+                android:progressDrawable="@drawable/progress_mp" />
+
+            <TextView
+                android:id="@+id/loadingStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="monospace"
+                android:text="INITIALIZING..."
+                android:textColor="@color/cyber_cyan"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </FrameLayout>
+
 </androidx.drawerlayout.widget.DrawerLayout>

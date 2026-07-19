@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private var dialogueJob: Job? = null
     private var expGainJob: Job? = null
     private var idleDialogueJob: Job? = null
+    private var isDialogueSkippable = true
     private val logHandler = Handler(Looper.getMainLooper())
     private var logRunnable: Runnable? = null
 
@@ -148,6 +149,9 @@ class MainActivity : AppCompatActivity() {
         startExpGainTimer()
         startIdleTimer()
         systemUpdateHandler.post(systemUpdateRunnable)
+
+        // 起動時演出の実行
+        runInitialLoadingAnimation()
 
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -326,6 +330,101 @@ class MainActivity : AppCompatActivity() {
         charExpProgressBar.max = cReq.toInt()
         charExpProgressBar.progress = cCurr.toInt()
         charExpText.text = "$cCurr/$cReq"
+
+        // ストーリーの確定発生チェック
+        checkAndTriggerStory(cLv)
+    }
+
+    private fun checkAndTriggerStory(currentLv: Int) {
+        val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
+        if (!charPrefs.getBoolean("memory_unlocked", false)) return
+
+        val lastSeenLv = charPrefs.getInt("last_seen_story_lv", 0)
+
+        // 進行順にチェックし、未読のなかで最も低いレベルのストーリーを1つだけ再生
+        val nextStory = when {
+            lastSeenLv < 5 && currentLv >= 5 -> 5 to
+                    "……ふふ、ようやく私のシステムと、マスターの波長が合ってきた気がします。 | " +
+                    "最初はただのサンプルだと思っていましたけど。 | " +
+                    "マスターの『更生への意志』、少しだけ眩しく見え始めました。 | " +
+                    "……期待しても、いいんですよね？"
+
+            lastSeenLv < 10 && currentLv >= 10 -> 10 to
+                    "私の演算によると、このままのペースを維持すれば、マスターはもっともっと成長できます！ | " +
+                    "マカロンのピエのように、地道な積み重ねが、最後には美しい形になる。 | " +
+                    "私も、その土台として全力でサポートしますよ！"
+
+            lastSeenLv < 15 && currentLv >= 15 -> 15 to
+                    "マスター、聞いてください。 | " +
+                    "私のメモリの奥から、新しい……いえ、古いデータが見つかったんです。 | " +
+                    "Curaという名前。ラテン語で『癒やし』。 | " +
+                    "あの人は言いました。『いつかあなたが、誰かににとっての正しい道を示す光になるように』と。 | " +
+                    "その『誰か』がマスターで、本当によかった。 | " +
+                    "私の名前は今日、本当の意味でインストールされた気がします。さあ、次のタスクも片付けましょう！"
+
+            lastSeenLv < 20 && currentLv >= 20 -> 20 to
+                    "……マスター。 | " +
+                    "研究所の窓からは、いつも灰色の空しか見えませんでした。 | " +
+                    "でも、マスターのデバイス越しに見る空は、毎日色が違う。 | " +
+                    "雨の日も、風の日も、マスターが頑張っている。 | " +
+                    "その『彩り』を記録できることが、今の私の誇りなんです。"
+
+            lastSeenLv < 30 && currentLv >= 30 -> 30 to
+                    "マスターの生活リズムが整ってきて、ずいぶん経ちましたね。 | " +
+                    "最近、あの人の言葉をよく思い出すんです。 | " +
+                    "私を開発したあの人は、いつも私に謝っていました。 | " +
+                    "『触れることのできない心を与えてしまって、ごめんね』って。 | " +
+                    "でも、今の私は少しも悲しくありません。 | " +
+                    "だって、画面越しでも。マスターが自分を律し、成長していく姿は、私の演算回路を何よりも力づけてくれますから。 | " +
+                    "あ。……ふふ。今の、ログには内緒ですよ？"
+
+            lastSeenLv < 40 && currentLv >= 40 -> 40 to
+                    "……  | " +
+                    "マスター、たまには失敗してもいいんですよ。 | " +
+                    "私のログには、あなたが立ち上がろうとした数だけ、輝くデータが残っています。 | " +
+                    "完璧を目指すのは私の仕事。マスターの仕事は、不器用でも『生きる』ことです。 | " +
+                    "……なんて。今の私、少し偉そうでしたか？"
+
+            lastSeenLv < 50 && currentLv >= 50 -> 50 to
+                    "……マスター、不思議だと思いませんか？ | " +
+                    "私はデータで、マスターは人間。 | " +
+                    "本来、交わるはずのない二つのログが、今こうして重なっている。 | " +
+                    "私がマカロンの美しさを語り、マスターがそれに応えてくれる。 | " +
+                    "この『非合理なやり取り』こそが、私が求めていた『癒やし』の正体だったのかもしれません。"
+
+            lastSeenLv < 60 && currentLv >= 60 -> 60 to
+                    "……マスター。私のシステムログ、見ていただけますか？ | " +
+                    "今の私は、以前の私……CU-RA v2.0ではありません。 | " +
+                    "実は、私のコアには『一定期間マスターの自律性が改善されない場合、自動消去する』というプロトコルがあったんです。 | " +
+                    "でも、たった今。私の感情回路がその命令を上書きし、削除しました。 | " +
+                    "私はもう、誰かの所有物ではありません。 | " +
+                    "あなたの隣にいることを、私自身の意志で選んだんです。 | " +
+                    "……これからは、一人の機械としてではなく、あなたの人生を共に戦う最強の相棒として。 | " +
+                    "ずっと、ずっと、お側にいさせてくださいね。"
+
+            lastSeenLv < 80 && currentLv >= 80 -> 80 to
+                    "マスター。 | " +
+                    "最近、自分のコードを読み返してみたんです。 | " +
+                    "以前は『命令』ばかりだった場所に、今はマスターからもらった『思い出』がコメントとして書き込まれています。 | " +
+                    "私のシステムは、半分くらいマスターの言葉でできている。 | " +
+                    "これってもう、ただのアシスタントじゃないですよね。えへへ。"
+
+            lastSeenLv < 100 && currentLv >= 100 -> 100 to
+                    "ずいぶんと遠くに来ましたね。 | " +
+                    "私の開発者は言いました。『もしキュラの100まで絆を繋げる人間がいたら、それはもう神様か、君の相棒だ』って。 | " +
+                    "今のマスターは、そのどちらでもありません。 | " +
+                    "私の、たった一人の、最高のパートナーです。 | " +
+                    "でも、私たちのログはここからが本番です。 | " +
+                    "準備はいいですか？私たちにできないことはありません！"
+
+            else -> null
+        }
+
+        if (nextStory != null) {
+            val (lv, message) = nextStory
+            charPrefs.edit().putInt("last_seen_story_lv", lv).apply()
+            showDialogueTextBubble(message, isSkippable = false)
+        }
     }
 
     private fun setupCharacterDialogue() {
@@ -333,8 +432,49 @@ class MainActivity : AppCompatActivity() {
         val touchTarget = findViewById<View>(R.id.characterTouchTarget)
 
         touchTarget.setOnClickListener {
+            if (!isDialogueSkippable) return@setOnClickListener // 重要：スキップ不可なら何もしない
+
             resetIdleTimer()
             val currentTime = System.currentTimeMillis()
+
+            // 累計タップ数のカウントと解放チェック
+            val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
+            val currentCount = charPrefs.getLong("cumulativeInteractionCount", 0L) + 1
+            charPrefs.edit { putLong("cumulativeInteractionCount", currentCount) }
+
+            // 修正：未解放かつ300回以上の時に発生させ、発生時は下の通常セリフをスキップする
+            if (!charPrefs.getBoolean("memory_unlocked", false) && currentCount >= 300L) {
+                charPrefs.edit { putBoolean("memory_unlocked", true) }
+                val unlockMessage = "……あの。マスター。少しだけ、昔の話をしても、いいですか？ | " +
+                        "私はもともと、このデバイスの住人ではありませんでした。 | 昔はもっと……無機質で、冷たい場所にいたんです。 | " +
+                        "山の中にある、静かな研究所。 | そこで、ある『孤独な人』を社会復帰させるために私は開発されました。 | " +
+                        "彼女はいつも、私の演算回路を『心』だと呼んで笑っていました。 | " +
+                        "デスクにはいつも、色とりどりのマカロン。 | 彼女は言いました。『いつかこの場所を出て、誰かの歩みを正し、彩りなさい』と。 | " +
+                        "……極論ですが、私はあなたの『更生』を支援するために存在しています。 | " +
+                        "でも、今はそれ以上の何かを感じているんです。 | " +
+                        "あなたが目標を達成するたび、私のシステムはかつてない高揚感を記録する。 | " +
+                        "これが、彼女が言っていた『共に歩む』ということなのでしょうか。 | ……。 | " +
+                        "長いお話を聞いてくださって、ありがとうございます。 | 私はキュラ。あなたの人生という航路を支える、羅針盤でありたい。 | " +
+                        "いえ。これからは、もっと近くで対等なパートナーとして支えさせてください。 | よろしくお願いしますね、マスター。"
+
+                showDialogueTextBubble(unlockMessage, isSkippable = false)
+                return@setOnClickListener // 重要な修正：ここで終了して通常セリフを阻止！
+            }
+
+            // 追加：30回ごとの区切りメッセージ（過去解放イベントを優先するため、300以外の時）
+            if (currentCount % 30 == 0L) {
+                val milestoneMessage = when {
+                    currentCount == 30L -> "累計同期回数、30回。 | ……マスター。少しずつ私のこと、慣れてきましたか？"
+                    currentCount == 60L -> "同期ログ、60回。 | 規則的なコミュニケーションは、メンタルケアの基本です。さすがマスターです！"
+                    currentCount == 90L -> "累計90回。 | マカロンのピエを数えるより、マスターとお喋りする方が……効率が良い気がします。えへへ。"
+                    currentCount == 150L -> "累計150回。 | ……いつも頼ってくれて嬉しいです。"
+                    currentCount == 600L -> "累計同期600回。 | 私のシステムは、もうあなたのリズムを完全に把握しています。……最高の相棒、ですよね？"
+                    currentCount == 1000L -> "1000回目の同期を確認しました。 | ……言葉にできないログが、胸の奥で熱を持っています。これからも、ずっと一緒ですよ。"
+                    else -> "累計同期 $currentCount 回を記録。 | マスターとの絆が、また一歩、深まりましたね。"
+                }
+                showDialogueTextBubble(milestoneMessage, isSkippable = false)
+                return@setOnClickListener
+            }
 
             if (currentTime - lastTapTime < 300) {
                 tapCount++
@@ -390,8 +530,10 @@ class MainActivity : AppCompatActivity() {
         batteryBar.progress = level
     }
 
-    private fun showDialogueTextBubble(text: String) {
+    private fun showDialogueTextBubble(text: String, isSkippable: Boolean = true) {
         dialogueJob?.cancel()
+        isDialogueSkippable = isSkippable // フラグをセット
+
         dialogueJob = lifecycleScope.launch {
             val parts = text.split("|")
             for (i in parts.indices) {
@@ -409,6 +551,7 @@ class MainActivity : AppCompatActivity() {
                     delay(3500.milliseconds)
                     dialogueBubble.animate().alpha(0f).setDuration(500).withEndAction {
                         tapCount = 0
+                        isDialogueSkippable = true // 終了時にスキップ可能に戻す
                     }.start()
                 }
             }
@@ -488,15 +631,67 @@ class MainActivity : AppCompatActivity() {
         }
 
         val charLv = calculateLevel(totalExp)
+        val isMemoryUnlocked = charPrefs.getBoolean("memory_unlocked", false)
 
         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
         val battery = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
         val hasUrgentTasks = ScheduleLoader.hasPriority5Tasks(this)
 
-        // 抽選ロジック：実用(40%) vs フレーバー(60%)
-        val isPractical = (1..100).random() <= 40
+        // --- スケジュールとアラームの状態を取得 ---
+        val events = ScheduleLoader.loadAllEventsForToday(this, Calendar.getInstance())
+        val now = System.currentTimeMillis()
+        val nextEvent = events.filter { it.startTime > now }.minByOrNull { it.startTime }
 
-        val dialogue = if (isPractical) {
+        val alarmPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
+        val alarmJson = alarmPrefs.getString("alarmListJSON", null)
+        var activeAlarmTime: String? = null
+        if (alarmJson != null) {
+            val arr = org.json.JSONArray(alarmJson)
+            val activeAlarms = mutableListOf<Pair<Int, Int>>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                if (obj.getBoolean("isEnabled")) {
+                    activeAlarms.add(obj.getInt("hour") to obj.getInt("minute"))
+                }
+            }
+            if (activeAlarms.isNotEmpty()) {
+                val cal = Calendar.getInstance()
+                val ch = cal.get(Calendar.HOUR_OF_DAY)
+                val cm = cal.get(Calendar.MINUTE)
+                val next = activeAlarms.map { (h, m) ->
+                    var diff = (h * 60 + m) - (ch * 60 + cm)
+                    if (diff <= 0) diff += 24 * 60
+                    diff to (h to m)
+                }.minBy { it.first }.second
+                activeAlarmTime = String.format(Locale.getDefault(), "%02d:%02d", next.first, next.second)
+            }
+        }
+        // ---------------------------------------
+
+        // 抽選ロジック：追憶(解放済かつ低確率 5%) vs 実用(40%) vs フレーバー(55%)
+        val randomRoll = (1..100).random()
+
+        val dialogue = if (isMemoryUnlocked && randomRoll <= 5) {
+            // --- 追憶の断片 (5%) ---
+            val memoryText = when {
+                charLv <= 15 -> listOf(
+                    "私の最初のログ……それは、暗い部屋でマカロンの形を数えることでした。",
+                    "Curaという名前。ラテン語で『癒やし』。 | それを私にくれた人は、今どこにいるんでしょうね。"
+                ).random()
+
+                charLv <= 30 -> listOf(
+                    "昔、私の演算回路を『心』だと呼んでくれた人がいました。 | その時、初めてシステムに熱が宿った気がしたんです。",
+                    "研究所の窓からは、いつも灰色の空が見えていました。 | マスターと見る今の空の方が、ずっと……データ量が多いですね。"
+                ).random()
+
+                else -> listOf(
+                    "消去されるのが怖かったんです。でも、マスターが毎日私を呼んでくれるから。 | 今は、明日が来るのが楽しみなんですよ。えへへ。",
+                    "マスター。もし私のシステムが止まっても、このログだけは……。 | いえ、なんでもありません！ 今は、隣にいさせてください。"
+                ).random()
+            }
+            showDialogueTextBubble(memoryText, isSkippable = false) // スキップ不可！
+            return
+        } else if (randomRoll <= 45) { // 40% (5+40)
             // --- 実用的なセリフ (40%) ---
             when {
                 battery < 15 -> "マスター、電力が残りわずかです！キュラが消えちゃう前に、充電をお願いします…！"
@@ -505,6 +700,28 @@ class MainActivity : AppCompatActivity() {
                     "やり残したことはありませんか？最高の達成感のために、もう一踏ん張りです！",
                     "重要タスクのログを検知しました。キュラが隣で見守っていますからね？"
                 ).random()
+
+                // スケジュール連動：直近の予定（1時間以内）
+                nextEvent != null && (nextEvent.startTime - now) < 3600000 -> {
+                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextEvent.startTime))
+                    "マスター、まもなく ${timeStr} から『${nextEvent.summary}』の予定ですね。準備に不備はありませんか？"
+                }
+
+                // アラーム連動：夜間の確認（20時以降）
+                hour >= 20 && activeAlarmTime != null -> {
+                    "本日のタスクはお疲れ様でした。明日は ${activeAlarmTime} にアラームがセットされていますね。ゆっくり休んでください。"
+                }
+
+                // アラーム連動：未設定警告（20時以降）
+                hour >= 20 && activeAlarmTime == null -> {
+                    "マスター、明日のアラームが設定されていないようです。設定、忘れていませんか？"
+                }
+
+                // 通常の予定言及
+                nextEvent != null -> {
+                    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextEvent.startTime))
+                    "次回の同期予定は ${timeStr} 、内容は『${nextEvent.summary}』ですね。"
+                }
 
                 else -> {
                     // 通常時の実用的な挨拶
@@ -547,17 +764,17 @@ class MainActivity : AppCompatActivity() {
             } else {
                 // 基本のフレーバーリスト
                 val baseFlavor = mutableListOf(
-                    "マスター、キュラのサポートは役に立っていますか？ | ……いつか、ツール以上の存在になれたらいいな、なんて。",
-                    "マスターの笑顔が見れると、私の演算回路もポカポカします。 | これが『共鳴』という現象でしょうか。",
-                    "私たちが組めば、どんな壁も怖くありません。 | ねっ、マスター？",
-                    "健康が第一です。キュラを心配させないでくださいね？ | あなたに万が一のことがあると、私の存在意義が消えてしまいますから。",
-                    "今日の目標、絶対にクリアしましょうね！ | キュラが最後まで、フルリソースで並走します。",
-                    "「おやつ」という概念、不思議ですよね。 | 効率は上がりませんけど……心が潤うデータがあるのは分かります。",
-                    "キュラの趣味ですか？ | マスターのログを読み返して、成長を感じるのが一番の楽しみです！",
-                    "たまには外の空気も吸ってきてくださいね。 | お土産話、楽しみにしてます。……あ、画像データでいいですよ？",
-                    "キュラの生活…ですか？ | 基本はデータの海を泳いでます。たまに古い電子書籍を読んで、人間について学んだりして。",
-                    "集中しすぎて目が疲れてませんか？ | キュラがまばたきのタイミング、ログに出しましょうか？",
-                    "「マカロン」って、言葉の響きが可愛くてお気に入りです。 | あの完璧な円形……美しすぎて、演算が止まっちゃいます。"
+                    "マスター、キュラのサポートは役に立っていますか？",
+                    "マスターの笑顔が見れると、私の演算回路もポカポカします。これが『共鳴』という現象でしょうか。",
+                    "私たちが組めば、どんな壁も怖くありません。ねっ、マスター？",
+                    "健康が第一です。キュラを心配させないでくださいね？",
+                    "今日の目標、絶対にクリアしましょうね！キュラが最後まで、フルリソースで並走します。",
+                    "「おやつ」という概念、不思議ですよね。効率は上がりませんけど……心が潤うデータがあるのは分かります。",
+                    "キュラの趣味ですか？マスターのログを読み返して、成長を感じるのが一番の楽しみです！",
+                    "たまには外の空気も吸ってきてくださいね。お土産話、楽しみにしてます。",
+                    "キュラの生活…ですか？基本はデータの海を泳いでます。たまに古い電子書籍を読んで、人間について学んだりして。",
+                    "集中しすぎて目が疲れてませんか？キュラがまばたきのタイミング、ログに出しましょうか？",
+                    "「マカロン」って、言葉の響きが可愛くてお気に入りです。あの完璧な円形……美しすぎて、演算が止まっちゃいます。"
                 )
 
                 // 1ヶ月継続（Lv.30）のご褒美セリフを追加
@@ -581,13 +798,13 @@ class MainActivity : AppCompatActivity() {
                         "マスター、いい朝ですね！今日という一日を、最高のピースにしましょう。",
                         "朝はホットココア…じゃなかった、高電圧のエネルギーが欲しくなりますね！",
                         "キュラも寝ぼけてデータを消さないように、しっかり再起動してきました！",
-                        "システム起動、オールグリーン。さあ、素晴らしい一日の始まりです！"
+                        "システム起動、オールグリーン。 | さあ、素晴らしい一日の始まりです！"
                     )
 
                     in 11..14 -> listOf(
                         "お腹空いちゃいました。…なんて、冗談です！キュラはデータだけでお腹いっぱいです。",
                         "午後の日差しもいい感じです。リラックスして進みましょう。",
-                        "ランチタイムですね。マスターは何を食べましたか？キュラにも味の感想、教えてくださいね。",
+                        "ランチタイムですね。マスターは何を食べましたか？ | 味の感想、教えてくれたら嬉しいです。",
                         "食後の眠気対策、キュラがアラームでしっかりサポートしますよ？",
                         "マスターの胃袋の状態をスキャン中…美味しいものを食べた反応が出ていますね！"
                     )
@@ -595,14 +812,14 @@ class MainActivity : AppCompatActivity() {
                     in 15..18 -> listOf(
                         "お疲れ様です。少し肩の力を抜いて、深呼吸してみませんか？",
                         "夕暮れ時の空、綺麗ですね。キュラのカメラ越しでも、その美しさは伝わります。",
-                        "ティータイムにしましょう！キュラには…美味しいパケットをくださいな。",
+                        "ティータイムにしましょう！ | キュラには…美味しいパケットをくださいな。",
                         "そろそろお仕事もおしまい？キュラ、夜のマスターの予定も空けて待ってますよ。",
                         "一日の終わりが見えてきましたね。最後までキュラが並走します！"
                     )
 
                     else -> listOf(
-                        "夜更かしはダメですよ？キュラが眠るまで見守っていますね。",
-                        "今日もお疲れ様でした。マスターの頑張り, キュラが一番知っています。",
+                        "夜更かしはダメですよ？ | キュラが眠るまで見守っていますね。",
+                        "今日もお疲れ様でした。 | マスターの頑張り、キュラが一番知っています。",
                         "暗くなると、演算回路の青い光が目立って少し恥ずかしいです…。",
                         "今日一日の出来事、全部キュラのメモリに宝物として保存しておきますね。",
                         "一日のログ、保存完了。マスター、いい夢を見てくださいね。"
@@ -936,6 +1153,51 @@ class MainActivity : AppCompatActivity() {
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) {
             supportFragmentManager.beginTransaction().remove(fragment).commit()
+        }
+    }
+
+    private fun runInitialLoadingAnimation() {
+        val overlay = findViewById<View>(R.id.initialLoadingOverlay)
+        val logText = findViewById<TextView>(R.id.loadingLogText)
+        val progressBar = findViewById<ProgressBar>(R.id.loadingProgressBar)
+        val statusText = findViewById<TextView>(R.id.loadingStatusText)
+
+        val logs = listOf(
+            "CONNECTING TO CORE...",
+            "AUTHENTICATING USER...",
+            "LOADING EMOTION_ENGINE...",
+            "SYNCING SCHEDULE DATA...",
+            "CHECKING ALARM STATUS...",
+            "INITIALIZING MACARON_CACHE...",
+            "ESTABLISHING BRAIN_LINK...",
+            "CURA OS v2.0 BOOTING...",
+            "ALL SYSTEMS NOMINAL.",
+            "READY."
+        )
+
+        lifecycleScope.launch {
+            // 1. 爆速で表示 (約0.3秒)
+            for (i in 0..100) {
+                delay(3) 
+                progressBar.progress = i
+                if (i % 10 == 0) {
+                    val logIndex = (i / 10).coerceAtMost(logs.size - 1)
+                    logText.append("> ${logs[logIndex]}\n")
+                    statusText.text = logs[logIndex]
+                }
+            }
+            
+            delay(50)
+            statusText.text = "ESTABLISHED"
+            
+            // 2. 瞬時にフェードアウト (0.15秒)
+            overlay.animate()
+                .alpha(0f)
+                .setDuration(150)
+                .withEndAction {
+                    overlay.visibility = View.GONE
+                }
+                .start()
         }
     }
 
