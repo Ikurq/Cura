@@ -8,15 +8,24 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 class TaskFragment : Fragment() {
 
@@ -85,7 +94,7 @@ class TaskFragment : Fragment() {
             .setPositiveButton("完了") { _, _ ->
                 taskList.removeAll { it.isCompleted }
                 saveTasks()
-                
+
                 // --- スケジュールへの記録処理を追加 ---
                 recordCompletedTasksToSchedule(selectedTasks)
 
@@ -95,7 +104,11 @@ class TaskFragment : Fragment() {
                 taskAdapter.notifyDataSetChanged()
                 updateEmptyView()
                 updateButtonsVisibility()
-                Toast.makeText(requireContext(), "${completedCount}件のタスクを完了しました！", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "${completedCount}件のタスクを完了しました！",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             .setNegativeButton("キャンセル", null)
             .show()
@@ -114,53 +127,61 @@ class TaskFragment : Fragment() {
     }
 
     private fun showAddTaskDialog() {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_task, null)
+        val dialogView =
+            LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_task, null)
         val titleInput = dialogView.findViewById<EditText>(R.id.dialogTaskTitleInput)
         val deadlineButton = dialogView.findViewById<Button>(R.id.dialogTaskDeadlineButton)
         val prioritySpinner = dialogView.findViewById<Spinner>(R.id.dialogTaskPrioritySpinner)
-        
+
         val container = dialogView as LinearLayout
-        
+
         // --- Enhanced: Date-Filtered Event Selection UI ---
         val calendar = Calendar.getInstance()
         var selectedDeadline = calendar.timeInMillis
         var selectedEventId: String? = null
         val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
 
-        val eventLabel = TextView(requireContext()).apply { 
+        val eventLabel = TextView(requireContext()).apply {
             text = "予定と連動させる"
             setPadding(0, 16, 0, 8)
             setTextColor(resources.getColor(R.color.text_secondary, null))
         }
         val eventSpinner = Spinner(requireContext())
-        
+
         container.addView(eventLabel)
         container.addView(eventSpinner)
 
         fun updateEventSpinner() {
             val eventList = loadAllEventsForDate(calendar)
             val eventTitles = mutableListOf("指定なし (手動入力)")
-            eventTitles.addAll(eventList.map { 
+            eventTitles.addAll(eventList.map {
                 val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.startTime))
                 "[$time] ${it.summary}"
             })
-            val eventAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, eventTitles)
+            val eventAdapter =
+                ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, eventTitles)
             eventAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             eventSpinner.adapter = eventAdapter
 
             eventSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
                     if (position > 0) {
                         val event = eventList[position - 1]
                         selectedDeadline = event.startTime
                         selectedEventId = "${event.summary}_${event.startTime}"
                         deadlineButton.text = sdf.format(Date(selectedDeadline))
-                        deadlineButton.isEnabled = false 
+                        deadlineButton.isEnabled = false
                     } else {
                         selectedEventId = null
                         deadlineButton.isEnabled = true
                     }
                 }
+
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
         }
@@ -170,29 +191,42 @@ class TaskFragment : Fragment() {
         updateEventSpinner()
 
         deadlineButton.setOnClickListener {
-            DatePickerDialog(requireContext(), { _, year, month, dayOfMonth ->
-                calendar.set(Calendar.YEAR, year)
-                calendar.set(Calendar.MONTH, month)
-                calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                
-                updateEventSpinner() // Refresh events when date picked
+            DatePickerDialog(
+                requireContext(),
+                { _, year, month, dayOfMonth ->
+                    calendar.set(Calendar.YEAR, year)
+                    calendar.set(Calendar.MONTH, month)
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
 
-                TimePickerDialog(requireContext(), { _, hourOfDay, minute ->
-                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    calendar.set(Calendar.MINUTE, minute)
-                    calendar.set(Calendar.SECOND, 0)
-                    selectedDeadline = calendar.timeInMillis
-                    deadlineButton.text = sdf.format(Date(selectedDeadline))
-                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
-                
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+                    updateEventSpinner() // Refresh events when date picked
+
+                    TimePickerDialog(
+                        requireContext(),
+                        { _, hourOfDay, minute ->
+                            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                            calendar.set(Calendar.MINUTE, minute)
+                            calendar.set(Calendar.SECOND, 0)
+                            selectedDeadline = calendar.timeInMillis
+                            deadlineButton.text = sdf.format(Date(selectedDeadline))
+                        },
+                        calendar.get(Calendar.HOUR_OF_DAY),
+                        calendar.get(Calendar.MINUTE),
+                        true
+                    ).show()
+
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
         }
 
         val priorities = listOf("1 (低)", "2", "3", "4", "5 (高)")
-        val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, priorities)
+        val spinnerAdapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, priorities)
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         prioritySpinner.adapter = spinnerAdapter
-        prioritySpinner.setSelection(2) 
+        prioritySpinner.setSelection(2)
 
         AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -214,7 +248,11 @@ class TaskFragment : Fragment() {
                     saveTasks()
                     updateEmptyView()
                 } else {
-                    Toast.makeText(requireContext(), "タイトルを入力してください", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "タイトルを入力してください",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .setNegativeButton("キャンセル", null)
@@ -223,9 +261,10 @@ class TaskFragment : Fragment() {
 
     private fun loadAllEventsForDate(targetDate: Calendar): List<IcsEvent> {
         val allEvents = mutableListOf<IcsEvent>()
-        
+
         // 1. Load Custom Events
-        val schedulePrefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val schedulePrefs =
+            requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
         val customJson = schedulePrefs.getString("eventListJSON", null)
         if (customJson != null) {
             try {
@@ -235,14 +274,23 @@ class TaskFragment : Fragment() {
                     val startTime = obj.getLong("startTime")
                     val cal = Calendar.getInstance().apply { timeInMillis = startTime }
                     if (isSameDay(cal, targetDate)) {
-                        allEvents.add(IcsEvent(obj.getString("genre"), startTime, startTime, obj.getString("location")))
+                        allEvents.add(
+                            IcsEvent(
+                                obj.getString("genre"),
+                                startTime,
+                                startTime,
+                                obj.getString("location")
+                            )
+                        )
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
         }
 
         // 2. Load External ICS from Cache
-        val timetablePrefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
+        val timetablePrefs =
+            requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
         val icsJson = timetablePrefs.getString("icsCacheJSON", null)
         if (icsJson != null) {
             try {
@@ -252,23 +300,26 @@ class TaskFragment : Fragment() {
                     val startTime = obj.getLong("startTime")
                     val cal = Calendar.getInstance().apply { timeInMillis = startTime }
                     if (isSameDay(cal, targetDate)) {
-                        allEvents.add(IcsEvent(
-                            obj.getString("summary"),
-                            startTime,
-                            obj.getLong("endTime"),
-                            obj.getString("location")
-                        ))
+                        allEvents.add(
+                            IcsEvent(
+                                obj.getString("summary"),
+                                startTime,
+                                obj.getLong("endTime"),
+                                obj.getString("location")
+                            )
+                        )
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
         }
-        
+
         return allEvents.sortedBy { it.startTime }
     }
 
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 
     private fun showDeleteConfirmDialog(task: TaskItem) {
@@ -289,9 +340,9 @@ class TaskFragment : Fragment() {
         val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
         val jsonString = prefs.getString("eventListJSON", null) ?: "[]"
         val jsonArray = JSONArray(jsonString)
-        
+
         val now = System.currentTimeMillis()
-        
+
         tasks.forEach { task ->
             val obj = JSONObject().apply {
                 put("id", "completed_task_${UUID.randomUUID()}")
@@ -303,9 +354,9 @@ class TaskFragment : Fragment() {
             }
             jsonArray.put(obj)
         }
-        
+
         prefs.edit().putString("eventListJSON", jsonArray.toString()).apply()
-        
+
         // スケジュール画面にも通知
         triggerNotificationRefresh()
     }
@@ -340,16 +391,20 @@ class TaskFragment : Fragment() {
         tasks.forEach { task ->
             // 基本EXP: 優先度1=20, 2=40, 3=60, 4=80, 5=100
             val baseExp = task.basePriority * 20L
-            
+
             // 重要度1 (低) のものをこなすのは偉いのでレベルボーナス (+50)
             val bonus = if (task.basePriority == 1) 50L else 0L
-            
+
             totalGain += (baseExp + bonus)
         }
 
-        val prefs = requireContext().getSharedPreferences("PlayerPrefs", Context.MODE_PRIVATE)
-        val currentExp = prefs.getLong("totalExp", 0L)
-        prefs.edit().putLong("totalExp", currentExp + totalGain).apply()
+        // プレイヤー経験値
+        val playerPrefs = requireContext().getSharedPreferences("PlayerPrefs", Context.MODE_PRIVATE)
+        playerPrefs.edit().putLong("totalExp", playerPrefs.getLong("totalExp", 0L) + totalGain).apply()
+
+        // キャラクター（キュラ）経験値
+        val charPrefs = requireContext().getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
+        charPrefs.edit().putLong("totalExp", charPrefs.getLong("totalExp", 0L) + totalGain).apply()
     }
 
     private fun loadTasks() {

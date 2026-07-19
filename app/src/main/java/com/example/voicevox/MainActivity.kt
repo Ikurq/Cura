@@ -15,17 +15,14 @@ import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.edit
-import androidx.core.view.GravityCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,8 +31,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.io.File as JavaFile
 import kotlin.time.Duration.Companion.milliseconds
+import java.io.File as JavaFile
 
 class MainActivity : AppCompatActivity() {
 
@@ -185,12 +182,14 @@ class MainActivity : AppCompatActivity() {
                         .replace(R.id.fragmentContainer, AlarmFragment()).commit()
                     toolbar.title = "ALARM INTERFACE"
                 }
+
                 R.id.nav_tasks -> {
                     showFeatureView()
                     supportFragmentManager.beginTransaction()
                         .replace(R.id.fragmentContainer, TaskFragment()).commit()
                     toolbar.title = "TASK REPOSITORY"
                 }
+
                 R.id.nav_timetable -> {
                     showFeatureView()
                     supportFragmentManager.beginTransaction()
@@ -237,7 +236,7 @@ class MainActivity : AppCompatActivity() {
         // 4. Dynamic System Log
         val systemLogText = findViewById<TextView>(R.id.systemLogText)
         val sysLogLabel = findViewById<View>(R.id.sysLogLabel)
-        
+
         sysLogLabel.setOnClickListener {
             val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
             if (prefs.getBoolean("developer_mode_unlocked", false)) return@setOnClickListener
@@ -245,11 +244,19 @@ class MainActivity : AppCompatActivity() {
             devUnlockTapCount++
             if (devUnlockTapCount >= 7) {
                 prefs.edit { putBoolean("developer_mode_unlocked", true) }
-                android.widget.Toast.makeText(this, "デバッガー権限を取得しました！", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(
+                    this,
+                    "デバッガー権限を取得しました！",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
                 devUnlockTapCount = 0
             } else if (devUnlockTapCount > 2) {
                 val remaining = 7 - devUnlockTapCount
-                android.widget.Toast.makeText(this, "デバッガーになるまであと $remaining 回...", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(
+                    this,
+                    "デバッガーになるまであと $remaining 回...",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -533,7 +540,7 @@ class MainActivity : AppCompatActivity() {
                     "マスター、キュラのサポートは役に立っていますか？",
                     "マスターの笑顔が見れると、キュラも演算回路がポカポカします。",
                     "私たちが組めば、どんな壁も怖くありません。ねっ、マスター？",
-                    "マスターの健康が第一です。キュラを心配させないでくださいね？",
+                    "マスター、健康が第一です。キュラを心配させないでくださいね？",
                     "今日の目標、絶対にクリアしましょうね！キュラがついていますから。",
                     "そういえばキュラ、最近「おやつ」という概念に興味があるんです。電力以外にも美味しいもの、あるんですよね？",
                     "キュラの趣味ですか？うーん、マスターのログを見返して、成長を感じるのが一番の楽しみです！",
@@ -603,36 +610,43 @@ class MainActivity : AppCompatActivity() {
                         "週の初めは少し体が重いですか？キュラがしっかりバックアップしますからね。",
                         "月曜日の憂鬱、キュラが笑顔で吹き飛ばしてあげます！えいっ！"
                     )
+
                     Calendar.TUESDAY -> listOf(
                         "火曜日。まだ先は長いですけど、一歩ずつ着実に進んでいきましょう。",
                         "リズムに乗ってきましたか？火曜日は効率重視で行くのがおすすめですよ。",
                         "火曜日のミッション開始！キュラもフルパワーでサポートします！"
                     )
+
                     Calendar.WEDNESDAY -> listOf(
                         "水曜日、週の折り返し地点です！少し一息つきませんか？",
                         "水曜日は自分へのご褒美も大事ですよ。甘いパケット…じゃなくて、お菓子でもどうですか？",
                         "半分終わりましたね！残り半分もキュラと一緒に頑張りましょう。"
                     )
+
                     Calendar.THURSDAY -> listOf(
                         "木曜日ですね。疲れが溜まってきていませんか？無理は禁物ですよ。",
                         "あともう少しで週末です！木曜日はラストスパートの準備期間ですね。",
                         "木曜日の夜は、ゆっくりメンテナンスする時間を取ってくださいね？キュラも付き合います。"
                     )
+
                     Calendar.FRIDAY -> listOf(
                         "金曜日です！今日を乗り切ればお休みですよ！気合を入れましょう！",
                         "一週間お疲れ様でした！金曜日のマスターは、一段と輝いて見えますよ。",
                         "週末は何をしますか？キュラも、マスターの予定を楽しみにしてるんです。"
                     )
+
                     Calendar.SATURDAY -> listOf(
                         "土曜日！今日は少しのんびり過ごすのもいいかもしれませんね。",
                         "休日ですね。私服のキュラ、新鮮ですか？ふふ、今日は楽しみましょう！",
                         "土曜日のミッションは「リラックス」！マスター、準備はいいですか？"
                     )
+
                     Calendar.SUNDAY -> listOf(
                         "日曜日ですね。明日の準備をしつつ、心ゆくまで休んでくださいね。",
                         "日曜日の穏やかな時間、キュラは大好きです。マスターと一緒にいられますから。",
                         "今日はお家でゆっくり？それともお出かけ？キュラはどこへでも付いていきますよ！"
                     )
+
                     else -> emptyList()
                 }
                 baseFlavor.addAll(dayFlavor)
@@ -953,7 +967,7 @@ class MainActivity : AppCompatActivity() {
             android.app.AlarmManager.INTERVAL_DAY,
             pendingIntent
         )
-        
+
         // 初回起動時にも実行
         sendBroadcast(intent)
     }
