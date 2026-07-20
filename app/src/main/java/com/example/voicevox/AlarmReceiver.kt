@@ -265,7 +265,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val pi = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification_cura)
             .setContentTitle(title)
             .setContentText(message)
             .setAutoCancel(true)

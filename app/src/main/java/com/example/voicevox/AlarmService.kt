@@ -63,7 +63,7 @@ class AlarmService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, "ALARM_CHANNEL")
             .setContentTitle("【🚨警報】キュラが呼んでいます！")
             .setContentText("YouTubeを止めて起きてください！")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setSmallIcon(R.drawable.ic_notification_cura)
             .setPriority(NotificationCompat.PRIORITY_MAX) // 最高優先度
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)
