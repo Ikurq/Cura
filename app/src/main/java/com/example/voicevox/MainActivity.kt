@@ -110,7 +110,10 @@ class MainActivity : AppCompatActivity() {
         })
 
         welcomeTitle = findViewById(R.id.welcomeTitle)
-        welcomeTitle.text = "PLAYER"
+        
+        val appPrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        welcomeTitle.text = appPrefs.getString("user_name", "PLAYER")
+
         launchAlarmButton = findViewById(R.id.launchAlarmButton)
         launchAlarmButton.text = "ALARM"
         launchTaskButton = findViewById(R.id.launchTaskButton)
@@ -306,6 +309,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePlayerStatus() {
+        val appPrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+        
+        // 名前の反映
+        val userName = appPrefs.getString("user_name", "PLAYER")
+        welcomeTitle.text = userName
+
         val prefs = getSharedPreferences("PlayerPrefs", MODE_PRIVATE)
         val totalExp = prefs.getLong("totalExp", 0L)
 
@@ -322,6 +331,13 @@ class MainActivity : AppCompatActivity() {
         expProgressBar.progress = current.toInt()
         expValueText.text = "$current / $required EXP"
 
+        // Player Level の表示/非表示反映（VISIBLEを明示的にセット）
+        val showPlayerLv = appPrefs.getBoolean("show_player_level", true)
+        val pVisibility = if (showPlayerLv) View.VISIBLE else View.GONE
+        playerLevelText.visibility = pVisibility
+        expProgressBar.visibility = pVisibility
+        expValueText.visibility = pVisibility
+
         // Character Level Restored
         val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
         val charTotalExp = charPrefs.getLong("totalExp", 0L)
@@ -330,6 +346,10 @@ class MainActivity : AppCompatActivity() {
         charExpProgressBar.max = cReq.toInt()
         charExpProgressBar.progress = cCurr.toInt()
         charExpText.text = "$cCurr/$cReq"
+
+        // Character Level の表示/非表示反映 (Cardごと隠す、VISIBLEを明示的セット)
+        val showCharLv = appPrefs.getBoolean("show_char_level", true)
+        findViewById<View>(R.id.charLevelCard).visibility = if (showCharLv) View.VISIBLE else View.GONE
 
         // ストーリーの確定発生チェック
         checkAndTriggerStory(cLv)
@@ -532,26 +552,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun showDialogueTextBubble(text: String, isSkippable: Boolean = true) {
         dialogueJob?.cancel()
-        isDialogueSkippable = isSkippable // フラグをセット
+        isDialogueSkippable = isSkippable 
 
         dialogueJob = lifecycleScope.launch {
             val parts = text.split("|")
             for (i in parts.indices) {
-                dialogueText.text = parts[i].trim()
+                val currentPart = parts[i].trim()
+                dialogueText.text = currentPart
                 dialogueBubble.animate().cancel()
                 dialogueBubble.alpha = 1f
 
+                // 文字数に応じた表示時間を計算 (1文字120ms + 固定300ms、最低1.5秒)
+                val displayTime = (currentPart.length * 120L + 300L).coerceAtLeast(1500L)
+
                 if (i < parts.size - 1) {
-                    // 次のパーツがある場合は、一定時間表示して一旦消す
-                    delay(2500.milliseconds)
-                    dialogueBubble.animate().alpha(0f).setDuration(300).start()
-                    delay(400.milliseconds)
+                    // 次のパーツがある場合
+                    delay(displayTime)
+                    dialogueBubble.animate().alpha(0f).setDuration(250).start()
+                    delay(300.milliseconds)
                 } else {
                     // 最後のパーツを表示
-                    delay(3500.milliseconds)
-                    dialogueBubble.animate().alpha(0f).setDuration(500).withEndAction {
+                    delay(displayTime + 600L) // 最後は少しだけ余韻
+                    dialogueBubble.animate().alpha(0f).setDuration(400).withEndAction {
                         tapCount = 0
-                        isDialogueSkippable = true // 終了時にスキップ可能に戻す
+                        isDialogueSkippable = true
                     }.start()
                 }
             }
@@ -1148,7 +1172,11 @@ class MainActivity : AppCompatActivity() {
         launcherLayout.visibility = View.VISIBLE
         toolbar.visibility = View.GONE
         fragmentContainer.visibility = View.GONE
+        
+        // 設定（名前や表示ON/OFF）を最新状態に更新
+        updatePlayerStatus()
         updateDashboardInfo()
+
         startLauncherAnimation()
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) {

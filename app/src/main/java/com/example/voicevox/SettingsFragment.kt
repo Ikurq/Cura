@@ -39,6 +39,9 @@ class SettingsFragment : Fragment() {
         view.findViewById<View>(R.id.menuPermissions).setOnClickListener {
             navigateTo(SettingsPermissionsFragment())
         }
+        view.findViewById<View>(R.id.menuHud).setOnClickListener {
+            navigateTo(SettingsHudFragment())
+        }
         view.findViewById<View>(R.id.menuCalendar).setOnClickListener {
             navigateTo(SettingsCalendarFragment())
         }

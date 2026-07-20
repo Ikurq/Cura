@@ -192,6 +192,127 @@ class SettingsCalendarFragment : Fragment() {
     }
 }
 
+// --- 3. Voice & Storage ---
+class SettingsVoiceFragment : Fragment() {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_settings_voice, container, false)
+        setupApi(view)
+        setupStorage(view)
+        return view
+    }
+
+    private fun setupApi(view: View) {
+        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val txtKey = view.findViewById<TextView>(R.id.txtCurrentApiKey)
+        val edit = view.findViewById<EditText>(R.id.editApiKey)
+        val btnApply = view.findViewById<Button>(R.id.btnApplyApiKey)
+        val layoutInput = view.findViewById<View>(R.id.layoutApiKeyInput)
+        val btnOpenPage = view.findViewById<View>(R.id.btnOpenApiKeyPage)
+        
+        val currentKey = prefs.getString("custom_api_key", null)
+        
+        fun updateLockState(key: String?) {
+            if (key != null) {
+                txtKey.text = "現在のキー: $key (ロック済み)"
+                layoutInput.visibility = View.GONE
+                btnOpenPage.visibility = View.GONE
+            } else {
+                txtKey.text = "現在のキー: (デフォルト)"
+                layoutInput.visibility = View.VISIBLE
+                btnOpenPage.visibility = View.VISIBLE
+                edit.isEnabled = true
+                btnApply.isEnabled = true
+                btnApply.text = "適用する"
+            }
+        }
+
+        updateLockState(currentKey)
+
+        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/su-shikiapis/")))
+        }
+
+        btnApply.setOnClickListener {
+            val k = edit.text.toString().trim()
+            if (k.isEmpty()) return@setOnClickListener
+
+            btnApply.isEnabled = false
+            btnApply.text = "検証中..."
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val client = WebVoicevoxClient()
+                val tempFile = File(requireContext().cacheDir, "api_test.wav")
+                
+                // テスト用の短い音声生成でキーの有効性をチェック
+                val success = withContext(Dispatchers.IO) {
+                    client.createAlarmAudio("テスト", 3, tempFile, k, useCache = false)
+                }
+
+                if (success) {
+                    prefs.edit { putString("custom_api_key", k) }
+                    updateLockState(k)
+                    edit.setText("")
+                    Toast.makeText(context, "APIキーを認証・ロックしました", Toast.LENGTH_SHORT).show()
+                } else {
+                    btnApply.isEnabled = true
+                    btnApply.text = "適用する"
+                    Toast.makeText(context, "キーの認証に失敗しました。正しいか確認してください。", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun setupStorage(view: View) {
+        val txtSize = view.findViewById<TextView>(R.id.textCacheSize)
+        val btnClear = view.findViewById<Button>(R.id.btnClearVoiceCache)
+        fun update() {
+            var size = 0L
+            File(requireContext().filesDir, "voice_cache").let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
+            requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { size += it.length() }
+            txtSize.text = String.format(Locale.getDefault(), "使用量: %.2f MB", size / (1024.0 * 1024.0))
+        }
+        btnClear.setOnClickListener {
+            AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("全音声を削除？")
+                .setPositiveButton("はい") { _, _ ->
+                    File(requireContext().filesDir, "voice_cache").deleteRecursively()
+                    requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
+                    update(); Toast.makeText(context, "完了", Toast.LENGTH_SHORT).show()
+                }.setNegativeButton("いいえ", null).show()
+        }
+        update()
+    }
+}
+
+// --- 4. Dev & Character ---
+class SettingsDevFragment : Fragment() {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_settings_dev, container, false)
+        setupLevel(view)
+        view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
+        view.findViewById<Button>(R.id.btnImportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
+        return view
+    }
+
+    private fun setupLevel(view: View) {
+        val prefs = requireContext().getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
+        val txtLv = view.findViewById<TextView>(R.id.txtDevLevelDisplay)
+        val seek = view.findViewById<SeekBar>(R.id.seekDevLevel)
+        val btn = view.findViewById<Button>(R.id.btnDevSetLevel)
+        val curLv = (prefs.getLong("totalExp", 0L) / 100L).toInt() + 1
+        seek.progress = curLv; txtLv.text = "現在のLv: $curLv"
+        btn.setOnClickListener {
+            prefs.edit { putLong("totalExp", (seek.progress - 1) * 100L) }
+            txtLv.text = "現在のLv: ${seek.progress}"
+            Toast.makeText(context, "設定完了", Toast.LENGTH_SHORT).show()
+        }
+        seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { txtLv.text = "現在のLv: $p" }
+            override fun onStartTrackingTouch(s: SeekBar?) {}
+            override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+    }
+}
+
 // --- 5. Schedule Presets ---
 class SettingsPresetsFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -304,97 +425,6 @@ class SettingsPresetsFragment : Fragment() {
     }
 }
 
-// --- 3. Voice & Storage ---
-class SettingsVoiceFragment : Fragment() {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_settings_voice, container, false)
-        setupApi(view)
-        setupStorage(view)
-        return view
-    }
-
-    private fun setupApi(view: View) {
-        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        val txtKey = view.findViewById<TextView>(R.id.txtCurrentApiKey)
-        val edit = view.findViewById<EditText>(R.id.editApiKey)
-        val btnApply = view.findViewById<Button>(R.id.btnApplyApiKey)
-        val layoutInput = view.findViewById<View>(R.id.layoutApiKeyInput)
-        val btnOpenPage = view.findViewById<View>(R.id.btnOpenApiKeyPage)
-        
-        val currentKey = prefs.getString("custom_api_key", null)
-        
-        fun updateLockState(key: String?) {
-            if (key != null) {
-                txtKey.text = "現在のキー: $key (ロック済み)"
-                layoutInput.visibility = View.GONE
-                btnOpenPage.visibility = View.GONE
-            } else {
-                txtKey.text = "現在のキー: (デフォルト)"
-                layoutInput.visibility = View.VISIBLE
-                btnOpenPage.visibility = View.VISIBLE
-                edit.isEnabled = true
-                btnApply.isEnabled = true
-                btnApply.text = "適用する"
-            }
-        }
-
-        updateLockState(currentKey)
-
-        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/su-shikiapis/")))
-        }
-
-        btnApply.setOnClickListener {
-            val k = edit.text.toString().trim()
-            if (k.isEmpty()) return@setOnClickListener
-
-            btnApply.isEnabled = false
-            btnApply.text = "検証中..."
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                val client = WebVoicevoxClient()
-                val tempFile = File(requireContext().cacheDir, "api_test.wav")
-                
-                // テスト用の短い音声生成でキーの有効性をチェック
-                val success = withContext(Dispatchers.IO) {
-                    client.createAlarmAudio("テスト", 3, tempFile, k, useCache = false)
-                }
-
-                if (success) {
-                    prefs.edit { putString("custom_api_key", k) }
-                    updateLockState(k)
-                    edit.setText("")
-                    Toast.makeText(context, "APIキーを認証・ロックしました", Toast.LENGTH_SHORT).show()
-                } else {
-                    btnApply.isEnabled = true
-                    btnApply.text = "適用する"
-                    Toast.makeText(context, "キーの認証に失敗しました。正しいか確認してください。", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun setupStorage(view: View) {
-        val txtSize = view.findViewById<TextView>(R.id.textCacheSize)
-        val btnClear = view.findViewById<Button>(R.id.btnClearVoiceCache)
-        fun update() {
-            var size = 0L
-            File(requireContext().filesDir, "voice_cache").let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
-            requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { size += it.length() }
-            txtSize.text = String.format(Locale.getDefault(), "使用量: %.2f MB", size / (1024.0 * 1024.0))
-        }
-        btnClear.setOnClickListener {
-            AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("全音声を削除？")
-                .setPositiveButton("はい") { _, _ ->
-                    File(requireContext().filesDir, "voice_cache").deleteRecursively()
-                    requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
-                    update(); Toast.makeText(context, "完了", Toast.LENGTH_SHORT).show()
-                }.setNegativeButton("いいえ", null).show()
-        }
-        update()
-    }
-}
-
 // --- 6. Device Calendar Selection ---
 class SettingsCalendarSelectionFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -445,32 +475,46 @@ class SettingsCalendarSelectionFragment : Fragment() {
     }
 }
 
-// --- 4. Dev & Character ---
-class SettingsDevFragment : Fragment() {
+// --- 7. HUD & Interface Settings ---
+class SettingsHudFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_settings_dev, container, false)
-        setupLevel(view)
-        view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
-        view.findViewById<Button>(R.id.btnImportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
+        val view = inflater.inflate(R.layout.fragment_settings_hud, container, false)
+        setupHudSettings(view)
         return view
     }
 
-    private fun setupLevel(view: View) {
-        val prefs = requireContext().getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
-        val txtLv = view.findViewById<TextView>(R.id.txtDevLevelDisplay)
-        val seek = view.findViewById<SeekBar>(R.id.seekDevLevel)
-        val btn = view.findViewById<Button>(R.id.btnDevSetLevel)
-        val curLv = (prefs.getLong("totalExp", 0L) / 100L).toInt() + 1
-        seek.progress = curLv; txtLv.text = "現在のLv: $curLv"
-        btn.setOnClickListener {
-            prefs.edit { putLong("totalExp", (seek.progress - 1) * 100L) }
-            txtLv.text = "現在のLv: ${seek.progress}"
-            Toast.makeText(context, "設定完了", Toast.LENGTH_SHORT).show()
+    private fun setupHudSettings(view: View) {
+        val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        
+        val editName = view.findViewById<EditText>(R.id.editUserName)
+        val btnSaveName = view.findViewById<Button>(R.id.btnSaveUserName)
+        val switchPlayerLv = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShowPlayerLevel)
+        val switchCharLv = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShowCharLevel)
+
+        // 現在の値をセット
+        editName.setText(appPrefs.getString("user_name", "PLAYER"))
+        switchPlayerLv.isChecked = appPrefs.getBoolean("show_player_level", true)
+        switchCharLv.isChecked = appPrefs.getBoolean("show_char_level", true)
+
+        // 名前保存
+        btnSaveName.setOnClickListener {
+            val newName = editName.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                if (newName.length <= 8) {
+                    appPrefs.edit().putString("user_name", newName).apply()
+                    Toast.makeText(requireContext(), "名前を更新しました", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "名前は8文字以内で入力してください", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
-        seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { txtLv.text = "現在のLv: $p" }
-            override fun onStartTrackingTouch(s: SeekBar?) {}
-            override fun onStopTrackingTouch(s: SeekBar?) {}
-        })
+
+        // 表示スイッチ
+        switchPlayerLv.setOnCheckedChangeListener { _, isChecked ->
+            appPrefs.edit().putBoolean("show_player_level", isChecked).apply()
+        }
+        switchCharLv.setOnCheckedChangeListener { _, isChecked ->
+            appPrefs.edit().putBoolean("show_char_level", isChecked).apply()
+        }
     }
 }
