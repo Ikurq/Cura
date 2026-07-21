@@ -23,6 +23,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "単位の守護神"
+rootProject.name = "Cura"
 include(":app")
  
