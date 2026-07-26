@@ -101,10 +101,11 @@ class AlarmAlertActivity : AppCompatActivity() {
         val jsonArray = org.json.JSONArray(jsonString)
         
         var speakerId = 3 // デフォルト：ずんだもん
+        var styleId = 3
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
             if (obj.getString("id") == alarmId) {
-                speakerId = obj.getInt("speakerId")
+                styleId = obj.getInt("speakerId")
                 break
             }
         }
@@ -121,6 +122,24 @@ class AlarmAlertActivity : AppCompatActivity() {
             val now = Calendar.getInstance()
             val timeStrNow = SimpleDateFormat("H時m分", Locale.JAPAN).format(now.time)
             val sb = StringBuilder("おはようございます。ただいま、${timeStrNow}です。")
+
+            // 「絶対起きるアラーム」に関連するイベントを探す
+            val mandatoryEvent = events.find { event ->
+                // 現在時刻がイベント開始の1時間前から開始時刻の間にあるものを対象とする
+                val diffMinutes = (event.startTime - now.timeInMillis) / (1000 * 60)
+                diffMinutes in -30..60 // 予定の30分後から60分前まで
+            }
+
+            if (mandatoryEvent != null) {
+                val diffMinutes = (mandatoryEvent.startTime - now.timeInMillis) / (1000 * 60)
+                if (diffMinutes > 0) {
+                    sb.append("「${mandatoryEvent.summary}」まで、あと${diffMinutes}分です。")
+                } else if (diffMinutes < 0) {
+                    sb.append("「${mandatoryEvent.summary}」の開始時刻から、${-diffMinutes}分過ぎています！急いでください！")
+                } else {
+                    sb.append("「${mandatoryEvent.summary}」の開始時刻ちょうどです。")
+                }
+            }
 
             if (events.isNotEmpty()) {
                 sb.append("今日の予定は、")
@@ -150,7 +169,8 @@ class AlarmAlertActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.alertTime).text = "予定を確認中..."
 
             val success = withContext(Dispatchers.IO) {
-                client.createAudio(message, speakerId.toString(), outputFile)
+                // speakerId ではなく styleId を渡す
+                client.createAudio(message, styleId.toString(), outputFile)
             }
 
             if (success) {

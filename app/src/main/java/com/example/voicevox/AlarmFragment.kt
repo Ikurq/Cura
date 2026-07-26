@@ -302,8 +302,12 @@ class AlarmFragment : Fragment() {
         val message = dialogView.findViewById<EditText>(R.id.dialogMessageInput).text.toString().ifEmpty { "時間です。" }
         val previewBtn = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
         
-        // 下の方に出るやつ (Toast)
-        Toast.makeText(requireContext(), "音声を生成中...", Toast.LENGTH_SHORT).show()
+        // 生成中ポップアップを再導入（生成が終わるまで表示し続ける）
+        val progressDialog = AlertDialog.Builder(requireContext())
+            .setMessage("音声を生成中...")
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
         
         // UI上でも無効化
         previewBtn.isEnabled = false
@@ -312,7 +316,7 @@ class AlarmFragment : Fragment() {
             try {
                 val tempFile = File(requireContext().cacheDir, "preview.wav")
                 if (LocalVoicevoxClient(requireContext()).createAudio("試聴です。$message", styleId.toString(), tempFile)) {
-                    // 生成成功。再生開始（再生完了時にボタンが有効化される）
+                    // 生成成功。再生開始
                     playPreview(tempFile)
                 } else {
                     // 合成に失敗した場合はボタンを戻す
@@ -320,6 +324,9 @@ class AlarmFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 previewBtn.isEnabled = true
+            } finally {
+                // 生成が終わったのでポップアップを閉じる
+                progressDialog.dismiss()
             }
         }
     }
@@ -333,20 +340,29 @@ class AlarmFragment : Fragment() {
         val readTasks = dialogView.findViewById<CheckBox>(R.id.dialogReadTasksCheckBox).isChecked
         val vibrate = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox).isChecked
 
-        // 下の方に出るやつ (Toast)
-        Toast.makeText(requireContext(), "アラーム音声を生成中...", Toast.LENGTH_SHORT).show()
+        // 生成中ポップアップを表示
+        val progressDialog = AlertDialog.Builder(requireContext())
+            .setMessage("アラーム音声を生成中...")
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
         
         val newId = UUID.randomUUID().toString()
         val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList())
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            if (LocalVoicevoxClient(requireContext()).createAudio(message, styleId.toString(), outputFile)) {
-                alarmList.add(newItem)
-                saveAlarms()
-                scheduleVoiceAlarm(newItem, outputFile.absolutePath)
-                alarmAdapter.notifyDataSetChanged()
-                updateEmptyView()
+            try {
+                val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
+                if (LocalVoicevoxClient(requireContext()).createAudio(message, styleId.toString(), outputFile)) {
+                    alarmList.add(newItem)
+                    saveAlarms()
+                    scheduleVoiceAlarm(newItem, outputFile.absolutePath)
+                    alarmAdapter.notifyDataSetChanged()
+                    updateEmptyView()
+                }
+            } finally {
+                // 生成が終わった（成功・失敗問わず）のでポップアップを閉じる
+                progressDialog.dismiss()
             }
         }
     }
@@ -419,7 +435,11 @@ class AlarmFragment : Fragment() {
 
     private fun scheduleVoiceAlarm(item: AlarmItem, audioPath: String) {
         val am = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(requireContext(), AlarmReceiver::class.java).apply { putExtra("ALARM_ID", item.id); putExtra("AUDIO_PATH", audioPath); putExtra("VIBRATE", item.vibrate) }
+        val intent = Intent(requireContext(), AlarmReceiver::class.java).apply { 
+            putExtra("ALARM_ID", item.id)
+            putExtra("AUDIO_FILE_PATH", audioPath) 
+            putExtra("VIBRATE", item.vibrate) 
+        }
         val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val cal = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, item.hour); set(Calendar.MINUTE, item.minute); set(Calendar.SECOND, 0); if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1) }
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)

@@ -61,8 +61,8 @@ class AlarmService : Service() {
         val fullScreenPendingIntent = PendingIntent.getActivity(this, 0, alertIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         val notification: Notification = NotificationCompat.Builder(this, "ALARM_CHANNEL")
-            .setContentTitle("【🚨警報】キュラが呼んでいます！")
-            .setContentText("YouTubeを止めて起きてください！")
+            .setContentTitle("アラーム")
+            .setContentText("設定時刻になりました")
             .setSmallIcon(R.drawable.ic_notification_cura)
             .setPriority(NotificationCompat.PRIORITY_MAX) // 最高優先度
             .setCategory(NotificationCompat.CATEGORY_ALARM)

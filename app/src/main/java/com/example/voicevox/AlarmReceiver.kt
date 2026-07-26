@@ -46,25 +46,27 @@ class AlarmReceiver : BroadcastReceiver() {
 
             // Regular Alarm Logic
             val audioFilePath = intent.getStringExtra("AUDIO_FILE_PATH")
-            if (audioFilePath == null) {
-                // If this is triggered without a file path, it's likely a malformed intent
-                android.util.Log.e("AlarmReceiver", "Alarm triggered but Missing AUDIO_FILE_PATH. Action: $action")
-                return
-            }
-
             val alarmId = intent.getStringExtra("ALARM_ID")
             val vibrate = intent.getBooleanExtra("VIBRATE", true)
 
-            // Start Service
-            val serviceIntent = Intent(context, AlarmService::class.java).apply {
-                putExtra("AUDIO_FILE_PATH", audioFilePath)
-                putExtra("ALARM_ID", alarmId)
-                putExtra("VIBRATE", vibrate)
+            if (audioFilePath != null) {
+                // Start Service
+                val serviceIntent = Intent(context, AlarmService::class.java).apply {
+                    putExtra("AUDIO_FILE_PATH", audioFilePath)
+                    putExtra("ALARM_ID", alarmId)
+                    putExtra("VIBRATE", vibrate)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                return
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
+
+            // If we reach here, it's an unknown or malformed intent
+            if (action != null && action != "android.intent.action.BOOT_COMPLETED" && action != "ALARM_TRIGGER") {
+                android.util.Log.d("AlarmReceiver", "Unknown intent action: $action")
             }
             
             // Note: AlarmService will launch AlarmAlertActivity via fullScreenIntent
