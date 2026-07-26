@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var launchTaskButton: Button
     private lateinit var launchTimetableButton: Button
     private lateinit var launchAttendanceButton: Button
+    private lateinit var layoutAttendanceButton: View
     private lateinit var playerLevelText: TextView
     private lateinit var expProgressBar: ProgressBar
     private lateinit var expValueText: TextView
@@ -122,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         launchTimetableButton.text = "SCHEDULE"
         launchAttendanceButton = findViewById(R.id.launchAttendanceButton)
         launchAttendanceButton.text = "ATTENDANCE"
+        layoutAttendanceButton = findViewById(R.id.layoutAttendanceButton)
         playerLevelText = findViewById(R.id.playerLevelText)
         expProgressBar = findViewById(R.id.expProgressBar)
         expValueText = findViewById(R.id.expValueText)
@@ -146,6 +148,7 @@ class MainActivity : AppCompatActivity() {
 
         updatePlayerStatus()
         updateDashboardInfo()
+        updateAttendanceButtonVisibility()
         startLauncherAnimation()
         setupCharacterDialogue()
         updateCharacterCostume() // 追加：衣装の更新
@@ -1136,7 +1139,41 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updatePlayerStatus()
         updateDashboardInfo()
+        updateAttendanceButtonVisibility()
         updateCharacterCostume() // 戻ってきたときにも衣装を再チェック
+    }
+
+    private fun updateAttendanceButtonVisibility() {
+        // 1. カスタムイベントのチェック
+        val schedulePrefs = getSharedPreferences("SchedulePrefs", MODE_PRIVATE)
+        val customJson = schedulePrefs.getString("eventListJSON", "[]")
+        var hasTrackedEvent = false
+        try {
+            val jsonArray = org.json.JSONArray(customJson)
+            for (i in 0 until jsonArray.length()) {
+                if (jsonArray.getJSONObject(i).optBoolean("isAttendanceTracked", false)) {
+                    hasTrackedEvent = true
+                    break
+                }
+            }
+        } catch (e: Exception) {}
+
+        if (hasTrackedEvent) {
+            layoutAttendanceButton.visibility = View.VISIBLE
+            return
+        }
+
+        // 2. 外部カレンダーイベント（AttendancePrefs）のチェック
+        val attendancePrefs = getSharedPreferences("AttendancePrefs", MODE_PRIVATE)
+        val allPrefs = attendancePrefs.all
+        for (key in allPrefs.keys) {
+            if (key.startsWith("track_") && allPrefs[key] == true) {
+                hasTrackedEvent = true
+                break
+            }
+        }
+
+        layoutAttendanceButton.visibility = if (hasTrackedEvent) View.VISIBLE else View.GONE
     }
 
     private fun updateCharacterCostume() {

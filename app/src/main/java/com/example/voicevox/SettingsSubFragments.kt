@@ -202,64 +202,7 @@ class SettingsVoiceFragment : Fragment() {
     }
 
     private fun setupApi(view: View) {
-        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        val txtKey = view.findViewById<TextView>(R.id.txtCurrentApiKey)
-        val edit = view.findViewById<EditText>(R.id.editApiKey)
-        val btnApply = view.findViewById<Button>(R.id.btnApplyApiKey)
-        val layoutInput = view.findViewById<View>(R.id.layoutApiKeyInput)
-        val btnOpenPage = view.findViewById<View>(R.id.btnOpenApiKeyPage)
-        
-        val currentKey = prefs.getString("custom_api_key", null)
-        
-        fun updateLockState(key: String?) {
-            if (key != null) {
-                txtKey.text = "現在のキー: $key (ロック済み)"
-                layoutInput.visibility = View.GONE
-                btnOpenPage.visibility = View.GONE
-            } else {
-                txtKey.text = "現在のキー: (デフォルト)"
-                layoutInput.visibility = View.VISIBLE
-                btnOpenPage.visibility = View.VISIBLE
-                edit.isEnabled = true
-                btnApply.isEnabled = true
-                btnApply.text = "適用する"
-            }
-        }
-
-        updateLockState(currentKey)
-
-        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/su-shikiapis/")))
-        }
-
-        btnApply.setOnClickListener {
-            val k = edit.text.toString().trim()
-            if (k.isEmpty()) return@setOnClickListener
-
-            btnApply.isEnabled = false
-            btnApply.text = "検証中..."
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                val client = WebVoicevoxClient()
-                val tempFile = File(requireContext().cacheDir, "api_test.wav")
-                
-                // テスト用の短い音声生成でキーの有効性をチェック
-                val success = withContext(Dispatchers.IO) {
-                    client.createAlarmAudio("テスト", 3, tempFile, k, useCache = false)
-                }
-
-                if (success) {
-                    prefs.edit { putString("custom_api_key", k) }
-                    updateLockState(k)
-                    edit.setText("")
-                    Toast.makeText(context, "APIキーを認証・ロックしました", Toast.LENGTH_SHORT).show()
-                } else {
-                    btnApply.isEnabled = true
-                    btnApply.text = "適用する"
-                    Toast.makeText(context, "キーの認証に失敗しました。正しいか確認してください。", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
+        // 音声合成エンジンの状態を表示するだけ
     }
 
     private fun setupStorage(view: View) {

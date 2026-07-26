@@ -1,0 +1,9 @@
+jp.voicevox.android.lib-pngs-0 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\generated\res\pngs\release
+jp.voicevox.android.lib-updated_navigation_xml-1 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\generated\updated_navigation_xml\release
+jp.voicevox.android.lib-mergeReleaseResources-2 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
+jp.voicevox.android.lib-mergeReleaseResources-3 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+jp.voicevox.android.lib-release-4 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\intermediates\merged_res\release\mergeReleaseResources
+jp.voicevox.android.lib-release-5 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\build\intermediates\packaged_res\release\packageReleaseResources
+jp.voicevox.android.lib-main-6 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\src\main\res
+jp.voicevox.android.lib-release-7 C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib\src\release\res
+gradleHome-0 C:\Users\I K\.gradle

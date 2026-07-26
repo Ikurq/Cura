@@ -19,10 +19,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // JitPack（GitHub上のライブラリを直接読み込むための場所）
         maven { url = uri("https://jitpack.io") }
+        // VOICEVOX CORE のローカルバイナリ
+        maven { url = uri("android/local-maven") }
     }
 }
 
 rootProject.name = "Cura"
 include(":app")
- 
+include(":lib")
+project(":lib").projectDir = file("android/lib")

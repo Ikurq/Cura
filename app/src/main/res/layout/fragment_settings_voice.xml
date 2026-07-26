@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="音声合成APIの設定"
+            android:text="音声合成エンジンの状態"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -31,53 +31,13 @@
                 android:padding="16dp">
 
                 <TextView
-                    android:id="@+id/txtCurrentApiKey"
+                    android:id="@+id/textVoiceEngineStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="現在のキー: (デフォルト)"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginBottom="12dp" />
-
-                <Button
-                    android:id="@+id/btnOpenApiKeyPage"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="APIキー取得ページを開く"
-                    android:textSize="12sp"
-                    android:layout_gravity="start"
-                    android:padding="0dp"
-                    android:layout_marginBottom="12dp" />
-
-                <LinearLayout
-                    android:id="@+id/layoutApiKeyInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="新しいAPIキーを貼り付け">
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/editApiKey"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="text" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <Button
-                        android:id="@+id/btnApplyApiKey"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="end"
-                        android:layout_marginTop="8dp"
-                        android:text="適用する"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                    android:text="音声エンジン: Shakenokirimi12 vv-mobile (Embedded)\nステータス: 稼働中 (オフライン対応)"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary"
+                    android:lineSpacingExtra="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

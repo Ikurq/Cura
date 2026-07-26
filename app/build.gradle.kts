@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.voicevox"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -55,4 +55,7 @@ dependencies {
     implementation("com.airbnb.android:lottie:6.4.0")
     // 画像読み込み用の材料
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // VOICEVOX ローカルエンジン (ローカルプロジェクトとして読み込む)
+    implementation(project(":lib"))
 }

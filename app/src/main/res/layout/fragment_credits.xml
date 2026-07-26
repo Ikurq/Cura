@@ -58,7 +58,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="音声合成ソフトウェア / API"
+            android:text="音声合成エンジン"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -77,17 +77,23 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="VOICEVOX"
+                    android:text="VOICEVOX (Original Engine)"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/accent" />
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="https://voicevox.hiroshiba.jp/"
+                    android:text="Developer: ヒロシバ (Hiroshiba)"
                     android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="https://voicevox.hiroshiba.jp/"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary" />
 
                 <View
                     android:layout_width="match_parent"
@@ -98,17 +104,23 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="WEB版VOICEVOX API (su-shiki)"
+                    android:text="VOICEVOX (Android Port)"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/accent" />
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="https://voicevox.su-shiki.com/"
+                    android:text="Powered by vv-mobile (Shakenokirimi12)"
                     android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="https://github.com/Shakenokirimi12/vv-mobile"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -143,7 +155,7 @@
                     android:id="@+id/creditsCharactersList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="・VOICEVOX:四国めたん\n・VOICEVOX:ずんだもん\n・VOICEVOX:春日部つむぎ\n・VOICEVOX:雨晴はう\n・VOICEVOX:波音リツ\n・VOICEVOX:玄野武宏\n・VOICEVOX:白上虎太郎\n・VOICEVOX:青山龍星\n・VOICEVOX:冥鳴ひまり\n・VOICEVOX:九州そら\n・VOICEVOX:もち子さん\n・VOICEVOX:剣崎雌雄\n・VOICEVOX:WhiteCUL\n・VOICEVOX:後鬼\n・VOICEVOX:No.7\n・VOICEVOX:ちび式じい\n・VOICEVOX:櫻歌ミコ\n・VOICEVOX:小夜/SAYO\n・VOICEVOX:ナースロボ＿タイプＴ\n・VOICEVOX:†聖騎士 紅桜†\n・VOICEVOX:雀松朱司\n・VOICEVOX:麒ヶ島宗麟\n・VOICEVOX:春歌ナナ\n・VOICEVOX:猫使アル\n・VOICEVOX:猫使ビィ\n・VOICEVOX:中国うさぎ\n・VOICEVOX:栗田まろん\n・VOICEVOX:藍駄ホキ\n・VOICEVOX:満別花丸\n・VOICEVOX:琴詠ニア"
+                    android:text="・VOICEVOX:四国めたん\n・VOICEVOX:ずんだもん\n・VOICEVOX:春日部つむぎ\n・VOICEVOX:雨晴はう\n・VOICEVOX:波音リツ\n・VOICEVOX:玄野武宏\n・VOICEVOX:白上虎太郎\n・VOICEVOX:青山龍星\n・VOICEVOX:冥鳴ひまり\n・VOICEVOX:九州そら\n・VOICEVOX:もち子(cv 明日葉よもぎ)\n・VOICEVOX:剣崎雌雄\n・VOICEVOX:後鬼\n・VOICEVOX:No.7\n・VOICEVOX:ちび式じい\n・VOICEVOX:櫻歌ミコ\n・VOICEVOX:小夜/SAYO\n・VOICEVOX:ナースロボ＿タイプＴ\n・VOICEVOX:†聖騎士 紅桜†\n・VOICEVOX:雀松朱司\n・VOICEVOX:麒ヶ島宗麟\n・VOICEVOX:春歌ナナ\n・VOICEVOX:猫使アル\n・VOICEVOX:猫使ビィ\n・VOICEVOX:中国うさぎ\n・VOICEVOX:栗田まろん\n・VOICEVOX:あいえるたん\n・VOICEVOX:満別花丸\n・VOICEVOX:琴詠ニア\n・VOICEVOX:琴詠レナ\n・VOICEVOX:中部つるぎ\n・VOICEVOX:ぞん子\n・VOICEVOX:Voidoll(CV:丹下桜)\n・VOICEVOX:東北イタコ\n・VOICEVOX:東北きりたん\n・VOICEVOX:東北ずん子\n・VOICEVOX:ユーレイちゃん(CV:神崎零)\n・VOICEVOX:黒沢冴白\n・VOICEVOX:離途\n・VOICEVOX:里石ユカ（つぼみ）\n・VOICEVOX:暁記ミタマ\n・VOICEVOX:夜語トバリ\n・VOICEVOX:あんこもん"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"
                     android:textColor="@color/text_primary" />

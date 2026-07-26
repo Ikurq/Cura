@@ -140,10 +140,7 @@ class AlarmAlertActivity : AppCompatActivity() {
             val message = sb.toString()
             val outputFile = File(cacheDir, "morning_reading.wav")
             
-            val appPrefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val apiKey = appPrefs.getString("custom_api_key", null)
-            
-            val client = WebVoicevoxClient()
+            val client = LocalVoicevoxClient(this@AlarmAlertActivity)
             
             // UIを読み上げ中に更新（例：ボタンを無効化、テキストを変更）
             findViewById<Button>(R.id.stopAlarmNowButton).apply {
@@ -153,7 +150,7 @@ class AlarmAlertActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.alertTime).text = "予定を確認中..."
 
             val success = withContext(Dispatchers.IO) {
-                client.createAlarmAudio(message, speakerId, outputFile, apiKey)
+                client.createAudio(message, speakerId.toString(), outputFile)
             }
 
             if (success) {
