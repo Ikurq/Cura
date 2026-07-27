@@ -12,12 +12,18 @@ android {
 
     defaultConfig {
         applicationId = "com.example.voicevox"
-        minSdk = 24
+        // VOICEVOX CORE (voicevox-core-android) が minSdk 26 を要求する
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // voicevox_core / ONNX Runtime の .so は arm64-v8a と x86_64 のみ
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -45,8 +51,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
-    // 通信するための材料
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // 端末内で音声合成するための材料 (VOICEVOX CORE)
+    implementation("com.github.Shakenokirimi12.vv-mobile:voicevox-core-android:android-v0.1.3")
     // 魔法を非同期で唱えるための材料
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.google.android.material:material:1.11.0") 

@@ -17,6 +17,8 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -192,74 +194,149 @@ class SettingsCalendarFragment : Fragment() {
     }
 }
 
-// --- 3. Voice & Storage ---
+// --- 3. Voice Models & Storage ---
 class SettingsVoiceFragment : Fragment() {
+
+    private lateinit var modelRows: List<VoiceModelAdapter.Row>
+    private lateinit var modelAdapter: VoiceModelAdapter
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_voice, container, false)
-        setupApi(view)
+        setupModels(view)
         setupStorage(view)
         return view
     }
 
-    private fun setupApi(view: View) {
+    private fun setupModels(view: View) {
+        val recycler = view.findViewById<RecyclerView>(R.id.voiceModelRecyclerView)
+        val summary = view.findViewById<TextView>(R.id.txtVoiceModelSummary)
+        val catalog = CuraVoicevox.catalog(requireContext())
+
+        modelRows = catalog.models().filter { it.supportsTalk }.map { VoiceModelAdapter.Row(it) }
+
+        fun updateSummary() {
+            val downloaded = modelRows.count { it.isDownloaded }
+            val bytes = catalog.downloadedSize()
+            summary.text = String.format(
+                Locale.getDefault(),
+                "取得済み: %d / %d ・ %.1f MB",
+                downloaded, modelRows.size, bytes / (1024.0 * 1024.0),
+            )
+        }
+
+        modelAdapter = VoiceModelAdapter(modelRows) { row ->
+            if (row.isDownloaded) confirmDelete(row, ::updateSummary) else confirmDownload(row, ::updateSummary)
+        }
+        recycler.layoutManager = LinearLayoutManager(requireContext())
+        recycler.adapter = modelAdapter
+        updateSummary()
+
+        view.findViewById<Button>(R.id.btnOpenVoiceTerms).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, catalog.termsURL.toUri()))
+        }
+    }
+
+    /** 規約を提示してから同意を取り、ダウンロードする。同意なしでは取得できない。 */
+    private fun confirmDownload(row: VoiceModelAdapter.Row, onChanged: () -> Unit) {
+        val catalog = CuraVoicevox.catalog(requireContext())
+        val sizeMb = row.model.sizeBytes / (1024.0 * 1024.0)
+        val credits = row.model.characters.joinToString("\n") { "・${it.creditText}" }
+        val message = String.format(
+            Locale.getDefault(),
+            "%s の音声モデル（%.1f MB）を取得します。\n\n" +
+                "利用にはVOICEVOXの音声モデル利用規約への同意が必要です。" +
+                "生成した音声を公開・配布する場合は次のクレジット表記が必要です。\n\n%s",
+            row.title, sizeMb, credits,
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("利用規約への同意")
+            .setMessage(message)
+            .setPositiveButton("同意して取得") { _, _ -> confirmMeteredDownload(row, onChanged) }
+            .setNeutralButton("規約を読む") { _, _ ->
+                startActivity(Intent(Intent.ACTION_VIEW, catalog.termsURL.toUri()))
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * モデルは数十MBあるので、Wi-Fi 以外では一度確認する。
+     * 合成自体はオフラインだが、モデルの取得だけは通信が要る。
+     */
+    private fun confirmMeteredDownload(row: VoiceModelAdapter.Row, onChanged: () -> Unit) {
         val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        val txtKey = view.findViewById<TextView>(R.id.txtCurrentApiKey)
-        val edit = view.findViewById<EditText>(R.id.editApiKey)
-        val btnApply = view.findViewById<Button>(R.id.btnApplyApiKey)
-        val layoutInput = view.findViewById<View>(R.id.layoutApiKeyInput)
-        val btnOpenPage = view.findViewById<View>(R.id.btnOpenApiKeyPage)
-        
-        val currentKey = prefs.getString("custom_api_key", null)
-        
-        fun updateLockState(key: String?) {
-            if (key != null) {
-                txtKey.text = "現在のキー: $key (ロック済み)"
-                layoutInput.visibility = View.GONE
-                btnOpenPage.visibility = View.GONE
+        if (prefs.getBoolean("skip_wifi_warning", false) || NetworkUtils.isWifiConnected(requireContext())) {
+            startDownload(row, onChanged)
+            return
+        }
+
+        val sizeMb = row.model.sizeBytes / (1024.0 * 1024.0)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Wi-Fi未接続")
+            .setMessage(String.format(Locale.getDefault(), "約 %.1f MB をダウンロードします。続行しますか？", sizeMb))
+            .setPositiveButton("続行") { _, _ -> startDownload(row, onChanged) }
+            .setNeutralButton("今後表示しない") { _, _ ->
+                prefs.edit { putBoolean("skip_wifi_warning", true) }
+                startDownload(row, onChanged)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startDownload(row: VoiceModelAdapter.Row, onChanged: () -> Unit) {
+        row.isDownloading = true
+        row.downloadedBytes = 0L
+        modelAdapter.notifyItemChanged(modelRows.indexOf(row))
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = runCatching {
+                val voicevox = CuraVoicevox.engine(requireContext())
+                voicevox.acceptLicense(row.model.id)
+                // 進捗コールバックはIOスレッドから高頻度で来るので、1%刻みに間引いてから
+                // メインスレッドへ渡す
+                var lastPercent = -1
+                voicevox.downloadModel(row.model.id) { done, total ->
+                    val percent = if (total > 0) ((done * 100) / total).toInt() else 0
+                    if (percent != lastPercent) {
+                        lastPercent = percent
+                        row.downloadedBytes = done
+                        view?.post { modelAdapter.notifyItemChanged(modelRows.indexOf(row)) }
+                    }
+                }
+            }
+
+            row.isDownloading = false
+            if (result.isSuccess) {
+                row.isDownloaded = true
+                Toast.makeText(context, "${row.title} を取得しました", Toast.LENGTH_SHORT).show()
             } else {
-                txtKey.text = "現在のキー: (デフォルト)"
-                layoutInput.visibility = View.VISIBLE
-                btnOpenPage.visibility = View.VISIBLE
-                edit.isEnabled = true
-                btnApply.isEnabled = true
-                btnApply.text = "適用する"
+                Toast.makeText(context, "取得に失敗しました: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
             }
+            modelAdapter.notifyItemChanged(modelRows.indexOf(row))
+            onChanged()
         }
+    }
 
-        updateLockState(currentKey)
-
-        view.findViewById<Button>(R.id.btnOpenApiKeyPage).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://voicevox.su-shiki.com/su-shikiapis/")))
-        }
-
-        btnApply.setOnClickListener {
-            val k = edit.text.toString().trim()
-            if (k.isEmpty()) return@setOnClickListener
-
-            btnApply.isEnabled = false
-            btnApply.text = "検証中..."
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                val client = WebVoicevoxClient()
-                val tempFile = File(requireContext().cacheDir, "api_test.wav")
-                
-                // テスト用の短い音声生成でキーの有効性をチェック
-                val success = withContext(Dispatchers.IO) {
-                    client.createAlarmAudio("テスト", 3, tempFile, k, useCache = false)
-                }
-
-                if (success) {
-                    prefs.edit { putString("custom_api_key", k) }
-                    updateLockState(k)
-                    edit.setText("")
-                    Toast.makeText(context, "APIキーを認証・ロックしました", Toast.LENGTH_SHORT).show()
-                } else {
-                    btnApply.isEnabled = true
-                    btnApply.text = "適用する"
-                    Toast.makeText(context, "キーの認証に失敗しました。正しいか確認してください。", Toast.LENGTH_SHORT).show()
+    private fun confirmDelete(row: VoiceModelAdapter.Row, onChanged: () -> Unit) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.delete)
+            .setMessage("${row.title} の音声モデルを削除しますか？\nこの声を使っているアラームは、次回の音声生成ができなくなります。")
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val result = runCatching { CuraVoicevox.engine(requireContext()).deleteModel(row.model.id) }
+                    if (result.isSuccess) {
+                        row.isDownloaded = false
+                        Toast.makeText(context, "削除しました", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "削除に失敗しました", Toast.LENGTH_SHORT).show()
+                    }
+                    modelAdapter.notifyItemChanged(modelRows.indexOf(row))
+                    onChanged()
                 }
             }
-        }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun setupStorage(view: View) {
@@ -267,14 +344,14 @@ class SettingsVoiceFragment : Fragment() {
         val btnClear = view.findViewById<Button>(R.id.btnClearVoiceCache)
         fun update() {
             var size = 0L
-            File(requireContext().filesDir, "voice_cache").let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
+            CuraVoicevox.cacheDir(requireContext()).let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
             requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { size += it.length() }
             txtSize.text = String.format(Locale.getDefault(), "使用量: %.2f MB", size / (1024.0 * 1024.0))
         }
         btnClear.setOnClickListener {
             AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("全音声を削除？")
                 .setPositiveButton("はい") { _, _ ->
-                    File(requireContext().filesDir, "voice_cache").deleteRecursively()
+                    CuraVoicevox.cacheDir(requireContext()).deleteRecursively()
                     requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
                     update(); Toast.makeText(context, "完了", Toast.LENGTH_SHORT).show()
                 }.setNegativeButton("いいえ", null).show()

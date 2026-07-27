@@ -100,7 +100,7 @@ class AlarmAlertActivity : AppCompatActivity() {
         val jsonString = prefs.getString("alarmListJSON", null) ?: return
         val jsonArray = org.json.JSONArray(jsonString)
         
-        var speakerId = 3 // デフォルト：ずんだもん
+        var speakerId = CuraVoicevox.DEFAULT_SPEAKER_ID // デフォルト：ずんだもん
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
             if (obj.getString("id") == alarmId) {
@@ -139,12 +139,7 @@ class AlarmAlertActivity : AppCompatActivity() {
 
             val message = sb.toString()
             val outputFile = File(cacheDir, "morning_reading.wav")
-            
-            val appPrefs = getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val apiKey = appPrefs.getString("custom_api_key", null)
-            
-            val client = WebVoicevoxClient()
-            
+
             // UIを読み上げ中に更新（例：ボタンを無効化、テキストを変更）
             findViewById<Button>(R.id.stopAlarmNowButton).apply {
                 isEnabled = false
@@ -152,11 +147,13 @@ class AlarmAlertActivity : AppCompatActivity() {
             }
             findViewById<TextView>(R.id.alertTime).text = "予定を確認中..."
 
-            val success = withContext(Dispatchers.IO) {
-                client.createAlarmAudio(message, speakerId, outputFile, apiKey)
-            }
+            // 端末内合成。モデルが消されている等で失敗したら黙って閉じる
+            // （アラーム鳴動中に選択肢を出しても操作できないため）
+            val result = CuraVoicevox.synthesizeToFile(
+                this@AlarmAlertActivity, message, speakerId, outputFile
+            )
 
-            if (success) {
+            if (result is CuraVoicevox.SynthesisResult.Success) {
                 playAudio(outputFile)
             } else {
                 finish()
