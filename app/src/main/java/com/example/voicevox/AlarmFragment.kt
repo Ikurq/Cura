@@ -99,8 +99,7 @@ class AlarmFragment : Fragment() {
 
     private fun showMandatoryAlarmDialog() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val client = LocalVoicevoxClient(requireContext())
-            loadedModels = client.getModels()
+            loadedModels = CuraVoicevox.getModels(requireContext())
             
             val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_mandatory_alarm, null)
             val eventSpinner = dialogView.findViewById<Spinner>(R.id.spinMandatoryEvent)
@@ -164,10 +163,9 @@ class AlarmFragment : Fragment() {
         val message = "${hour}時${minute}分を過ぎています。${event.summary}まであと${leadTimeMinutes}分です。起きてください。"
         
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            val client = LocalVoicevoxClient(requireContext())
             val newId = UUID.randomUUID().toString()
             val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            if (client.createAudio(message, modelId, outputFile)) {
+            if (CuraVoicevox.createAudio(requireContext(), message, modelId, outputFile)) {
                 val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: 3, speakerName, true, false, true, emptyList())
                 alarmList.add(newItem)
                 saveAlarms()
@@ -179,8 +177,7 @@ class AlarmFragment : Fragment() {
 
     private fun showAddAlarmDialog() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val client = LocalVoicevoxClient(requireContext())
-            loadedModels = client.getModels()
+            loadedModels = CuraVoicevox.getModels(requireContext())
 
             val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_alarm, null)
             currentDialogView = dialogView
@@ -244,13 +241,10 @@ class AlarmFragment : Fragment() {
     }
 
     private fun checkLicenseAndRun(modelId: String, styleId: Int, action: (String, Int) -> Unit) {
-        val client = LocalVoicevoxClient(requireContext())
         val charName = currentDialogView?.findViewById<Spinner>(R.id.dialogSpeakerSpinner)?.selectedItem.toString()
 
         viewLifecycleOwner.lifecycleScope.launch {
-            if (client.isLicenseAccepted(modelId)) {
-                action(modelId, styleId)
-            } else {
+            if (CuraVoicevox.isLicenseAccepted(requireContext(), modelId)) {
                 val commonTermsUrl = "https://voicevox.hiroshiba.jp/term/"
                 val charTermsUrl = CuraTerms.getUrl(charName)
 
@@ -276,14 +270,14 @@ class AlarmFragment : Fragment() {
                     .setPositiveButton("同意して続行") { _, _ ->
                         viewLifecycleOwner.lifecycleScope.launch {
                             // 選択されたキャラに同意
-                            client.acceptLicense(modelId)
+                            CuraVoicevox.acceptLicense(requireContext(), modelId)
                             
                             // 【追加】東北ずん子プロジェクト関連のキャラであれば、グループ全員に同意する
                             val zunkoFamily = listOf("ずんだもん", "四国めたん", "九州そら", "中国うさぎ", "東北イタコ", "東北きりたん", "東北ずん子", "あんこもん")
                             if (charName in zunkoFamily) {
                                 loadedModels.forEach { model ->
                                     if (model.characters.any { it.name in zunkoFamily }) {
-                                        client.acceptLicense(model.id)
+                                        CuraVoicevox.acceptLicense(requireContext(), model.id)
                                     }
                                 }
                             }
@@ -315,7 +309,7 @@ class AlarmFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val tempFile = File(requireContext().cacheDir, "preview.wav")
-                if (LocalVoicevoxClient(requireContext()).createAudio("試聴です。$message", styleId.toString(), tempFile)) {
+                if (CuraVoicevox.createAudio(requireContext(), "試聴です。$message", styleId.toString(), tempFile)) {
                     // 生成成功。再生開始
                     playPreview(tempFile)
                 } else {
@@ -353,7 +347,7 @@ class AlarmFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-                if (LocalVoicevoxClient(requireContext()).createAudio(message, styleId.toString(), outputFile)) {
+                if (CuraVoicevox.createAudio(requireContext(), message, styleId.toString(), outputFile)) {
                     alarmList.add(newItem)
                     saveAlarms()
                     scheduleVoiceAlarm(newItem, outputFile.absolutePath)

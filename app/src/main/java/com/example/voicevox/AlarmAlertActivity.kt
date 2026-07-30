@@ -159,8 +159,6 @@ class AlarmAlertActivity : AppCompatActivity() {
             val message = sb.toString()
             val outputFile = File(cacheDir, "morning_reading.wav")
             
-            val client = LocalVoicevoxClient(this@AlarmAlertActivity)
-            
             // UIを読み上げ中に更新（例：ボタンを無効化、テキストを変更）
             findViewById<Button>(R.id.stopAlarmNowButton).apply {
                 isEnabled = false
@@ -169,8 +167,7 @@ class AlarmAlertActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.alertTime).text = "予定を確認中..."
 
             val success = withContext(Dispatchers.IO) {
-                // speakerId ではなく styleId を渡す
-                client.createAudio(message, styleId.toString(), outputFile)
+                CuraVoicevox.createAudio(this@AlarmAlertActivity, message, styleId.toString(), outputFile)
             }
 
             if (success) {
