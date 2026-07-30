@@ -159,7 +159,7 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, SettingsFragment())
                 .commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = "SETTINGS"
+            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_settings)
         }
 
         findViewById<View>(R.id.toolbar).findViewById<View>(android.R.id.home)?.setOnClickListener {
@@ -174,25 +174,25 @@ class MainActivity : AppCompatActivity() {
         launchAlarmButton.setOnClickListener {
             showFeatureView()
             supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, AlarmFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = "ALARM_SYNC"
+            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_alarm_sync)
         }
 
         launchTaskButton.setOnClickListener {
             showFeatureView()
             supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, TaskFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = "TASK_CORE"
+            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_task_core)
         }
 
         launchTimetableButton.setOnClickListener {
             showFeatureView()
             supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, TimetableFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = "SCHEDULE_MAP"
+            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_schedule_map)
         }
 
         launchAttendanceButton.setOnClickListener {
             showFeatureView()
             supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, AttendanceManagerFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = "ATTENDANCE_LINK"
+            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_attendance_link)
         }
 
         sysLogLabel.setOnClickListener {
@@ -202,11 +202,11 @@ class MainActivity : AppCompatActivity() {
             devUnlockTapCount++
             if (devUnlockTapCount >= 7) {
                 prefs.edit { putBoolean("developer_mode_unlocked", true) }
-                Toast.makeText(this, "デバッガー権限を取得しました！", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dev_mode_unlocked), Toast.LENGTH_SHORT).show()
                 devUnlockTapCount = 0
             } else if (devUnlockTapCount > 2) {
                 val remaining = 7 - devUnlockTapCount
-                Toast.makeText(this, "デバッガーになるまであと $remaining 回...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_dev_mode_remaining, remaining), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -366,11 +366,11 @@ class MainActivity : AppCompatActivity() {
             // 2. 実用的セリフ (40%)
             randomRoll <= 45 -> {
                 when {
-                    battery < 15 -> "マスター、電力が残りわずかです！キュラが消えちゃう前に、充電をお願いします…！"
-                    hasUrgentTasks -> "マスター、期限が迫っている重要ミッションがあります。キュラと一緒に片付けちゃいましょう！"
+                    battery < 15 -> CuraMessageManager.getSituationalLine(this, "battery_low")
+                    hasUrgentTasks -> CuraMessageManager.getSituationalLine(this, "urgent_tasks")
                     nextEvent != null && (nextEvent.startTime - now) < 3600000 -> {
                         val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextEvent.startTime))
-                        "マスター、まもなく ${timeStr} から『${nextEvent.summary}』の予定ですね。準備に不備はありませんか？"
+                        String.format(CuraMessageManager.getSituationalLine(this, "next_event_reminder"), timeStr, nextEvent.summary)
                     }
                     else -> CuraMessageManager.getRandomGreeting(this)
                 }
@@ -479,14 +479,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.nextQuestText).text = nextEvent?.let {
             val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.startTime))
             "$time ${it.summary}"
-        } ?: "本日の予定は終了しました"
+        } ?: getString(R.string.dashboard_no_schedule)
 
         val tasks = ScheduleLoader.loadTasksForToday(this)
-        findViewById<TextView>(R.id.topMissionText).text = if (tasks.isNotEmpty()) tasks[0] else "すべてのタスクをクリア"
+        findViewById<TextView>(R.id.topMissionText).text = if (tasks.isNotEmpty()) tasks[0] else getString(R.string.dashboard_all_tasks_done)
 
         val alarmPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
         val alarmJson = alarmPrefs.getString("alarmListJSON", null)
-        var nextAlarmStr = "未設定"
+        var nextAlarmStr = getString(R.string.dashboard_not_set)
         if (alarmJson != null) {
             val arr = org.json.JSONArray(alarmJson)
             val activeAlarms = mutableListOf<Pair<Int, Int>>()

@@ -90,4 +90,26 @@
     <string name="close">閉じる</string>
     <string name="add">追加</string>
     <string name="finish">完了</string>
+
+    <!-- Toasts & Dynamic UI -->
+    <string name="toast_alarm_on">アラームをONにしました</string>
+    <string name="toast_alarm_off">アラームをOFFにしました</string>
+    <string name="dialog_delete_alarm_title">アラームの削除</string>
+    <string name="dialog_delete_alarm_msg">このアラームを削除しますか？</string>
+    <string name="dialog_mandatory_alarm_title">「絶対起きるアラーム」をセット</string>
+    <string name="dialog_generate">生成</string>
+    <string name="dialog_new_alarm_title">新規アラーム</string>
+    <string name="dialog_save">保存</string>
+    <string name="toast_dev_mode_unlocked">デバッガー権限を取得しました！</string>
+    <string name="toast_dev_mode_remaining">デバッガーになるまであと %1$d 回...</string>
+    <string name="title_settings">SETTINGS</string>
+    <string name="title_alarm_sync">ALARM_SYNC</string>
+    <string name="title_task_core">TASK_CORE</string>
+    <string name="title_schedule_map">SCHEDULE_MAP</string>
+    <string name="title_attendance_link">ATTENDANCE_LINK</string>
+    <string name="dashboard_no_schedule">本日の予定は終了しました</string>
+    <string name="dashboard_all_tasks_done">すべてのタスクをクリア</string>
+    <string name="dashboard_not_set">未設定</string>
+    <string name="generating_audio">音声を生成中...</string>
+    <string name="generating_alarm_audio">アラーム音声を生成中...</string>
 </resources>

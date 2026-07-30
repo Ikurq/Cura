@@ -59,17 +59,17 @@ class AlarmFragment : Fragment() {
             if (item.isEnabled) {
                 val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
                 scheduleVoiceAlarm(item, audioFile.absolutePath)
-                Toast.makeText(requireContext(), "アラームをONにしました", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.toast_alarm_on), Toast.LENGTH_SHORT).show()
             } else {
                 cancelVoiceAlarm(item)
-                Toast.makeText(requireContext(), "アラームをOFFにしました", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.toast_alarm_off), Toast.LENGTH_SHORT).show()
             }
             saveAlarms()
         }, { item ->
             AlertDialog.Builder(requireContext())
-                .setTitle("アラームの削除")
-                .setMessage("このアラームを削除しますか？")
-                .setPositiveButton("削除") { _, _ ->
+                .setTitle(getString(R.string.dialog_delete_alarm_title))
+                .setMessage(getString(R.string.dialog_delete_alarm_msg))
+                .setPositiveButton(getString(R.string.delete)) { _, _ ->
                     cancelVoiceAlarm(item)
                     val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
                     if (audioFile.exists()) audioFile.delete()
@@ -132,9 +132,9 @@ class AlarmFragment : Fragment() {
             }
 
             AlertDialog.Builder(requireContext())
-                .setTitle("「絶対起きるアラーム」をセット")
+                .setTitle(getString(R.string.dialog_mandatory_alarm_title))
                 .setView(dialogView)
-                .setPositiveButton("生成") { _, _ ->
+                .setPositiveButton(getString(R.string.dialog_generate)) { _, _ ->
                     val selectedIndex = eventSpinner.selectedItemPosition
                     if (selectedIndex == -1) return@setPositiveButton
                     
@@ -234,8 +234,8 @@ class AlarmFragment : Fragment() {
                 if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startPreviewGeneration(m, s) }
             }
 
-            AlertDialog.Builder(requireContext()).setTitle("新規アラーム").setView(dialogView)
-                .setPositiveButton("保存") { _, _ ->
+            AlertDialog.Builder(requireContext()).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogView)
+                .setPositiveButton(getString(R.string.dialog_save)) { _, _ ->
                     val pos = styleSpinner.selectedItemPosition
                     if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startAlarmGeneration(m, s) }
                 }.setNegativeButton("キャンセル", null).show()
@@ -302,7 +302,7 @@ class AlarmFragment : Fragment() {
         
         // 生成中ポップアップを再導入（生成が終わるまで表示し続ける）
         val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage("音声を生成中...")
+            .setMessage(getString(R.string.generating_audio))
             .setCancelable(false)
             .create()
         progressDialog.show()
@@ -342,7 +342,7 @@ class AlarmFragment : Fragment() {
 
         // 生成中ポップアップを表示
         val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage("アラーム音声を生成中...")
+            .setMessage(getString(R.string.generating_alarm_audio))
             .setCancelable(false)
             .create()
         progressDialog.show()

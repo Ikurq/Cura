@@ -97,6 +97,17 @@ object CuraMessageManager {
         } else null
     }
 
+    // --- 状況別セリフ ---
+    fun getSituationalLine(context: Context, key: String): String {
+        val situational = loadData(context).getJSONObject("situational_lines")
+        val obj = situational.get(key)
+        return if (obj is org.json.JSONArray) {
+            obj.getString((0 until obj.length()).random())
+        } else {
+            obj.toString()
+        }
+    }
+
     // --- マジックナンバー ---
     fun getIntConstant(context: Context, key: String, defaultValue: Int): Int {
         return loadData(context).getJSONObject("magic_numbers").optInt(key, defaultValue)
