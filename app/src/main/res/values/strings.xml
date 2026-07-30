@@ -61,6 +61,9 @@
     <string name="vacation_mode_title">長期休暇モード (一括停止)</string>
     <string name="vacation_mode_desc">ONの間、全てのアラームを一時停止します</string>
     <string name="settings_storage">ストレージ管理</string>
+    <string name="settings_voice_models">音声モデルの管理</string>
+    <string name="voice_models_desc">音声はすべて端末内で合成します。使いたいキャラクターの音声モデルを取得してください（オフラインでも動作します）。</string>
+    <string name="open_voice_terms">音声モデル利用規約を開く</string>
     <string name="voice_cache_title">音声キャッシュ</string>
     <string name="cache_size_prefix">使用量: %1$.1f MB</string>
     <string name="delete">削除</string>
