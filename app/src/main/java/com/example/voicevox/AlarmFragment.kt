@@ -245,13 +245,15 @@ class AlarmFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             if (CuraVoicevox.isLicenseAccepted(requireContext(), modelId)) {
-                val commonTermsUrl = "https://voicevox.hiroshiba.jp/term/"
-                val charTermsUrl = CuraTerms.getUrl(charName)
+                action(modelId, styleId)
+            } else {
+                val commonTermsUrl = CuraTerms.getCommonUrl(requireContext())
+                val charTermsUrl = CuraTerms.getUrl(requireContext(), charName)
 
                 val msg = StringBuilder()
                 msg.append("「${charName}」の音声を使用するには、以下の利用規約に同意する必要があります。\n\n")
                 msg.append("・VOICEVOX 音声モデル利用規約\n")
-                if (charTermsUrl != commonTermsUrl) {
+                if (charTermsUrl != commonTermsUrl && charTermsUrl.isNotEmpty()) {
                     msg.append("・${charName} 利用規約\n")
                 }
                 msg.append("\n利用前に規約の内容を確認してください。")
@@ -263,7 +265,7 @@ class AlarmFragment : Fragment() {
                         // 共通規約を開く
                         startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(commonTermsUrl)))
                         // 個別規約があればそれも開く
-                        if (charTermsUrl != commonTermsUrl) {
+                        if (charTermsUrl != commonTermsUrl && charTermsUrl.isNotEmpty()) {
                             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(charTermsUrl)))
                         }
                     }
@@ -272,11 +274,11 @@ class AlarmFragment : Fragment() {
                             // 選択されたキャラに同意
                             CuraVoicevox.acceptLicense(requireContext(), modelId)
                             
-                            // 【追加】東北ずん子プロジェクト関連のキャラであれば、グループ全員に同意する
-                            val zunkoFamily = listOf("ずんだもん", "四国めたん", "九州そら", "中国うさぎ", "東北イタコ", "東北きりたん", "東北ずん子", "あんこもん")
-                            if (charName in zunkoFamily) {
+                            // グループ全員に同意する（JSONから取得）
+                            val familyMembers = CuraTerms.getGroupMembers(requireContext(), charName)
+                            if (familyMembers.isNotEmpty()) {
                                 loadedModels.forEach { model ->
-                                    if (model.characters.any { it.name in zunkoFamily }) {
+                                    if (model.characters.any { it.name in familyMembers }) {
                                         CuraVoicevox.acceptLicense(requireContext(), model.id)
                                     }
                                 }
