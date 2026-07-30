@@ -121,40 +121,49 @@ class AlarmAlertActivity : AppCompatActivity() {
 
             val now = Calendar.getInstance()
             val timeStrNow = SimpleDateFormat("H時m分", Locale.JAPAN).format(now.time)
-            val sb = StringBuilder("おはようございます。ただいま、${timeStrNow}です。")
+            
+            val sb = StringBuilder()
+            
+            // 挨拶
+            sb.append(String.format(Locale.getDefault(), AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "greeting"), timeStrNow))
 
             // 「絶対起きるアラーム」に関連するイベントを探す
             val mandatoryEvent = events.find { event ->
-                // 現在時刻がイベント開始の1時間前から開始時刻の間にあるものを対象とする
                 val diffMinutes = (event.startTime - now.timeInMillis) / (1000 * 60)
-                diffMinutes in -30..60 // 予定の30分後から60分前まで
+                diffMinutes in -30..60
             }
 
             if (mandatoryEvent != null) {
                 val diffMinutes = (mandatoryEvent.startTime - now.timeInMillis) / (1000 * 60)
-                if (diffMinutes > 0) {
-                    sb.append("「${mandatoryEvent.summary}」まで、あと${diffMinutes}分です。")
-                } else if (diffMinutes < 0) {
-                    sb.append("「${mandatoryEvent.summary}」の開始時刻から、${-diffMinutes}分過ぎています！急いでください！")
-                } else {
-                    sb.append("「${mandatoryEvent.summary}」の開始時刻ちょうどです。")
+                val templateKey = when {
+                    diffMinutes > 0 -> "event_relative_before"
+                    diffMinutes < 0 -> "event_relative_after"
+                    else -> "event_relative_just"
                 }
+                val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, templateKey)
+                sb.append(String.format(Locale.getDefault(), template, mandatoryEvent.summary, if (diffMinutes < 0) -diffMinutes else diffMinutes))
             }
 
             if (events.isNotEmpty()) {
-                sb.append("今日の予定は、")
+                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_list_header"))
                 events.forEach { event ->
                     val time = SimpleDateFormat("H時m分", Locale.JAPAN).format(Date(event.startTime))
-                    sb.append("${time}から${event.summary}、")
+                    val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_item")
+                    sb.append(String.format(Locale.getDefault(), template, time, event.summary))
                 }
-                sb.append("です。")
+                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_list_footer"))
             }
+            
             if (tasks.isNotEmpty()) {
-                sb.append("今日のタスクは、")
-                tasks.forEach { sb.append("${it}、") }
-                sb.append("があります。")
+                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_list_header"))
+                tasks.forEach { task ->
+                    val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_item")
+                    sb.append(String.format(Locale.getDefault(), template, task))
+                }
+                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_list_footer"))
             }
-            sb.append("今日も一日、元気に頑張りましょう！")
+            
+            sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "closing"))
 
             val message = sb.toString()
             val outputFile = File(cacheDir, "morning_reading.wav")
@@ -363,18 +372,20 @@ class AlarmAlertActivity : AppCompatActivity() {
             return
         }
 
-        // 1レベル＝100 EXPの固定制
+        // 1レベルアップに必要なEXPをJSONから取得
+        val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
+
         fun getThreshold(lv: Int): Long {
-            return (lv - 1) * 100L
+            return (lv - 1) * expPerLevel
         }
 
         var currentLv = 1
-        while (totalExp >= currentLv * 100L) {
+        while (totalExp >= currentLv * expPerLevel) {
             currentLv++
         }
 
         // 次のレベルの閾値になるように調整（確定1レベル上昇）
-        val newTotalExp = currentLv * 100L
+        val newTotalExp = currentLv * expPerLevel
 
         prefs.edit()
             .putLong("totalExp", newTotalExp)

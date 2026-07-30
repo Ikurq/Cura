@@ -1,0 +1,21 @@
+{
+  "preview": {
+    "template": "これは試聴です。%s"
+  },
+  "mandatory_alarm": {
+    "generation_template": "%d時%d分を過ぎています。%sまであと%d分です。起きてください。"
+  },
+  "morning_reading": {
+    "greeting": "おはようございます。ただいま、%sです。",
+    "event_relative_before": "「%s」まで、あと%d分です。",
+    "event_relative_after": "「%s」の開始時刻から、%d分過ぎています！急いでください！",
+    "event_relative_just": "「%s」の開始時刻ちょうどです。",
+    "event_list_header": "今日の予定は、",
+    "event_item": "%sから%s、",
+    "event_list_footer": "です。",
+    "task_list_header": "今日のタスクは、",
+    "task_item": "%s、",
+    "task_list_footer": "があります。",
+    "closing": "今日も一日、元気に頑張りましょう！"
+  }
+}

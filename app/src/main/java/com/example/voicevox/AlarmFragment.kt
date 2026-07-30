@@ -160,7 +160,9 @@ class AlarmFragment : Fragment() {
         }
         val hour = alarmCal.get(Calendar.HOUR_OF_DAY)
         val minute = alarmCal.get(Calendar.MINUTE)
-        val message = "${hour}時${minute}分を過ぎています。${event.summary}まであと${leadTimeMinutes}分です。起きてください。"
+        
+        val template = AlarmTemplateManager.getMandatoryAlarmTemplate(requireContext())
+        val message = String.format(Locale.getDefault(), template, hour, minute, event.summary, leadTimeMinutes)
         
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             val newId = UUID.randomUUID().toString()
@@ -310,8 +312,10 @@ class AlarmFragment : Fragment() {
         
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                val template = AlarmTemplateManager.getPreviewTemplate(requireContext())
+                val previewMessage = String.format(Locale.getDefault(), template, message)
                 val tempFile = File(requireContext().cacheDir, "preview.wav")
-                if (CuraVoicevox.createAudio(requireContext(), "試聴です。$message", styleId.toString(), tempFile)) {
+                if (CuraVoicevox.createAudio(requireContext(), previewMessage, styleId.toString(), tempFile)) {
                     // 生成成功。再生開始
                     playPreview(tempFile)
                 } else {
