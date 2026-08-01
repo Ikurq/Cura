@@ -6,37 +6,37 @@ struct AttendanceView: View {
     @EnvironmentObject private var model: AppModel
     @State private var detail: SubjectStats?
 
+    /// 親（MoreView）の NavigationStack に push される前提。ここで NavigationStack を
+    /// 重ねると戻るボタンが2つ並ぶ。
     var body: some View {
-        NavigationStack {
-            Group {
-                if model.attendance.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "chart.bar").font(.largeTitle).foregroundStyle(Theme.textTertiary)
-                        Text("追跡中の科目がありません")
-                            .foregroundStyle(Theme.textSecondary)
-                        Text("予定画面で「出席/記録を管理する」を有効にすると集計されます")
-                            .font(.footnote)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(Theme.textTertiary)
-                            .padding(.horizontal, 32)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(model.attendance, id: \.name) { stats in
-                        row(stats)
-                            .listRowBackground(Theme.surface)
-                    }
-                    .scrollContentBackground(.hidden)
+        Group {
+            if model.attendance.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.bar").font(.largeTitle).foregroundStyle(Theme.textTertiary)
+                    Text("追跡中の科目がありません")
+                        .foregroundStyle(Theme.textSecondary)
+                    Text("予定画面で「出席/記録を管理する」を有効にすると集計されます")
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Theme.textTertiary)
+                        .padding(.horizontal, 32)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(model.attendance, id: \.name) { stats in
+                    row(stats)
+                        .listRowBackground(Theme.surface)
+                }
+                .scrollContentBackground(.hidden)
             }
-            .curaBackground()
-            .navigationTitle("出欠管理カウンター")
-            .sheet(item: Binding(
-                get: { detail.map { SubjectDetail(stats: $0) } },
-                set: { detail = $0?.stats }
-            )) { wrapper in
-                absentHistory(wrapper.stats)
-            }
+        }
+        .curaBackground()
+        .navigationTitle("出欠管理カウンター")
+        .sheet(item: Binding(
+            get: { detail.map { SubjectDetail(stats: $0) } },
+            set: { detail = $0?.stats }
+        )) { wrapper in
+            absentHistory(wrapper.stats)
         }
     }
 

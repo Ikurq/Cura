@@ -4,25 +4,25 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
 
+    /// 親（MoreView）の NavigationStack に push される前提。ここで NavigationStack を
+    /// 重ねると戻るボタンが2つ並ぶ。
     var body: some View {
-        NavigationStack {
-            List {
-                Section("設定") {
-                    NavigationLink("権限設定") { PermissionsView() }
-                    NavigationLink("通知設定") { NotificationSettingsView() }
-                    NavigationLink("カレンダー管理") { CalendarSettingsView() }
-                    NavigationLink("アラーム詳細設定") { AlarmAdvancedView() }
-                    NavigationLink("音声・ストレージ") { VoiceModelsView() }
-                    NavigationLink("HUDカスタマイズ") { HudSettingsView() }
-                }
-                Section {
-                    NavigationLink("Credits") { CreditsView() }
-                }
+        List {
+            Section("設定") {
+                NavigationLink("権限設定") { PermissionsView() }
+                NavigationLink("通知設定") { NotificationSettingsView() }
+                NavigationLink("カレンダー管理") { CalendarSettingsView() }
+                NavigationLink("アラーム詳細設定") { AlarmAdvancedView() }
+                NavigationLink("音声・ストレージ") { VoiceModelsView() }
+                NavigationLink("HUDカスタマイズ") { HudSettingsView() }
             }
-            .scrollContentBackground(.hidden)
-            .curaBackground()
-            .navigationTitle("設定")
+            Section {
+                NavigationLink("Credits") { CreditsView() }
+            }
         }
+        .scrollContentBackground(.hidden)
+        .curaBackground()
+        .navigationTitle("設定")
     }
 }
 

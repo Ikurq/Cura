@@ -18,11 +18,8 @@ struct RootView: View {
             TimetableView()
                 .tabItem { Label("Quest", systemImage: "calendar") }
 
-            AttendanceView()
-                .tabItem { Label("Link", systemImage: "chart.bar.fill") }
-
-            SettingsView()
-                .tabItem { Label("Config", systemImage: "gearshape.fill") }
+            MoreView()
+                .tabItem { Label("その他", systemImage: "ellipsis") }
         }
         .tint(Theme.cyan)
         .curaBackground()
