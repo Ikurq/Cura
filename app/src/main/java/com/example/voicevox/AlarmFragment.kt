@@ -31,38 +31,11 @@ class AlarmFragment : Fragment() {
     private val alarmList = ArrayList<AlarmItem>()
     private lateinit var alarmAdapter: AlarmAdapter
 
-    private val characterList = listOf(
-        "四国めたん" to 2,
-        "ずんだもん" to 3,
-        "春日部つむぎ" to 8,
-        "雨晴はう" to 10,
-        "波音リツ" to 9,
-        "玄野武宏" to 11,
-        "白上虎太郎" to 12,
-        "青山龍星" to 13,
-        "冥鳴ひまり" to 14,
-        "九州そら" to 16,
-        "もち子(cv明日葉よもぎ)" to 20,
-        "剣崎雌雄" to 21,
-        "WhiteCUL" to 23,
-        "後鬼" to 27,
-        "No.7" to 29,
-        "ちび式じい" to 42,
-        "櫻歌ミコ" to 43,
-        "小夜/SAYO" to 46,
-        "ナースロボ＿タイプＴ" to 47,
-        "聖騎士 紅桜" to 51,
-        "雀松朱司" to 52,
-        "麒ヶ島宗麟" to 53,
-        "春歌ナナ" to 54,
-        "猫使アル" to 55,
-        "猫使ビィ" to 58,
-        "中国うさぎ" to 61,
-        "栗田まろん" to 67,
-        "あいえるたん" to 68,
-        "満別花丸" to 69,
-        "琴詠レナ" to 70
-    )
+    /**
+     * 選択できる声。取得済みの音声モデルに含まれるものだけが並ぶ。
+     * ダイアログを開くたびに読み直す(設定画面でモデルを取得・削除できるため)。
+     */
+    private var voiceList: List<CuraVoicevox.Voice> = emptyList()
 
     private var previewPlayer: MediaPlayer? = null
 
@@ -132,7 +105,68 @@ class AlarmFragment : Fragment() {
         return view
     }
 
+    /**
+     * 取得済みの声を読み込む。1つも無ければ設定画面へ誘導して false を返す。
+     * 端末内合成なので、モデルが無いと何も喋れない。
+     */
+    private fun ensureVoicesAvailable(): Boolean {
+        voiceList = CuraVoicevox.availableVoices(requireContext())
+        if (voiceList.isNotEmpty()) return true
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("音声モデルがありません")
+            .setMessage("アラームの音声は端末内で合成します。設定 ＞ 音声・ストレージ から、使いたいキャラクターの音声モデルを取得してください。")
+            .setPositiveButton(R.string.ok, null)
+            .show()
+        return false
+    }
+
+    /** 声のスピナーを組む。前回選んだ声があればそれを初期選択にする。 */
+    private fun bindSpeakerSpinner(spinner: Spinner) {
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            voiceList.map { it.displayName },
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+
+        val lastUsed = requireContext()
+            .getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            .getInt("last_speaker_id", CuraVoicevox.DEFAULT_SPEAKER_ID)
+        val index = voiceList.indexOfFirst { it.styleId == lastUsed }
+        if (index >= 0) spinner.setSelection(index)
+    }
+
+    private fun rememberSpeaker(styleId: Int) {
+        requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+            .edit().putInt("last_speaker_id", styleId).apply()
+    }
+
+    /**
+     * 合成結果をユーザーに伝える。モデル未取得のときだけ設定画面へ誘導する。
+     * @return 成功していれば true。
+     */
+    private fun reportSynthesis(result: CuraVoicevox.SynthesisResult): Boolean {
+        when (result) {
+            is CuraVoicevox.SynthesisResult.Success -> return true
+            is CuraVoicevox.SynthesisResult.ModelMissing ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle("音声モデルが未取得です")
+                    .setMessage("${result.characterName} の音声モデルがありません。設定 ＞ 音声・ストレージ から取得してください。")
+                    .setPositiveButton(R.string.ok, null)
+                    .show()
+            is CuraVoicevox.SynthesisResult.UnknownVoice ->
+                Toast.makeText(requireContext(), "この話者は現在利用できません", Toast.LENGTH_SHORT).show()
+            is CuraVoicevox.SynthesisResult.Failed ->
+                Toast.makeText(requireContext(), "音声の生成に失敗しました: ${result.cause.message}", Toast.LENGTH_LONG).show()
+        }
+        return false
+    }
+
     private fun showMandatoryAlarmDialog() {
+        if (!ensureVoicesAvailable()) return
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_mandatory_alarm, null)
         val spinner = dialogView.findViewById<Spinner>(R.id.spinMandatoryEvent)
         val leadTimeInput = dialogView.findViewById<EditText>(R.id.editLeadTime)
@@ -159,10 +193,7 @@ class AlarmFragment : Fragment() {
         eventAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinner.adapter = eventAdapter
 
-        val speakerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, characterList.map { it.first })
-        speakerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        speakerSpinner.adapter = speakerAdapter
-        speakerSpinner.setSelection(1)
+        bindSpeakerSpinner(speakerSpinner)
 
         firstExtButton.setOnClickListener {
             if (combinedEvents.isNotEmpty()) {
@@ -180,29 +211,10 @@ class AlarmFragment : Fragment() {
                 
                 val (event, _) = combinedEvents[selectedIndex]
                 val leadTime = leadTimeInput.text.toString().toIntOrNull() ?: 30
-                val selectedSpeakerPos = speakerSpinner.selectedItemPosition
-                val speakerName = characterList[selectedSpeakerPos].first
-                val speakerId = characterList[selectedSpeakerPos].second
-                
-                val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-                val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
-
-                if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
-                    AlertDialog.Builder(requireContext())
-                        .setTitle("Wi-Fi未接続")
-                        .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
-                        .setPositiveButton("続行") { _, _ ->
-                            generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
-                        }
-                        .setNeutralButton("今後表示しない") { _, _ ->
-                            appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
-                            generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
-                        }
-                        .setNegativeButton("キャンセル", null)
-                        .show()
-                } else {
-                    generateMandatoryAlarm(event, leadTime, speakerId, speakerName)
-                }
+                val voice = voiceList.getOrNull(speakerSpinner.selectedItemPosition)
+                    ?: return@setPositiveButton
+                rememberSpeaker(voice.styleId)
+                generateMandatoryAlarm(event, leadTime, voice.styleId, voice.characterName)
             }
             .setNegativeButton("キャンセル", null)
             .show()
@@ -219,19 +231,14 @@ class AlarmFragment : Fragment() {
         val message = "${hour}時${minute}分を過ぎています。本日の予定である${event.summary}まであと${leadTimeMinutes}分を切っています。起きてください。"
         
         Toast.makeText(requireContext(), "特別なアラーム音声を生成中...", Toast.LENGTH_LONG).show()
-        
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            val client = WebVoicevoxClient()
             val newId = UUID.randomUUID().toString()
             val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val apiKey = appPrefs.getString("custom_api_key", null)
 
-            val success = withContext(Dispatchers.IO) {
-                client.createAlarmAudio(message, speakerId, outputFile, apiKey)
-            }
-            
-            if (success) {
+            val result = CuraVoicevox.synthesizeToFile(requireContext(), message, speakerId, outputFile)
+
+            if (reportSynthesis(result)) {
                 val newItem = AlarmItem(newId, hour, minute, message, speakerId, speakerName, true, false, true, emptyList())
                 val duplicate = alarmList.find { it.hour == hour && it.minute == minute && it.speakerId == speakerId }
                 if (duplicate != null) {
@@ -248,13 +255,13 @@ class AlarmFragment : Fragment() {
                 updateEmptyView()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
                 Toast.makeText(requireContext(), "「絶対起きるアラーム」をセットしました", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(requireContext(), "音声生成に失敗しました", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun showAddAlarmDialog() {
+        if (!ensureVoicesAvailable()) return
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_alarm, null)
         currentDialogView = dialogView
         val timePreviewText = dialogView.findViewById<TextView>(R.id.dialogTimePreview)
@@ -271,9 +278,7 @@ class AlarmFragment : Fragment() {
         currentPickedHour = 7
         currentPickedMinute = 0
 
-        val speakerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, characterList.map { it.first })
-        speakerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        speakerSpinner.adapter = speakerAdapter
+        bindSpeakerSpinner(speakerSpinner)
 
         selectTimeButton.setOnClickListener {
             TimePickerHelper.showWheelTimePicker(requireContext(), currentPickedHour, currentPickedMinute) { h, m ->
@@ -283,48 +288,13 @@ class AlarmFragment : Fragment() {
             }
         }
 
-        btnPreview.setOnClickListener {
-            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
-
-            if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Wi-Fi未接続")
-                    .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、よろしいですか？")
-                    .setPositiveButton("生成する") { _, _ -> startPreviewGeneration() }
-                    .setNeutralButton("今後表示しない") { _, _ ->
-                        appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
-                        startPreviewGeneration()
-                    }
-                    .setNegativeButton("キャンセル", null)
-                    .show()
-            } else {
-                startPreviewGeneration()
-            }
-        }
+        // 合成は端末内で完結するので、通信量の警告はもう出さない
+        btnPreview.setOnClickListener { startPreviewGeneration() }
 
         AlertDialog.Builder(requireContext())
             .setTitle("新しいアラームを追加")
             .setView(dialogView)
-            .setPositiveButton("生成・保存") { _, _ ->
-                val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-                val skipWarning = appPrefs.getBoolean("skip_wifi_warning", false)
-
-                if (!skipWarning && !NetworkUtils.isWifiConnected(requireContext())) {
-                    AlertDialog.Builder(requireContext())
-                        .setTitle("Wi-Fi未接続")
-                        .setMessage("現在Wi-Fiに接続されていません。音声の生成には通信量が発生する可能性がありますが、続行しますか？")
-                        .setPositiveButton("生成して保存") { _, _ -> startAlarmGeneration() }
-                        .setNeutralButton("今後表示しない") { _, _ ->
-                            appPrefs.edit().putBoolean("skip_wifi_warning", true).apply()
-                            startAlarmGeneration()
-                        }
-                        .setNegativeButton("キャンセル", null)
-                        .show()
-                } else {
-                    startAlarmGeneration()
-                }
-            }
+            .setPositiveButton("生成・保存") { _, _ -> startAlarmGeneration() }
             .setNegativeButton("キャンセル", null)
             .show()
     }
@@ -337,26 +307,18 @@ class AlarmFragment : Fragment() {
 
         val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
         val previewMessage = "これは試聴です。${message}"
-        val speakerId = characterList[speakerSpinner.selectedItemPosition].second
+        val voice = voiceList.getOrNull(speakerSpinner.selectedItemPosition) ?: return
 
         btnPreview.isEnabled = false
         btnPreview.text = "生成中"
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val client = WebVoicevoxClient()
             val tempFile = File(requireContext().cacheDir, "preview_voice.wav")
-            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val apiKey = appPrefs.getString("custom_api_key", null)
+            val result = CuraVoicevox.synthesizeToFile(
+                requireContext(), previewMessage, voice.styleId, tempFile
+            )
+            if (reportSynthesis(result)) playPreview(tempFile)
 
-            val success = withContext(Dispatchers.IO) {
-                client.createAlarmAudio(previewMessage, speakerId, tempFile, apiKey)
-            }
-
-            if (success) {
-                playPreview(tempFile)
-            } else {
-                Toast.makeText(requireContext(), "プレビューの生成に失敗しました", Toast.LENGTH_SHORT).show()
-            }
             btnPreview.isEnabled = true
             btnPreview.text = "試聴"
         }
@@ -370,9 +332,10 @@ class AlarmFragment : Fragment() {
         val vibrateCheckBox = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox)
 
         val message = messageInput.text.toString().ifEmpty { "時間です。起きてください。" }
-        val speakerPos = speakerSpinner.selectedItemPosition
-        val speakerName = characterList[speakerPos].first
-        val speakerId = characterList[speakerPos].second
+        val voice = voiceList.getOrNull(speakerSpinner.selectedItemPosition) ?: return
+        val speakerName = voice.characterName
+        val speakerId = voice.styleId
+        rememberSpeaker(speakerId)
         val readTasks = readTasksCheckBox.isChecked
         val vibrate = vibrateCheckBox.isChecked
         val repeatDays = currentDayToggles.filter { it.first.isChecked }.map { it.second }
@@ -400,14 +363,12 @@ class AlarmFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val client = WebVoicevoxClient()
             val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-            val apiKey = appPrefs.getString("custom_api_key", null)
 
             Toast.makeText(requireContext(), "ボイス生成中...", Toast.LENGTH_SHORT).show()
 
-            if (client.createAlarmAudio(finalMessage, speakerId, outputFile, apiKey)) {
+            val result = CuraVoicevox.synthesizeToFile(requireContext(), finalMessage, speakerId, outputFile)
+            if (reportSynthesis(result)) {
                 alarmList.add(newItem)
                 alarmList.sortWith(compareBy({ it.hour }, { it.minute }))
                 alarmAdapter.notifyDataSetChanged()
@@ -415,8 +376,6 @@ class AlarmFragment : Fragment() {
                 updateEmptyView()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
                 Toast.makeText(requireContext(), "アラームを保存しました", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(requireContext(), "音声の生成に失敗しました", Toast.LENGTH_SHORT).show()
             }
         }
     }
