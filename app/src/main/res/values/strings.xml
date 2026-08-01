@@ -60,6 +60,7 @@
     <string name="skip_holidays_desc">日本の祝日に合わせて自動でスキップします</string>
     <string name="vacation_mode_title">長期休暇モード (一括停止)</string>
     <string name="vacation_mode_desc">ONの間、全てのアラームを一時停止します</string>
+    <string name="holiday_note">祝日判定は固定祝日・ハッピーマンデー・春分秋分・振替休日までの簡易版です。国民の休日は見ていません。</string>
     <string name="settings_storage">ストレージ管理</string>
     <string name="voice_cache_title">音声キャッシュ</string>
     <string name="cache_size_prefix">使用量: %1$.1f MB</string>

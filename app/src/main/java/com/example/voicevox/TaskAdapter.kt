@@ -13,7 +13,7 @@ import java.util.Date
 import java.util.Locale
 
 class TaskAdapter(
-    private val taskList: List<TaskItem>,
+    private val taskList: MutableList<TaskItem>,
     private val onTaskStatusChanged: (TaskItem) -> Unit,
     private val onItemLongClicked: (TaskItem) -> Unit
 ) : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
@@ -70,8 +70,14 @@ class TaskAdapter(
 
         // チェック操作
         holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
-            task.isCompleted = isChecked
-            onTaskStatusChanged(task)
+            // TaskItem は共通ロジック側で不変なので、リストの要素ごと差し替える。
+            // ここで差し替えないと、呼び出し側が保存するのは変更前のリストになり、
+            // チェックが即座に戻ってしまう。
+            val index = taskList.indexOfFirst { it.id == task.id }
+            if (index < 0) return@setOnCheckedChangeListener
+            val updated = task.copy(isCompleted = isChecked)
+            taskList[index] = updated
+            onTaskStatusChanged(updated)
         }
 
         holder.itemView.setOnLongClickListener {

@@ -33,10 +33,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // :shared が使う kotlinx-datetime は java.time に依る。
+        // minSdk 24 を維持したままにするため desugaring を有効にする。
+        isCoreLibraryDesugaringEnabled = true
     }
 }
 
 dependencies {
+    // 端末に依らないロジック(ICS/祝日/優先度/出欠/キャラクター)は iOS 版と共有
+    implementation(project(":shared"))
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)

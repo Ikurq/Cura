@@ -276,55 +276,8 @@ class AlarmAlertActivity : AppCompatActivity() {
         prefs.edit().putString("alarmListJSON", newList.toString()).apply()
     }
 
-    private fun scheduleVoiceAlarm(context: Context, item: AlarmItem) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                android.util.Log.e("AlarmAlertActivity", "Cannot schedule exact alarm!")
-            }
-        }
-
-        val audioPath = File(context.filesDir, "${item.id}_alarm.wav").absolutePath
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "ALARM_TRIGGER"
-            putExtra("AUDIO_FILE_PATH", audioPath)
-            putExtra("ALARM_ID", item.id)
-        }
-        val pendingIntent = android.app.PendingIntent.getBroadcast(
-            context,
-            item.id.hashCode(),
-            intent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val calendar = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, item.hour)
-            set(java.util.Calendar.MINUTE, item.minute)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }
-
-        val now = System.currentTimeMillis()
-        var minDiff = Long.MAX_VALUE
-        var targetCalendar: java.util.Calendar? = null
-        
-        for (day in item.repeatDays) {
-            val tempCal = calendar.clone() as java.util.Calendar
-            tempCal.set(java.util.Calendar.DAY_OF_WEEK, day)
-            if (tempCal.timeInMillis <= now) {
-                tempCal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-            }
-            val diff = tempCal.timeInMillis - now
-            if (diff < minDiff) {
-                minDiff = diff
-                targetCalendar = tempCal
-            }
-        }
-        targetCalendar?.let { calendar.timeInMillis = it.timeInMillis }
-
-        alarmManager.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
-    }
+    private fun scheduleVoiceAlarm(context: Context, item: AlarmItem) =
+        AlarmScheduler.schedule(context, item)
 
     // キャラクター経験値を加算するロジック（アラーム用）
     private fun addCharExp() {

@@ -1,0 +1,54 @@
+name: Cura
+options:
+  bundleIdPrefix: com.example.voicevox
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  VoicevoxCore:
+    url: https://github.com/Shakenokirimi12/vv-mobile.git
+    exactVersion: 0.1.2
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  Cura:
+    type: application
+    platform: iOS
+    sources:
+      - path: Cura
+    dependencies:
+      - package: VoicevoxCore
+        product: VoicevoxCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.voicevox
+        INFOPLIST_FILE: Cura/Info.plist
+        # KMP の shared フレームワークは Gradle が出力する場所を直接見る
+        FRAMEWORK_SEARCH_PATHS:
+          - $(inherited)
+          - $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS:
+          - $(inherited)
+          - -framework
+          - Shared
+        # 静的フレームワークなので埋め込み・署名は不要
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+    preBuildScripts:
+      # キャラクター画像は Android 側の drawable が正。2重にコミットしたくないので
+      # ビルドのたびに Asset Catalog へ同期する(生成物は gitignore 済み)。
+      - name: Sync character art from app/src/main/res
+        basedOnDependencyAnalysis: false
+        script: '"$SRCROOT/sync-assets.sh"'
+      - name: Build Kotlin shared framework
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode

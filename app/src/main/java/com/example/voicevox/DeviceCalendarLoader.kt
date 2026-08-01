@@ -8,6 +8,11 @@ object DeviceCalendarLoader {
 
     data class DeviceCalendarInfo(val id: Long, val name: String, val account: String)
 
+    fun hasPermission(context: Context): Boolean =
+        androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.READ_CALENDAR
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
     fun getAllCalendars(context: Context): List<DeviceCalendarInfo> {
         val list = mutableListOf<DeviceCalendarInfo>()
         if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CALENDAR) 
@@ -37,25 +42,19 @@ object DeviceCalendarLoader {
         return list
     }
 
-    fun loadDeviceEvents(context: Context, targetDate: Calendar): List<IcsEvent> {
+    /**
+     * @param selectedIds 読み出す対象のカレンダーID。空なら全カレンダー。
+     *   設定は共通ロジック(SettingsRepository)側が持つので、
+     *   既定値は用意していない(省略できると、選択済みでも全件読んでしまうため)。
+     */
+    fun loadDeviceEvents(
+        context: Context,
+        targetDate: Calendar,
+        selectedIds: Set<Long>,
+    ): List<IcsEvent> {
         val events = mutableListOf<IcsEvent>()
-        
-        // ユーザーが選択したカレンダーIDを取得
-        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        val selectedIdsJson = appPrefs.getString("selected_calendar_ids", null)
-        val selectedIds = mutableSetOf<Long>()
-        if (selectedIdsJson != null) {
-            try {
-                val arr = org.json.JSONArray(selectedIdsJson)
-                for (i in 0 until arr.length()) selectedIds.add(arr.getLong(i))
-            } catch (e: Exception) {}
-        }
-        
-        // Ensure permission is granted (caller should check, but safe check here)
-        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CALENDAR) 
-            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            return emptyList()
-        }
+
+        if (!hasPermission(context)) return emptyList()
 
         val startMillis: Long = targetDate.clone().let {
             val c = it as Calendar

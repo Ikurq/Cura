@@ -86,13 +86,16 @@ class AlarmFragment : Fragment() {
         loadAlarms()
 
         alarmAdapter = AlarmAdapter(alarmList, { item, isEnabled ->
-            item.isEnabled = isEnabled
-            if (item.isEnabled) {
-                val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                scheduleVoiceAlarm(item, audioFile.absolutePath)
+            // AlarmItem は共通ロジック側で不変なので、要素を差し替える
+            val index = alarmList.indexOfFirst { it.id == item.id }
+            val updated = item.copy(isEnabled = isEnabled)
+            if (index >= 0) alarmList[index] = updated
+            if (updated.isEnabled) {
+                val audioFile = File(requireContext().filesDir, "${updated.id}_alarm.wav")
+                scheduleVoiceAlarm(updated, audioFile.absolutePath)
                 Toast.makeText(requireContext(), "アラームをONにしました", Toast.LENGTH_SHORT).show()
             } else {
-                cancelVoiceAlarm(item)
+                cancelVoiceAlarm(updated)
                 Toast.makeText(requireContext(), "アラームをOFFにしました", Toast.LENGTH_SHORT).show()
             }
             saveAlarms()
@@ -490,73 +493,9 @@ class AlarmFragment : Fragment() {
         }
     }
 
-    private fun scheduleVoiceAlarm(item: AlarmItem, audioPath: String) {
-        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                android.util.Log.e("AlarmFragment", "Cannot schedule exact alarms! Permission missing.")
-            }
-        }
+    private fun scheduleVoiceAlarm(item: AlarmItem, audioPath: String) =
+        AlarmScheduler.schedule(requireContext(), item)
 
-        val intent = Intent(requireContext(), AlarmReceiver::class.java).apply {
-            action = "ALARM_TRIGGER"
-            putExtra("AUDIO_FILE_PATH", audioPath)
-            putExtra("ALARM_ID", item.id)
-            putExtra("VIBRATE", item.vibrate)
-        }
-        
-        val pendingIntent = PendingIntent.getBroadcast(
-            requireContext(),
-            item.id.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, item.hour)
-            set(Calendar.MINUTE, item.minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val now = System.currentTimeMillis()
-        if (item.repeatDays.isEmpty()) {
-            if (calendar.timeInMillis <= now) {
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
-            }
-        } else {
-            var minDiff = Long.MAX_VALUE
-            var targetCalendar: Calendar? = null
-            for (day in item.repeatDays) {
-                val tempCal = calendar.clone() as Calendar
-                tempCal.set(Calendar.DAY_OF_WEEK, day)
-                if (tempCal.timeInMillis <= now) {
-                    tempCal.add(Calendar.WEEK_OF_YEAR, 1)
-                }
-                val diff = tempCal.timeInMillis - now
-                if (diff < minDiff) {
-                    minDiff = diff
-                    targetCalendar = tempCal
-                }
-            }
-            targetCalendar?.let { calendar.timeInMillis = it.timeInMillis }
-        }
-
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
-    }
-
-    private fun cancelVoiceAlarm(item: AlarmItem) {
-        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(requireContext(), AlarmReceiver::class.java).apply {
-            action = "ALARM_TRIGGER"
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            requireContext(),
-            item.id.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
-    }
+    private fun cancelVoiceAlarm(item: AlarmItem) =
+        AlarmScheduler.cancel(requireContext(), item)
 }

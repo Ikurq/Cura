@@ -25,4 +25,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "単位の守護神"
 include(":app")
+include(":shared")
  

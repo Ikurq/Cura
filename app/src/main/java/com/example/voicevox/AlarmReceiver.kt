@@ -27,6 +27,9 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (action == "REFRESH_CALENDARS") {
                     refreshCalendars(context)
                     checkMandatoryReminder(context)
+                    // 休暇モードや祝日スキップの切り替えは既存の予約に反映されないので、
+                    // 日付が変わるたびに全アラームを登録し直す
+                    AlarmScheduler.rescheduleAll(context)
                 }
                 scheduleDailyNotifications(context)
                 return
@@ -54,6 +57,14 @@ class AlarmReceiver : BroadcastReceiver() {
 
             val alarmId = intent.getStringExtra("ALARM_ID")
             val vibrate = intent.getBooleanExtra("VIBRATE", true)
+
+            // 予約したあとに長期休暇モードへ入った場合、登録済みの予約はそのまま残る。
+            // 鳴らす直前にもう一度確認する。
+            if (!context.cura.alarmPlanner.shouldRing(System.currentTimeMillis())) {
+                android.util.Log.d("AlarmReceiver", "Suppressed by vacation mode / holiday")
+                alarmId?.let { id -> context.cura.alarms.find(id)?.let { AlarmScheduler.schedule(context, it) } }
+                return
+            }
 
             // Start Service
             val serviceIntent = Intent(context, AlarmService::class.java).apply {

@@ -458,7 +458,10 @@ class TimetableFragment : Fragment() {
         val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
         if (!appPrefs.getBoolean("sync_device_calendar", false)) return
 
-        val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(requireContext(), targetDate)
+        val selectedIds = requireContext().cura.settings.selectedCalendarIds
+            .mapNotNull { it.toLongOrNull() }
+            .toSet()
+        val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(requireContext(), targetDate, selectedIds)
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         
         deviceEvents.forEach { event ->
@@ -523,9 +526,10 @@ class TimetableFragment : Fragment() {
 
     fun updateAttendance(item: ScheduleItem, status: String) {
         if (item.isCustom) {
-            val event = customEvents.find { it.id == item.id }
-            if (event != null) {
-                event.attendanceStatus = status
+            val index = customEvents.indexOfFirst { it.id == item.id }
+            if (index >= 0) {
+                // ScheduleEvent は共通ロジック側で不変なので、要素を差し替える
+                customEvents[index] = customEvents[index].copy(attendanceStatus = status)
                 saveCustomEvents()
             }
         } else {

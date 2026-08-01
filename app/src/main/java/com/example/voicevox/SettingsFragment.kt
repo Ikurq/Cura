@@ -48,6 +48,9 @@ class SettingsFragment : Fragment() {
         view.findViewById<View>(R.id.menuPresets).setOnClickListener {
             navigateTo(SettingsPresetsFragment())
         }
+        view.findViewById<View>(R.id.menuAlarmAdvanced).setOnClickListener {
+            navigateTo(SettingsAlarmFragment())
+        }
         view.findViewById<View>(R.id.menuVoice).setOnClickListener {
             navigateTo(SettingsVoiceFragment())
         }
@@ -71,6 +74,7 @@ class SettingsFragment : Fragment() {
             is SettingsPermissionsFragment -> "システム権限と通知"
             is SettingsCalendarFragment -> "外部カレンダーの設定"
             is SettingsPresetsFragment -> "スケジュールの設定"
+            is SettingsAlarmFragment -> "アラーム詳細設定"
             is SettingsVoiceFragment -> "音声合成とストレージ"
             is SettingsDevFragment -> "開発者オプション"
             is CreditsFragment -> "クレジット"
