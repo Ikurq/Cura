@@ -11,6 +11,8 @@ enum Theme {
     static let outlineHigh = Color(hex: 0x334155)
     static let accent = Color(hex: 0x3B82F6)
     static let error = Color(hex: 0xF43F5E)
+    /// 注意書き用。error ほど強くない琥珀色。
+    static let warning = Color(hex: 0xFBBF24)
 
     static let textPrimary = Color(hex: 0xF8FAFC)
     static let textSecondary = Color(hex: 0x94A3B8)

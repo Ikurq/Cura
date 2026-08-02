@@ -77,6 +77,10 @@ struct PermissionsView: View {
             }
 
             Section {
+                Text("⚠️ マナーモード（消音スイッチ）中は、アラームの通知音が鳴りません。iOS では純正の時計アプリだけが消音を無視でき、他のアプリは同じことができません。確実に起きたい日は消音を解除してください。\n\n通知をタップして開いたあとの読み上げは、消音中でも鳴ります。")
+                    .font(.caption)
+                    .foregroundStyle(Theme.warning)
+
                 Text("iOS ではアプリがアラーム時刻にコードを実行できないため、音声はアラームを保存した時点で合成し、通知音として再生します。通知音は30秒までという制約があるので、タスクの読み上げが長い場合は通知をタップして開くと最後まで再生されます。")
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
