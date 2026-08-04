@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.voicevox.databinding.DialogAddTaskBinding
@@ -249,15 +250,24 @@ class TaskFragment : Fragment() {
     }
 
     private fun addExpForTasks(tasks: List<TaskItem>) {
+        val completedCount = tasks.size
         var totalGain = 0L
         tasks.forEach { task ->
             totalGain += (task.basePriority * 20L) + (if (task.basePriority == 1) 50L else 0L)
         }
         val ctx = requireContext()
-        listOf(CuraConstants.PREFS_PLAYER, CuraConstants.PREFS_CHARACTER).forEach { name ->
-            val p = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
-            p.edit().putLong(CuraConstants.KEY_TOTAL_EXP, p.getLong(CuraConstants.KEY_TOTAL_EXP, 0L) + totalGain).apply()
+        
+        // 1. 累計タスク完了数を更新
+        val playerPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
+        val currentTaskCount = playerPrefs.getInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, 0)
+        playerPrefs.edit {
+            putInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, currentTaskCount + completedCount)
+            putBoolean(CuraConstants.KEY_PENDING_TASK_PRAISE, true)
         }
+
+        // 2. キャラクター（キュラ）経験値を更新
+        val charPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_CHARACTER, Context.MODE_PRIVATE)
+        charPrefs.edit().putLong(CuraConstants.KEY_TOTAL_EXP, charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L) + totalGain).apply()
     }
 
     override fun onDestroyView() {

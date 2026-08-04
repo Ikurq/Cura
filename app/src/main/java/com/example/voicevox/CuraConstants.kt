@@ -12,8 +12,13 @@ object CuraConstants {
     const val PREFS_ATTENDANCE = "AttendancePrefs"
 
     // Common Keys
-    const val KEY_USER_NAME = "user_name"
     const val KEY_TOTAL_EXP = "totalExp"
+    const val KEY_COMPLETED_TASK_COUNT = "completed_task_count"
+    const val KEY_ALARM_WAKEUP_COUNT = "alarm_wakeup_count"
+    
+    // Praise Flags
+    const val KEY_PENDING_TASK_PRAISE = "pending_task_praise"
+    const val KEY_PENDING_ALARM_PRAISE = "pending_alarm_praise"
     
     // Alarm Keys
     const val KEY_ALARM_LIST = "alarmListJSON"

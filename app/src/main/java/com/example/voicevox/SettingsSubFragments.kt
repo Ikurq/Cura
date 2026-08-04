@@ -62,7 +62,7 @@ class SettingsPermissionsFragment : Fragment() {
     }
 
     private fun setupNotifications(view: View) {
-        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         val s1 = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchMandatoryReminder)
         val s2 = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchTaskNotification)
         val s3 = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchEventNotification)
@@ -103,7 +103,7 @@ class SettingsCalendarFragment : Fragment() {
     private fun setupDeviceSync(view: View) {
         val syncSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSyncDeviceCalendar)
         val menuSelect = view.findViewById<View>(R.id.menuSelectCalendars)
-        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         
         val isSyncEnabled = prefs.getBoolean("sync_device_calendar", false)
         syncSwitch.isChecked = isSyncEnabled
@@ -135,7 +135,7 @@ class SettingsCalendarFragment : Fragment() {
     }
 
     private fun saveSyncPreference(enabled: Boolean) {
-        requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit {
+        requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE).edit {
             putBoolean("sync_device_calendar", enabled)
         }
     }
@@ -143,7 +143,7 @@ class SettingsCalendarFragment : Fragment() {
     private fun setupCalendar(view: View) {
         val container = view.findViewById<LinearLayout>(R.id.settingsCalendarListContainer)
         val btnAdd = view.findViewById<Button>(R.id.btnSettingsAddCalendar)
-        val prefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
 
         fun refresh() {
             container.removeAllViews()
@@ -202,7 +202,6 @@ class SettingsVoiceFragment : Fragment() {
     }
 
     private fun setupApi(view: View) {
-        // 音声合成エンジンの状態を表示するだけ
     }
 
     private fun setupStorage(view: View) {
@@ -237,14 +236,14 @@ class SettingsDevFragment : Fragment() {
     }
 
     private fun setupLevel(view: View) {
-        val prefs = requireContext().getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_CHARACTER, Context.MODE_PRIVATE)
         val txtLv = view.findViewById<TextView>(R.id.txtDevLevelDisplay)
         val seek = view.findViewById<SeekBar>(R.id.seekDevLevel)
         val btn = view.findViewById<Button>(R.id.btnDevSetLevel)
-        val curLv = (prefs.getLong("totalExp", 0L) / 100L).toInt() + 1
+        val curLv = (prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L) / 100L).toInt() + 1
         seek.progress = curLv; txtLv.text = "現在のLv: $curLv"
         btn.setOnClickListener {
-            prefs.edit { putLong("totalExp", (seek.progress - 1) * 100L) }
+            prefs.edit { putLong(CuraConstants.KEY_TOTAL_EXP, (seek.progress - 1) * 100L) }
             txtLv.text = "現在のLv: ${seek.progress}"
             Toast.makeText(context, "設定完了", Toast.LENGTH_SHORT).show()
         }
@@ -266,7 +265,7 @@ class SettingsPresetsFragment : Fragment() {
 
     private fun setupPresets(view: View) {
         val container = view.findViewById<LinearLayout>(R.id.settingsPresetListContainer)
-        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         fun refresh() {
             container.removeAllViews()
             val list = JSONArray(prefs.getString("presetListJSON", "[]"))
@@ -288,7 +287,6 @@ class SettingsPresetsFragment : Fragment() {
                 itemView.findViewById<TextView>(R.id.txtPresetGenre).text = genre
                 itemView.findViewById<TextView>(R.id.txtPresetInfo).text = infoText.toString()
                 
-                // 編集機能を追加 (カードタップ)
                 itemView.setOnClickListener {
                     showEditPresetDialog(obj, i) { refresh() }
                 }
@@ -310,21 +308,18 @@ class SettingsPresetsFragment : Fragment() {
     }
 
     private fun showEditPresetDialog(originalObj: JSONObject, index: Int, onComplete: () -> Unit) {
-        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_schedule_event, null)
         val genreInput = dialogView.findViewById<EditText>(R.id.editEventGenre)
         val locationInput = dialogView.findViewById<EditText>(R.id.editEventLocation)
         val btnSelectTime = dialogView.findViewById<Button>(R.id.btnSelectEventTime)
         
-        // プリセット編集に不要な要素を隠す
         dialogView.findViewById<View>(R.id.presetChipGroup)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.btnToggleAdvancedSettings)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.layoutAdvancedSettings)?.visibility = View.GONE
 
-        // タイトルを「編集」に変更
         dialogView.findViewById<TextView>(android.R.id.text1)?.text = "プリセットの編集"
 
-        // 初期値をセット
         genreInput.setText(originalObj.getString("genre"))
         locationInput.setText(originalObj.optString("location", ""))
         var selectedHour = originalObj.optInt("hour", 9)
@@ -353,7 +348,6 @@ class SettingsPresetsFragment : Fragment() {
                     put("minute", selectedMinute)
                 }
                 
-                // 指定インデックスを差し替え
                 val newList = JSONArray()
                 for (i in 0 until list.length()) {
                     if (i == index) newList.put(newObj) else newList.put(list.getJSONObject(i))
@@ -379,7 +373,7 @@ class SettingsCalendarSelectionFragment : Fragment() {
 
     private fun setupSelectionList(container: LinearLayout) {
         val calendars = DeviceCalendarLoader.getAllCalendars(requireContext())
-        val prefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         val selectedIdsJson = prefs.getString("selected_calendar_ids", "[]")
         val selectedIds = mutableSetOf<Long>()
         try {
@@ -412,52 +406,8 @@ class SettingsCalendarSelectionFragment : Fragment() {
     private fun saveIds(ids: Set<Long>) {
         val arr = JSONArray()
         ids.forEach { arr.put(it) }
-        requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit {
+        requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE).edit {
             putString("selected_calendar_ids", arr.toString())
-        }
-    }
-}
-
-// --- 7. HUD & Interface Settings ---
-class SettingsHudFragment : Fragment() {
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_settings_hud, container, false)
-        setupHudSettings(view)
-        return view
-    }
-
-    private fun setupHudSettings(view: View) {
-        val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        
-        val editName = view.findViewById<EditText>(R.id.editUserName)
-        val btnSaveName = view.findViewById<Button>(R.id.btnSaveUserName)
-        val switchPlayerLv = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShowPlayerLevel)
-        val switchCharLv = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShowCharLevel)
-
-        // 現在の値をセット
-        editName.setText(appPrefs.getString("user_name", "PLAYER"))
-        switchPlayerLv.isChecked = appPrefs.getBoolean("show_player_level", true)
-        switchCharLv.isChecked = appPrefs.getBoolean("show_char_level", true)
-
-        // 名前保存
-        btnSaveName.setOnClickListener {
-            val newName = editName.text.toString().trim()
-            if (newName.isNotEmpty()) {
-                if (newName.length <= 8) {
-                    appPrefs.edit().putString("user_name", newName).apply()
-                    Toast.makeText(requireContext(), "名前を更新しました", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), "名前は8文字以内で入力してください", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        // 表示スイッチ
-        switchPlayerLv.setOnCheckedChangeListener { _, isChecked ->
-            appPrefs.edit().putBoolean("show_player_level", isChecked).apply()
-        }
-        switchCharLv.setOnCheckedChangeListener { _, isChecked ->
-            appPrefs.edit().putBoolean("show_char_level", isChecked).apply()
         }
     }
 }

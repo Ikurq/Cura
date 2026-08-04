@@ -1,4 +1,4 @@
-package com.example.voicevox // ※パッケージ名を確認してね！
+package com.example.voicevox
 
 import android.app.KeyguardManager
 import android.content.Context
@@ -19,6 +19,9 @@ import kotlinx.coroutines.withContext
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
+import androidx.core.content.edit
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,10 +38,8 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
-    // 画面が表に出てきたときや、裏から戻ってきたときにチェックする魔法
     override fun onResume() {
         super.onResume()
-        // もし通知欄から止められて、裏のサービスがもう消えていたら、この画面も自動で閉じるよ！
         if (!isServiceRunning(this, AlarmService::class.java)) {
             finish()
         }
@@ -47,7 +48,6 @@ class AlarmAlertActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 寝落ち対策：画面を強制点灯させ、ロック画面の上にも表示する
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -64,7 +64,6 @@ class AlarmAlertActivity : AppCompatActivity() {
             )
         }
         
-        // 常に画面をオンに保つ
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_alarm_alert)
@@ -77,17 +76,15 @@ class AlarmAlertActivity : AppCompatActivity() {
         val alarmId = intent.getStringExtra("ALARM_ID")
 
         stopAlarmNowButton.setOnClickListener {
-            // 他の音を止める
             val serviceIntent = Intent(this, AlarmService::class.java)
             stopService(serviceIntent)
             
-            // キャラクター経験値を付与
+            // 起床統計とキャラクター経験値を付与
+            updateWakeUpStatistics()
             addCharExp()
             
-            // 繰り返し設定がある場合、次回のスケジュールを行う
             if (alarmId != null) {
                 rescheduleNextAlarm(alarmId)
-                // スケジュール読み上げを開始
                 startMorningReading(alarmId)
             } else {
                 finish()
@@ -95,20 +92,27 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
-    private fun startMorningReading(alarmId: String) {
-        val prefs = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("alarmListJSON", null) ?: return
-        val jsonArray = org.json.JSONArray(jsonString)
-        
-        var speakerId = 3 // デフォルト：ずんだもん
-        var styleId = 3
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            if (obj.getString("id") == alarmId) {
-                styleId = obj.getInt("speakerId")
-                break
-            }
+    private fun updateWakeUpStatistics() {
+        val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
+        val currentCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
+        playerPrefs.edit {
+            putInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, currentCount + 1)
+            putBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, true)
         }
+    }
+
+    private fun startMorningReading(alarmId: String) {
+        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
+        
+        val alarmList = try {
+            Json.decodeFromString<List<AlarmItem>>(jsonString)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        
+        val alarmItem = alarmList.find { it.id == alarmId } ?: return
+        val styleId = alarmItem.speakerId
 
         lifecycleScope.launch {
             val events = ScheduleLoader.loadAllEventsForToday(this@AlarmAlertActivity, Calendar.getInstance())
@@ -123,11 +127,8 @@ class AlarmAlertActivity : AppCompatActivity() {
             val timeStrNow = SimpleDateFormat("H時m分", Locale.JAPAN).format(now.time)
             
             val sb = StringBuilder()
-            
-            // 挨拶
             sb.append(String.format(Locale.getDefault(), AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "greeting"), timeStrNow))
 
-            // 「絶対起きるアラーム」に関連するイベントを探す
             val mandatoryEvent = events.find { event ->
                 val diffMinutes = (event.startTime - now.timeInMillis) / (1000 * 60)
                 diffMinutes in -30..60
@@ -168,7 +169,6 @@ class AlarmAlertActivity : AppCompatActivity() {
             val message = sb.toString()
             val outputFile = File(cacheDir, "morning_reading.wav")
             
-            // UIを読み上げ中に更新（例：ボタンを無効化、テキストを変更）
             findViewById<Button>(R.id.stopAlarmNowButton).apply {
                 isEnabled = false
                 text = "読み上げ中..."
@@ -193,11 +193,11 @@ class AlarmAlertActivity : AppCompatActivity() {
             setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_ALARM) // 目覚ましとして loud に再生
+                    .setUsage(AudioAttributes.USAGE_ALARM)
                     .build()
             )
             setDataSource(applicationContext, Uri.fromFile(file))
-            setVolume(1.0f, 1.0f) // 最大音量に設定
+            setVolume(1.0f, 1.0f)
             setOnCompletionListener { 
                 finish() 
             }
@@ -219,47 +219,24 @@ class AlarmAlertActivity : AppCompatActivity() {
     }
 
     private fun rescheduleNextAlarm(alarmId: String) {
-        val prefs = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("alarmListJSON", null) ?: return
-        val jsonArray = org.json.JSONArray(jsonString)
+        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
         
-        var targetItem: AlarmItem? = null
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            if (obj.getString("id") == alarmId) {
-                val repeatDays = ArrayList<Int>().apply {
-                    val daysArr = obj.optJSONArray("repeatDays")
-                    if (daysArr != null) {
-                        for (j in 0 until daysArr.length()) add(daysArr.getInt(j))
-                    }
-                }
-                targetItem = AlarmItem(
-                    obj.getString("id"),
-                    obj.getInt("hour"),
-                    obj.getInt("minute"),
-                    obj.getString("message"),
-                    obj.getInt("speakerId"),
-                    obj.getString("speakerName"),
-                    obj.getBoolean("isEnabled"),
-                    obj.getBoolean("readTasks"),
-                    obj.optBoolean("vibrate", true),
-                    repeatDays
-                )
-                break
-            }
+        val alarmList = try {
+            Json.decodeFromString<List<AlarmItem>>(jsonString)
+        } catch (e: Exception) {
+            emptyList()
         }
+        
+        val targetItem = alarmList.find { it.id == alarmId } ?: return
 
-        if (targetItem != null && targetItem.isEnabled) {
+        if (targetItem.isEnabled) {
             if (targetItem.repeatDays.isNotEmpty()) {
-                // 繰り返しありの場合は次を予約
                 scheduleVoiceAlarm(this, targetItem)
             } else {
-                // 繰り返しなしの場合
                 if (targetItem.readTasks) {
-                    // タスク読み上げありなら削除（その日限りとみなす）
                     deleteAlarm(alarmId)
                 } else {
-                    // 通常のアラームなら単にOFFにする
                     disableAlarm(alarmId)
                 }
             }
@@ -267,36 +244,34 @@ class AlarmAlertActivity : AppCompatActivity() {
     }
 
     private fun deleteAlarm(alarmId: String) {
-        val prefs = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("alarmListJSON", null) ?: return
-        val jsonArray = org.json.JSONArray(jsonString)
-        val newList = org.json.JSONArray()
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            if (obj.getString("id") != alarmId) {
-                newList.put(obj)
-            }
-        }
-        prefs.edit().putString("alarmListJSON", newList.toString()).apply()
+        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
         
-        // 音声ファイルも削除しておく（エコ設計）
+        val alarmList = try {
+            Json.decodeFromString<List<AlarmItem>>(jsonString).toMutableList()
+        } catch (e: Exception) {
+            mutableListOf()
+        }
+        
+        alarmList.removeAll { it.id == alarmId }
+        prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString<List<AlarmItem>>(alarmList)).apply()
+        
         val audioFile = File(filesDir, "${alarmId}_alarm.wav")
         if (audioFile.exists()) audioFile.delete()
     }
 
     private fun disableAlarm(alarmId: String) {
-        val prefs = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("alarmListJSON", null) ?: return
-        val jsonArray = org.json.JSONArray(jsonString)
-        val newList = org.json.JSONArray()
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            if (obj.getString("id") == alarmId) {
-                obj.put("isEnabled", false)
-            }
-            newList.put(obj)
+        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
+        
+        val alarmList = try {
+            Json.decodeFromString<List<AlarmItem>>(jsonString).toMutableList()
+        } catch (e: Exception) {
+            mutableListOf()
         }
-        prefs.edit().putString("alarmListJSON", newList.toString()).apply()
+        
+        alarmList.find { it.id == alarmId }?.let { it.isEnabled = false }
+        prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString<List<AlarmItem>>(alarmList)).apply()
     }
 
     private fun scheduleVoiceAlarm(context: Context, item: AlarmItem) {
@@ -349,14 +324,12 @@ class AlarmAlertActivity : AppCompatActivity() {
         alarmManager.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
     }
 
-    // キャラクター経験値を加算するロジック（アラーム用）
     private fun addCharExp() {
-        val prefs = getSharedPreferences("CharacterPrefs", Context.MODE_PRIVATE)
-        val totalExp = prefs.getLong("totalExp", 0L)
+        val prefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        val totalExp = prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val now = System.currentTimeMillis()
         val lastRewardTime = prefs.getLong("last_alarm_reward_millis", 0L)
 
-        // 0-12時(AM)か12-24時(PM)かの判定
         val calNow = Calendar.getInstance()
         val calLast = Calendar.getInstance().apply { timeInMillis = lastRewardTime }
 
@@ -365,30 +338,23 @@ class AlarmAlertActivity : AppCompatActivity() {
                 (calNow.get(Calendar.HOUR_OF_DAY) < 12) == (calLast.get(Calendar.HOUR_OF_DAY) < 12)
 
         if (isSameAmPm) {
-            // すでにこの時間帯にレベルアップ済みなら少なめのEXP（あるいは0）
             val bonusExp = 10L
-            prefs.edit().putLong("totalExp", totalExp + bonusExp).apply()
+            prefs.edit().putLong(CuraConstants.KEY_TOTAL_EXP, totalExp + bonusExp).apply()
             Toast.makeText(this, "おはようございます！起床成功です！", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 1レベルアップに必要なEXPをJSONから取得
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
-
-        fun getThreshold(lv: Int): Long {
-            return (lv - 1) * expPerLevel
-        }
 
         var currentLv = 1
         while (totalExp >= currentLv * expPerLevel) {
             currentLv++
         }
 
-        // 次のレベルの閾値になるように調整（確定1レベル上昇）
         val newTotalExp = currentLv * expPerLevel
 
         prefs.edit()
-            .putLong("totalExp", newTotalExp)
+            .putLong(CuraConstants.KEY_TOTAL_EXP, newTotalExp)
             .putLong("last_alarm_reward_millis", now)
             .apply()
 
