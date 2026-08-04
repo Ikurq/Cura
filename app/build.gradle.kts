@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -54,7 +55,8 @@ dependencies {
     // UIアニメーション用の材料
     implementation("com.airbnb.android:lottie:6.4.0")
     // 画像読み込み用の材料
-    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation(libs.glide)
+    implementation(libs.kotlinx.serialization.json)
 
     // VOICEVOX ローカルエンジン (ローカルプロジェクトとして読み込む)
     implementation(project(":lib"))

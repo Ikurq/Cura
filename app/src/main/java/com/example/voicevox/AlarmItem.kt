@@ -1,6 +1,9 @@
 package com.example.voicevox
 
+import kotlinx.serialization.Serializable
+
 // アラーム1件分の情報をまとめておくデータクラスです
+@Serializable
 data class AlarmItem(
     val id: String,          // アラームを識別するための固有ID
     var hour: Int,           // 時

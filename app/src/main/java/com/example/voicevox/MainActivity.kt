@@ -2,23 +2,18 @@ package com.example.voicevox
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
-import android.app.KeyguardManager
-import android.content.Context
 import android.content.Intent
-import android.graphics.Color
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.view.WindowManager
 import android.widget.*
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.voicevox.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
@@ -33,35 +28,6 @@ import kotlin.time.Duration.Companion.milliseconds
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
-    private lateinit var launcherLayout: View
-    private lateinit var toolbar: View
-    private lateinit var fragmentContainer: View
-
-    private lateinit var welcomeTitle: TextView
-    private lateinit var playerLevelText: TextView
-    private lateinit var expProgressBar: ProgressBar
-    private lateinit var expValueText: TextView
-
-    private lateinit var charLevelText: TextView
-    private lateinit var charExpProgressBar: ProgressBar
-    private lateinit var charExpText: TextView
-
-    private lateinit var nextQuestText: TextView
-    private lateinit var topMissionText: TextView
-    private lateinit var nextSummonText: TextView
-
-    private lateinit var systemLogText: TextView
-    private lateinit var sysLogLabel: TextView
-
-    private lateinit var launchAlarmButton: View
-    private lateinit var launchTaskButton: View
-    private lateinit var launchTimetableButton: View
-    private lateinit var launchAttendanceButton: View
-    private lateinit var layoutAttendanceButton: View
-
-    private lateinit var dialogueBubble: View
-    private lateinit var dialogueText: TextView
 
     private var logHandler = Handler(Looper.getMainLooper())
     private var logRunnable: Runnable? = null
@@ -88,8 +54,22 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // UI初期化
-        initUiElements()
+        // Toolbarの初期設定
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.toolbar.setNavigationOnClickListener { showLauncherView() }
+
+        // Androidの戻るボタンの挙動をカスタマイズ
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (binding.fragmentContainer.isVisible) {
+                    showLauncherView()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
 
         // パーミッション等の初期チェック
         checkOverlayPermission()
@@ -104,6 +84,9 @@ class MainActivity : AppCompatActivity() {
         updateAttendanceButtonVisibility()
         updateCharacterCostume()
 
+        // アニメーション適用
+        setupCyberAnimations()
+
         // 継続的な更新処理
         systemUpdateHandler.post(systemUpdateRunnable)
         startSystemLogLoop()
@@ -113,89 +96,43 @@ class MainActivity : AppCompatActivity() {
         scheduleMidnightRefresh()
         clearTempAudioFiles()
 
-        // メインナビゲーション
+        // ナビゲーション設定
         setupNavigation()
         setupCharacterDialogue()
     }
 
-    private fun initUiElements() {
-        launcherLayout = findViewById(R.id.launcherLayout)
-        toolbar = findViewById(R.id.toolbar)
-        fragmentContainer = findViewById(R.id.fragmentContainer)
-
-        welcomeTitle = findViewById(R.id.welcomeTitle)
-        playerLevelText = findViewById(R.id.playerLevelText)
-        expProgressBar = findViewById(R.id.expProgressBar)
-        expValueText = findViewById(R.id.expValueText)
-
-        charLevelText = findViewById(R.id.charLevelText)
-        charExpProgressBar = findViewById(R.id.charExpProgressBar)
-        charExpText = findViewById(R.id.charExpText)
-
-        nextQuestText = findViewById(R.id.nextQuestText)
-        topMissionText = findViewById(R.id.topMissionText)
-        nextSummonText = findViewById(R.id.nextSummonText)
-
-        systemLogText = findViewById(R.id.systemLogText)
-        sysLogLabel = findViewById(R.id.sysLogLabel)
-
-        launchAlarmButton = findViewById(R.id.layoutAlarmButton)
-        launchTaskButton = findViewById(R.id.layoutTaskButton)
-        launchTimetableButton = findViewById(R.id.launchTimetableButton)
-        launchAttendanceButton = findViewById(R.id.launchAttendanceButton)
-        layoutAttendanceButton = findViewById(R.id.layoutAttendanceButton)
-
-        dialogueBubble = findViewById(R.id.dialogueBubble)
-        dialogueText = findViewById(R.id.dialogueText)
-
-        // 背景などの装飾（存在すればパルスさせる）
-        findViewById<View>(R.id.statusCard)?.let { pulseBorder(it) }
-        findViewById<View>(R.id.characterSection)?.let { pulseBorder(it) }
+    private fun setupCyberAnimations() {
+        // メインボタンの「枠（border）」部分のみを点滅させる
+        pulseBorder(binding.borderAlarm)
+        pulseBorder(binding.borderTask)
+        pulseBorder(binding.borderTimetable)
+        pulseBorder(binding.borderAttendance)
+        
+        // レベルカード全体ではなく、もし専用の枠Viewがあればそれを点滅させるべきですが
+        // 今は文字まで点滅するのを防ぐため、一旦カード全体のパルスは停止します。
     }
 
     private fun setupNavigation() {
-        findViewById<View>(R.id.btnQuickSettings).setOnClickListener {
-            showFeatureView()
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, SettingsFragment())
-                .commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_settings)
-        }
-
-        findViewById<View>(R.id.toolbar).findViewById<View>(android.R.id.home)?.setOnClickListener {
-            showLauncherView()
-        }
+        // メインメニューボタン
+        binding.launchAlarmButton.setOnClickListener { switchFragment(AlarmFragment(), R.string.title_alarm_sync) }
+        binding.launchTaskButton.setOnClickListener { switchFragment(TaskFragment(), R.string.title_task_core) }
+        binding.launchTimetableButton.setOnClickListener { switchFragment(TimetableFragment(), R.string.title_schedule_map) }
+        binding.launchAttendanceButton.setOnClickListener { switchFragment(AttendanceManagerFragment(), R.string.title_attendance_link) }
         
-        // Toolbarの戻るボタン（独自実装があれば）
-        findViewById<View>(resources.getIdentifier("btnToolbarBack", "id", packageName))?.setOnClickListener {
-            showLauncherView()
+        // クイック設定
+        binding.btnQuickSettings.setOnClickListener { switchFragment(SettingsFragment(), R.string.title_settings) }
+
+        // ボトムナビゲーションの動作復旧
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_alarm -> { switchFragment(AlarmFragment(), R.string.title_alarm_sync); true }
+                R.id.nav_tasks -> { switchFragment(TaskFragment(), R.string.title_task_core); true }
+                R.id.nav_timetable -> { switchFragment(TimetableFragment(), R.string.title_schedule_map); true }
+                else -> false
+            }
         }
 
-        launchAlarmButton.setOnClickListener {
-            showFeatureView()
-            supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, AlarmFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_alarm_sync)
-        }
-
-        launchTaskButton.setOnClickListener {
-            showFeatureView()
-            supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, TaskFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_task_core)
-        }
-
-        launchTimetableButton.setOnClickListener {
-            showFeatureView()
-            supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, TimetableFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_schedule_map)
-        }
-
-        launchAttendanceButton.setOnClickListener {
-            showFeatureView()
-            supportFragmentManager.beginTransaction().replace(R.id.fragmentContainer, AttendanceManagerFragment()).commit()
-            toolbar.findViewById<TextView>(resources.getIdentifier("toolbarTitle", "id", packageName))?.text = getString(R.string.title_attendance_link)
-        }
-
-        sysLogLabel.setOnClickListener {
+        binding.sysLogLabel.setOnClickListener {
             val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
             if (prefs.getBoolean("developer_mode_unlocked", false)) return@setOnClickListener
 
@@ -211,6 +148,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun switchFragment(fragment: androidx.fragment.app.Fragment, titleRes: Int) {
+        showFeatureView()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
+        binding.toolbar.title = getString(titleRes)
+    }
+
     private fun startSystemLogLoop() {
         val logs = CuraMessageManager.getSystemLogs(this)
         var logIndex = 0
@@ -219,7 +164,7 @@ class MainActivity : AppCompatActivity() {
         logRunnable?.let { logHandler.removeCallbacks(it) }
         logRunnable = object : Runnable {
             override fun run() {
-                systemLogText.text = logs[logIndex]
+                binding.systemLogText.text = logs[logIndex]
                 logIndex = (logIndex + 1) % logs.size
                 logHandler.postDelayed(this, interval)
             }
@@ -230,7 +175,7 @@ class MainActivity : AppCompatActivity() {
     private fun updatePlayerStatus() {
         val appPrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
         val userName = appPrefs.getString("user_name", "PLAYER")
-        welcomeTitle.text = userName
+        binding.welcomeTitle.text = userName
 
         val playerPrefs = getSharedPreferences("PlayerPrefs", MODE_PRIVATE)
         val playerTotalExp = playerPrefs.getLong("totalExp", 0L)
@@ -243,28 +188,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         val (lv, current, required) = calculateLevelInfo(playerTotalExp)
-        playerLevelText.text = "Lv.$lv (RANK: MASTER)"
-        expProgressBar.max = required.toInt()
-        expProgressBar.progress = current.toInt()
-        expValueText.text = "$current / $required EXP"
+        binding.playerLevelText.text = "Lv.$lv (RANK: MASTER)"
+        binding.expProgressBar.max = required.toInt()
+        binding.expProgressBar.progress = current.toInt()
+        binding.expValueText.text = "$current / $required EXP"
 
         val showPlayerLv = appPrefs.getBoolean("show_player_level", true)
         val pVisibility = if (showPlayerLv) View.VISIBLE else View.GONE
-        playerLevelText.visibility = pVisibility
-        expProgressBar.visibility = pVisibility
-        expValueText.visibility = pVisibility
+        binding.playerLevelText.visibility = pVisibility
+        binding.expProgressBar.visibility = pVisibility
+        binding.expValueText.visibility = pVisibility
 
         // Character Level
         val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
         val charTotalExp = charPrefs.getLong("totalExp", 0L)
         val (cLv, cCurr, cReq) = calculateLevelInfo(charTotalExp)
-        charLevelText.text = "CURA Lv.$cLv"
-        charExpProgressBar.max = cReq.toInt()
-        charExpProgressBar.progress = cCurr.toInt()
-        charExpText.text = "$cCurr/$cReq"
+        binding.charLevelText.text = "CURA Lv.$cLv"
+        binding.charExpProgressBar.max = cReq.toInt()
+        binding.charExpProgressBar.progress = cCurr.toInt()
+        binding.charExpText.text = "$cCurr/$cReq"
 
         val showCharLv = appPrefs.getBoolean("show_char_level", true)
-        findViewById<View>(R.id.charLevelCard).visibility = if (showCharLv) View.VISIBLE else View.GONE
+        binding.charLevelCard.visibility = if (showCharLv) View.VISIBLE else View.GONE
 
         checkAndTriggerStory(cLv)
     }
@@ -274,8 +219,6 @@ class MainActivity : AppCompatActivity() {
         if (!charPrefs.getBoolean("memory_unlocked", false)) return
 
         val lastSeenLv = charPrefs.getInt("last_seen_story_lv", 0)
-        
-        // 未読の中で条件を満たすストーリーを探す
         val milestones = listOf(5, 10, 15, 20, 30)
         val nextMilestone = milestones.firstOrNull { it > lastSeenLv && currentLv >= it }
         
@@ -288,10 +231,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupCharacterDialogue() {
-        val characterImage = findViewById<View>(R.id.characterImage)
-        val touchTarget = findViewById<View>(R.id.characterTouchTarget)
-
-        touchTarget.setOnClickListener {
+        binding.characterTouchTarget.setOnClickListener {
             if (!isDialogueSkippable) return@setOnClickListener
 
             resetIdleTimer()
@@ -303,7 +243,6 @@ class MainActivity : AppCompatActivity() {
 
             val unlockThreshold = CuraMessageManager.getIntConstant(this, "memory_unlock_tap_count", 300).toLong()
 
-            // 特別な昔話の解放
             if (!charPrefs.getBoolean("memory_unlocked", false) && currentCount >= unlockThreshold) {
                 charPrefs.edit { putBoolean("memory_unlocked", true) }
                 CuraMessageManager.getMilestoneMessage(this, unlockThreshold)?.let { msg ->
@@ -312,22 +251,20 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // マイルストーンメッセージ
             CuraMessageManager.getMilestoneMessage(this, currentCount)?.let { msg ->
                 showDialogueTextBubble(msg, isSkippable = false)
                 return@setOnClickListener
             }
 
-            // 連打判定
             if (currentTime - lastTapTime < 300) {
                 tapCount++
             } else {
-                if (dialogueBubble.alpha > 0f) tapCount++ else tapCount = 1
+                if (binding.dialogueBubble.alpha > 0f) tapCount++ else tapCount = 1
             }
             lastTapTime = currentTime
 
-            characterImage.animate().scaleX(1.01f).scaleY(0.99f).setDuration(80).withEndAction {
-                characterImage.animate().scaleX(1.02f).scaleY(1.02f).setDuration(80).start()
+            binding.characterImage.animate().scaleX(1.01f).scaleY(0.99f).setDuration(80).withEndAction {
+                binding.characterImage.animate().scaleX(1.02f).scaleY(1.02f).setDuration(80).start()
             }.start()
 
             if (tapCount >= 8) {
@@ -340,9 +277,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun showRandomDialogue() {
         val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
-        val charTotalExp = charPrefs.getLong("totalExp", 0L)
-        val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
-        val charLv = (charTotalExp / expPerLevel).toInt() + 1
         val isMemoryUnlocked = charPrefs.getBoolean("memory_unlocked", false)
 
         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
@@ -354,16 +288,8 @@ class MainActivity : AppCompatActivity() {
         val nextEvent = events.filter { it.startTime > now }.minByOrNull { it.startTime }
 
         val randomRoll = (1..100).random()
-
-            // --- 抽選ロジック ---
         val dialogue = when {
-            // 1. 追憶 (解放済かつ低確率 5%)
-            isMemoryUnlocked && randomRoll <= 5 -> {
-                // 回想はここでも動的に分岐可能だが、現状はランダムな季節/曜日/挨拶を優先する設計に合わせる
-                CuraMessageManager.getRandomGreeting(this) 
-            }
-            
-            // 2. 実用的セリフ (40%)
+            isMemoryUnlocked && randomRoll <= 5 -> CuraMessageManager.getRandomGreeting(this) 
             randomRoll <= 45 -> {
                 when {
                     battery < 15 -> CuraMessageManager.getSituationalLine(this, "battery_low")
@@ -375,14 +301,7 @@ class MainActivity : AppCompatActivity() {
                     else -> CuraMessageManager.getRandomGreeting(this)
                 }
             }
-            
-            // 3. フレーバー (55%)
-            else -> {
-                val seasonal = CuraMessageManager.getRandomSeasonalLine(this)
-                val dayOfWeek = CuraMessageManager.getRandomDayOfWeekLine(this)
-                val flavor = CuraMessageManager.getRandomGreeting(this)
-                seasonal ?: dayOfWeek ?: flavor
-            }
+            else -> CuraMessageManager.getRandomSeasonalLine(this) ?: CuraMessageManager.getRandomDayOfWeekLine(this) ?: CuraMessageManager.getRandomGreeting(this)
         }
 
         showDialogueTextBubble(dialogue)
@@ -396,19 +315,19 @@ class MainActivity : AppCompatActivity() {
             val parts = text.split("|")
             for (i in parts.indices) {
                 val currentPart = parts[i].trim()
-                dialogueText.text = currentPart
-                dialogueBubble.animate().cancel()
-                dialogueBubble.alpha = 1f
+                binding.dialogueText.text = currentPart
+                binding.dialogueBubble.animate().cancel()
+                binding.dialogueBubble.alpha = 1f
 
                 val displayTime = (currentPart.length * 120L + 300L).coerceAtLeast(1500L)
 
                 if (i < parts.size - 1) {
                     delay(displayTime)
-                    dialogueBubble.animate().alpha(0f).setDuration(250).start()
+                    binding.dialogueBubble.animate().alpha(0f).setDuration(250).start()
                     delay(300.milliseconds)
                 } else {
                     delay(displayTime + 600L)
-                    dialogueBubble.animate().alpha(0f).setDuration(400).withEndAction {
+                    binding.dialogueBubble.animate().alpha(0f).setDuration(400).withEndAction {
                         tapCount = 0
                         isDialogueSkippable = true
                     }.start()
@@ -425,7 +344,7 @@ class MainActivity : AppCompatActivity() {
         idleDialogueJob = lifecycleScope.launch {
             while (true) {
                 delay(checkInterval)
-                if (System.currentTimeMillis() - lastTapTime > threshold && launcherLayout.isVisible) {
+                if (System.currentTimeMillis() - lastTapTime > threshold && binding.launcherLayout.isVisible) {
                     showDialogueTextBubble(CuraMessageManager.getRandomIdleLine(this@MainActivity))
                 }
             }
@@ -441,7 +360,7 @@ class MainActivity : AppCompatActivity() {
         expGainJob?.cancel()
         expGainJob = lifecycleScope.launch {
             while (true) {
-                delay(60000) // 1分
+                delay(60000)
                 addSessionExp(1)
             }
         }
@@ -460,15 +379,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSystemHud() {
-        val timeText = findViewById<TextView>(R.id.hudTimeText)
-        val batteryText = findViewById<TextView>(R.id.hudBatteryText)
-        val batteryBar = findViewById<ProgressBar>(R.id.hudBatteryBar)
         val now = Calendar.getInstance().time
-        timeText.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now)
+        binding.hudTimeText.text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(now)
         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
         val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        batteryText.text = "$level%"
-        batteryBar.progress = level
+        binding.hudBatteryText.text = "$level%"
+        binding.hudBatteryBar.progress = level
     }
 
     private fun updateDashboardInfo() {
@@ -476,50 +392,52 @@ class MainActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         val nextEvent = events.filter { it.startTime > now }.minByOrNull { it.startTime }
 
-        findViewById<TextView>(R.id.nextQuestText).text = nextEvent?.let {
+        binding.nextQuestText.text = nextEvent?.let {
             val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.startTime))
             "$time ${it.summary}"
         } ?: getString(R.string.dashboard_no_schedule)
 
         val tasks = ScheduleLoader.loadTasksForToday(this)
-        findViewById<TextView>(R.id.topMissionText).text = if (tasks.isNotEmpty()) tasks[0] else getString(R.string.dashboard_all_tasks_done)
+        binding.topMissionText.text = if (tasks.isNotEmpty()) tasks[0] else getString(R.string.dashboard_all_tasks_done)
 
         val alarmPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
         val alarmJson = alarmPrefs.getString("alarmListJSON", null)
         var nextAlarmStr = getString(R.string.dashboard_not_set)
         if (alarmJson != null) {
-            val arr = org.json.JSONArray(alarmJson)
-            val activeAlarms = mutableListOf<Pair<Int, Int>>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                if (obj.getBoolean("isEnabled")) activeAlarms.add(obj.getInt("hour") to obj.getInt("minute"))
-            }
-            if (activeAlarms.isNotEmpty()) {
-                val cal = Calendar.getInstance()
-                val ch = cal.get(Calendar.HOUR_OF_DAY)
-                val cm = cal.get(Calendar.MINUTE)
-                val next = activeAlarms.map { (h, m) ->
-                    var diff = (h * 60 + m) - (ch * 60 + cm)
-                    if (diff <= 0) diff += 24 * 60
-                    diff to (h to m)
-                }.minBy { it.first }.second
-                nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.first, next.second)
-            }
+            try {
+                val arr = org.json.JSONArray(alarmJson)
+                val activeAlarms = mutableListOf<Pair<Int, Int>>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    if (obj.getBoolean("isEnabled")) activeAlarms.add(obj.getInt("hour") to obj.getInt("minute"))
+                }
+                if (activeAlarms.isNotEmpty()) {
+                    val cal = Calendar.getInstance()
+                    val ch = cal.get(Calendar.HOUR_OF_DAY)
+                    val cm = cal.get(Calendar.MINUTE)
+                    val next = activeAlarms.map { (h, m) ->
+                        var diff = (h * 60 + m) - (ch * 60 + cm)
+                        if (diff <= 0) diff += 24 * 60
+                        diff to (h to m)
+                    }.minBy { it.first }.second
+                    nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.first, next.second)
+                }
+            } catch (e: Exception) {}
         }
-        findViewById<TextView>(R.id.nextSummonText).text = nextAlarmStr
+        binding.nextSummonText.text = nextAlarmStr
     }
 
     private fun showFeatureView() {
-        launcherLayout.visibility = View.GONE
-        toolbar.visibility = View.VISIBLE
-        fragmentContainer.visibility = View.VISIBLE
+        binding.launcherLayout.visibility = View.GONE
+        binding.toolbar.visibility = View.VISIBLE
+        binding.fragmentContainer.visibility = View.VISIBLE
     }
 
     private fun showLauncherView() {
-        if (launcherLayout.isVisible) return
-        launcherLayout.visibility = View.VISIBLE
-        toolbar.visibility = View.GONE
-        fragmentContainer.visibility = View.GONE
+        if (binding.launcherLayout.isVisible) return
+        binding.launcherLayout.visibility = View.VISIBLE
+        binding.toolbar.visibility = View.GONE
+        binding.fragmentContainer.visibility = View.GONE
         updatePlayerStatus()
         updateDashboardInfo()
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
@@ -545,11 +463,10 @@ class MainActivity : AppCompatActivity() {
 
         val attendancePrefs = getSharedPreferences("AttendancePrefs", MODE_PRIVATE)
         for (key in attendancePrefs.all.keys) if (key.startsWith("track_") && attendancePrefs.all[key] == true) hasTracked = true
-        layoutAttendanceButton.visibility = if (hasTracked) View.VISIBLE else View.GONE
+        binding.layoutAttendanceButton.visibility = if (hasTracked) View.VISIBLE else View.GONE
     }
 
     private fun updateCharacterCostume() {
-        val characterImage = findViewById<ImageView>(R.id.characterImage)
         val cal = Calendar.getInstance()
         val month = cal.get(Calendar.MONTH) + 1
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
@@ -562,7 +479,7 @@ class MainActivity : AppCompatActivity() {
             isSummer -> R.drawable.guardian_character_summer
             else -> R.drawable.guardian_character
         }
-        characterImage.setImageResource(costumeRes)
+        binding.characterImage.setImageResource(costumeRes)
     }
 
     private fun pulseBorder(view: View) {
@@ -575,25 +492,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun runInitialLoadingAnimation() {
-        val overlay = findViewById<View>(R.id.initialLoadingOverlay)
-        val logText = findViewById<TextView>(R.id.loadingLogText)
-        val statusText = findViewById<TextView>(R.id.loadingStatusText)
-        val progressBar = findViewById<ProgressBar>(R.id.loadingProgressBar)
         val logs = CuraMessageManager.getBootLogs(this)
-
         lifecycleScope.launch {
             for (i in 0..100) {
                 delay(3) 
-                progressBar.progress = i
+                binding.loadingProgressBar.progress = i
                 if (i % 10 == 0) {
                     val idx = (i / 10).coerceAtMost(logs.size - 1)
-                    logText.append("> ${logs[idx]}\n")
-                    statusText.text = logs[idx]
+                    binding.loadingLogText.append("> ${logs[idx]}\n")
+                    binding.loadingStatusText.text = logs[idx]
                 }
             }
             delay(50)
-            statusText.text = "ESTABLISHED"
-            overlay.animate().alpha(0f).setDuration(150).withEndAction { overlay.visibility = View.GONE }.start()
+            binding.loadingStatusText.text = "ESTABLISHED"
+            binding.initialLoadingOverlay.animate().alpha(0f).setDuration(150).withEndAction { 
+                binding.initialLoadingOverlay.visibility = View.GONE 
+            }.start()
         }
     }
 
