@@ -27,6 +27,12 @@ import java.util.*
 
 class AlarmFragment : Fragment() {
 
+    companion object {
+        private const val DEFAULT_STYLE_ID = 3
+        private const val PREFS_NAME = "AlarmPrefs"
+        private const val KEY_ALARM_LIST = "alarmListJSON"
+    }
+
     private val alarmList = ArrayList<AlarmItem>()
     private lateinit var alarmAdapter: AlarmAdapter
 
@@ -39,7 +45,6 @@ class AlarmFragment : Fragment() {
     private var currentDialogView: View? = null
     private var currentPickedHour: Int = 7
     private var currentPickedMinute: Int = 0
-    private var currentDayToggles: List<Pair<android.widget.ToggleButton, Int>> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,31 +60,9 @@ class AlarmFragment : Fragment() {
         loadAlarms()
 
         alarmAdapter = AlarmAdapter(alarmList, { item, isEnabled ->
-            item.isEnabled = isEnabled
-            if (item.isEnabled) {
-                val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                scheduleVoiceAlarm(item, audioFile.absolutePath)
-                Toast.makeText(requireContext(), getString(R.string.toast_alarm_on), Toast.LENGTH_SHORT).show()
-            } else {
-                cancelVoiceAlarm(item)
-                Toast.makeText(requireContext(), getString(R.string.toast_alarm_off), Toast.LENGTH_SHORT).show()
-            }
-            saveAlarms()
+            toggleAlarm(item, isEnabled)
         }, { item ->
-            AlertDialog.Builder(requireContext())
-                .setTitle(getString(R.string.dialog_delete_alarm_title))
-                .setMessage(getString(R.string.dialog_delete_alarm_msg))
-                .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                    cancelVoiceAlarm(item)
-                    val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                    if (audioFile.exists()) audioFile.delete()
-                    alarmList.remove(item)
-                    alarmAdapter.notifyDataSetChanged()
-                    saveAlarms()
-                    updateEmptyView()
-                }
-                .setNegativeButton("キャンセル", null)
-                .show()
+            showDeleteConfirmation(item)
         })
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -114,22 +97,14 @@ class AlarmFragment : Fragment() {
             val eventsTomorrow = ScheduleLoader.loadAllEventsForToday(requireContext(), calendarTomorrow)
             
             val combinedEvents = (events.map { it to false } + eventsTomorrow.map { it to true })
-            val titles = combinedEvents.map { (event, isTomorrow) ->
-                val prefix = if (isTomorrow) "[明日] " else "[今日] "
-                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startTime))
-                "$prefix$time ${event.summary}"
-            }
+            val titles = combinedEvents.map { (event, isTomorrow) -> formatEventTitle(event, isTomorrow) }
             
             eventSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, titles).apply {
                 setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
 
-            val uniqueNames = loadedModels.flatMap { m -> m.characters.map { it.name } }
-                .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
-                .distinct()
-            speakerSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, uniqueNames).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
+            val uniqueNames = getFilteredCharacterNames()
+            setupSpeakerSpinner(speakerSpinner, uniqueNames)
 
             AlertDialog.Builder(requireContext())
                 .setTitle(getString(R.string.dialog_mandatory_alarm_title))
@@ -142,11 +117,13 @@ class AlarmFragment : Fragment() {
                     val leadTime = leadTimeInput.text.toString().toIntOrNull() ?: 30
                     val charName = uniqueNames[speakerSpinner.selectedItemPosition]
                     
-                    // スタイルはデフォルト（最初のやつ）を使用
+                    // スタイルはデフォルトを使用
                     val model = loadedModels.firstOrNull { m -> m.characters.any { it.name == charName } }
-                    val styleId = model?.characters?.firstOrNull { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: 3
+                    val styleId = model?.characters?.firstOrNull { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: DEFAULT_STYLE_ID
 
-                    generateMandatoryAlarm(event, leadTime, styleId.toString(), charName)
+                    checkLicenseAndRun(charName, model?.id ?: "", styleId) { m, s ->
+                        generateMandatoryAlarm(event, leadTime, m, charName)
+                    }
                 }
                 .setNegativeButton("キャンセル", null)
                 .show()
@@ -168,7 +145,7 @@ class AlarmFragment : Fragment() {
             val newId = UUID.randomUUID().toString()
             val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
             if (CuraVoicevox.createAudio(requireContext(), message, modelId, outputFile)) {
-                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: 3, speakerName, true, false, true, emptyList())
+                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList())
                 alarmList.add(newItem)
                 saveAlarms()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
@@ -187,34 +164,14 @@ class AlarmFragment : Fragment() {
             val speakerSpinner = dialogView.findViewById<Spinner>(R.id.dialogSpeakerSpinner)
             val styleSpinner = dialogView.findViewById<Spinner>(R.id.dialogStyleSpinner)
             
-            val uniqueNames = loadedModels.flatMap { m -> m.characters.map { it.name } }
-                .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
-                .distinct()
-            speakerSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, uniqueNames).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
+            val uniqueNames = getFilteredCharacterNames()
+            setupSpeakerSpinner(speakerSpinner, uniqueNames)
 
-            var currentStyles = mutableListOf<Pair<String, Int>>() // modelId to styleId
+            val currentStyles = mutableListOf<Pair<String, Int>>() // modelId to styleId
 
             speakerSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                    val name = uniqueNames[pos]
-                    currentStyles.clear()
-                    loadedModels.forEach { m -> 
-                        m.characters.forEach { c -> 
-                            if(c.name == name) c.talkStyles.forEach { s -> currentStyles.add(m.id to s.id) }
-                        }
-                    }
-                    val styleNames = currentStyles.map { pair -> 
-                        // スタイル名だけだと分かりにくい場合があるため、モデル名も含める（例：ずんだもん (ノーマル)）
-                        val styleId = pair.second
-                        var sName = "Unknown"
-                        loadedModels.forEach { m -> m.characters.forEach { c -> c.styles.forEach { if(it.id == styleId) sName = it.name } } }
-                        sName
-                    }
-                    styleSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, styleNames).apply {
-                        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    }
+                    updateStyleSpinner(styleSpinner, uniqueNames[pos], currentStyles)
                 }
                 override fun onNothingSelected(p: AdapterView<*>?) {}
             }
@@ -231,20 +188,24 @@ class AlarmFragment : Fragment() {
 
             dialogView.findViewById<Button>(R.id.btnPreviewVoice).setOnClickListener {
                 val pos = styleSpinner.selectedItemPosition
-                if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startPreviewGeneration(m, s) }
+                if(pos >= 0) {
+                    val charName = speakerSpinner.selectedItem.toString()
+                    checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> startPreviewGeneration(m, s) }
+                }
             }
 
             AlertDialog.Builder(requireContext()).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogView)
                 .setPositiveButton(getString(R.string.dialog_save)) { _, _ ->
                     val pos = styleSpinner.selectedItemPosition
-                    if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startAlarmGeneration(m, s) }
+                    if(pos >= 0) {
+                        val charName = speakerSpinner.selectedItem.toString()
+                        checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> startAlarmGeneration(m, s) }
+                    }
                 }.setNegativeButton("キャンセル", null).show()
         }
     }
 
-    private fun checkLicenseAndRun(modelId: String, styleId: Int, action: (String, Int) -> Unit) {
-        val charName = currentDialogView?.findViewById<Spinner>(R.id.dialogSpeakerSpinner)?.selectedItem.toString()
-
+    private fun checkLicenseAndRun(charName: String, modelId: String, styleId: Int, action: (String, Int) -> Unit) {
         viewLifecycleOwner.lifecycleScope.launch {
             if (CuraVoicevox.isLicenseAccepted(requireContext(), modelId)) {
                 action(modelId, styleId)
@@ -264,28 +225,14 @@ class AlarmFragment : Fragment() {
                     .setTitle("利用規約への同意")
                     .setMessage(msg.toString())
                     .setNeutralButton("規約を見る") { _, _ ->
-                        // 共通規約を開く
                         startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(commonTermsUrl)))
-                        // 個別規約があればそれも開く
                         if (charTermsUrl != commonTermsUrl && charTermsUrl.isNotEmpty()) {
                             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(charTermsUrl)))
                         }
                     }
                     .setPositiveButton("同意して続行") { _, _ ->
                         viewLifecycleOwner.lifecycleScope.launch {
-                            // 選択されたキャラに同意
-                            CuraVoicevox.acceptLicense(requireContext(), modelId)
-                            
-                            // グループ全員に同意する（JSONから取得）
-                            val familyMembers = CuraTerms.getGroupMembers(requireContext(), charName)
-                            if (familyMembers.isNotEmpty()) {
-                                loadedModels.forEach { model ->
-                                    if (model.characters.any { it.name in familyMembers }) {
-                                        CuraVoicevox.acceptLicense(requireContext(), model.id)
-                                    }
-                                }
-                            }
-
+                            acceptLicenseGroup(charName, modelId)
                             action(modelId, styleId)
                         }
                     }
@@ -295,17 +242,28 @@ class AlarmFragment : Fragment() {
         }
     }
 
+    private suspend fun acceptLicenseGroup(charName: String, modelId: String) {
+        // 選択されたキャラに同意
+        CuraVoicevox.acceptLicense(requireContext(), modelId)
+        
+        // グループ全員に同意する（JSONから取得）
+        val familyMembers = CuraTerms.getGroupMembers(requireContext(), charName)
+        if (familyMembers.isNotEmpty()) {
+            loadedModels.forEach { model ->
+                if (model.characters.any { it.name in familyMembers }) {
+                    CuraVoicevox.acceptLicense(requireContext(), model.id)
+                }
+            }
+        }
+    }
+
     private fun startPreviewGeneration(modelId: String, styleId: Int) {
         val dialogView = currentDialogView ?: return
         val message = dialogView.findViewById<EditText>(R.id.dialogMessageInput).text.toString().ifEmpty { "時間です。" }
         val previewBtn = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
         
-        // 生成中ポップアップを再導入（生成が終わるまで表示し続ける）
-        val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage(getString(R.string.generating_audio))
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
+        // 生成中ポップアップを表示
+        val progressDialog = showLoadingDialog(getString(R.string.generating_audio))
         
         // UI上でも無効化
         previewBtn.isEnabled = false
@@ -341,11 +299,7 @@ class AlarmFragment : Fragment() {
         val vibrate = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox).isChecked
 
         // 生成中ポップアップを表示
-        val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage(getString(R.string.generating_alarm_audio))
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
+        val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         
         val newId = UUID.randomUUID().toString()
         val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList())
@@ -398,9 +352,15 @@ class AlarmFragment : Fragment() {
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        previewPlayer?.release()
+        previewPlayer = null
+        currentDialogView = null
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        previewPlayer?.release()
     }
 
     private fun updateEmptyView() {
@@ -416,12 +376,12 @@ class AlarmFragment : Fragment() {
                 put("readTasks", item.readTasks); put("vibrate", item.vibrate); put("repeatDays", JSONArray(item.repeatDays))
             })
         }
-        requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE).edit().putString("alarmListJSON", jsonArray.toString()).apply()
+        requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putString(KEY_ALARM_LIST, jsonArray.toString()).apply()
     }
 
     private fun loadAlarms() {
         alarmList.clear()
-        val json = requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE).getString("alarmListJSON", null)
+        val json = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_ALARM_LIST, null)
         if (json != null) {
             val arr = JSONArray(json)
             for (i in 0 until arr.length()) {
@@ -449,5 +409,85 @@ class AlarmFragment : Fragment() {
         val am = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), Intent(requireContext(), AlarmReceiver::class.java), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
         if (pi != null) am.cancel(pi)
+    }
+
+    private fun toggleAlarm(item: AlarmItem, isEnabled: Boolean) {
+        item.isEnabled = isEnabled
+        if (item.isEnabled) {
+            val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+            scheduleVoiceAlarm(item, audioFile.absolutePath)
+            Toast.makeText(requireContext(), getString(R.string.toast_alarm_on), Toast.LENGTH_SHORT).show()
+        } else {
+            cancelVoiceAlarm(item)
+            Toast.makeText(requireContext(), getString(R.string.toast_alarm_off), Toast.LENGTH_SHORT).show()
+        }
+        saveAlarms()
+    }
+
+    private fun showDeleteConfirmation(item: AlarmItem) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_delete_alarm_title))
+            .setMessage(getString(R.string.dialog_delete_alarm_msg))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                deleteAlarm(item)
+            }
+            .setNegativeButton("キャンセル", null)
+            .show()
+    }
+
+    private fun deleteAlarm(item: AlarmItem) {
+        cancelVoiceAlarm(item)
+        val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+        if (audioFile.exists()) audioFile.delete()
+        alarmList.remove(item)
+        alarmAdapter.notifyDataSetChanged()
+        saveAlarms()
+        updateEmptyView()
+    }
+
+    private fun formatEventTitle(event: IcsEvent, isTomorrow: Boolean): String {
+        val prefix = if (isTomorrow) "[明日] " else "[今日] "
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startTime))
+        return "$prefix$time ${event.summary}"
+    }
+
+    private fun getFilteredCharacterNames(): List<String> {
+        return loadedModels.flatMap { m -> m.characters.map { it.name } }
+            .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
+            .distinct()
+    }
+
+    private fun setupSpeakerSpinner(spinner: Spinner, names: List<String>) {
+        spinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, names).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    private fun updateStyleSpinner(styleSpinner: Spinner, characterName: String, stylesOutputList: MutableList<Pair<String, Int>>) {
+        stylesOutputList.clear()
+        val styleNames = mutableListOf<String>()
+
+        loadedModels.forEach { model ->
+            model.characters.forEach { character ->
+                if (character.name == characterName) {
+                    character.talkStyles.forEach { style ->
+                        stylesOutputList.add(model.id to style.id)
+                        val sName = character.styles.find { it.id == style.id }?.name ?: "Unknown"
+                        styleNames.add(sName)
+                    }
+                }
+            }
+        }
+
+        styleSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, styleNames).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    private fun showLoadingDialog(message: String): AlertDialog {
+        return AlertDialog.Builder(requireContext())
+            .setMessage(message)
+            .setCancelable(false)
+            .show()
     }
 }
