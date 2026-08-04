@@ -29,8 +29,6 @@ class AlarmFragment : Fragment() {
 
     companion object {
         private const val DEFAULT_STYLE_ID = 3
-        private const val PREFS_NAME = "AlarmPrefs"
-        private const val KEY_ALARM_LIST = "alarmListJSON"
     }
 
     private var _binding: FragmentAlarmBinding? = null
@@ -337,17 +335,17 @@ class AlarmFragment : Fragment() {
 
     private fun saveAlarms() {
         val json = Json.encodeToString(alarmList)
-        requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit().putString(KEY_ALARM_LIST, json).apply()
+        requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+            .edit().putString(CuraConstants.KEY_ALARM_LIST, json).apply()
     }
 
     private fun loadAlarms() {
         alarmList.clear()
-        val json = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_ALARM_LIST, null)
-        if (json != null) {
+        val jsonStr = requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+            .getString(CuraConstants.KEY_ALARM_LIST, null)
+        if (jsonStr != null) {
             try {
-                val loaded: List<AlarmItem> = Json.decodeFromString(json)
+                val loaded: List<AlarmItem> = Json.decodeFromString(jsonStr)
                 alarmList.addAll(loaded)
             } catch (e: Exception) {
                 android.util.Log.e("AlarmFragment", "Failed to load alarms", e)

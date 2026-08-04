@@ -1,7 +1,9 @@
 package com.example.voicevox
 
+import kotlinx.serialization.Serializable
 import java.util.Calendar
 
+@Serializable
 data class TaskItem(
     val id: String,
     val title: String,

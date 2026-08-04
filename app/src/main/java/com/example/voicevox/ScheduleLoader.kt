@@ -1,106 +1,62 @@
 package com.example.voicevox
 
 import android.content.Context
-import org.json.JSONArray
+import kotlinx.serialization.json.Json
 import java.util.*
 
 object ScheduleLoader {
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     fun loadAllEventsForToday(context: Context, targetDate: Calendar): List<IcsEvent> {
         val allEvents = mutableListOf<IcsEvent>()
 
         // 1. Load Custom Events
-        val schedulePrefs = context.getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val customJson = schedulePrefs.getString("eventListJSON", null)
-        if (customJson != null) {
+        val schedulePrefs = context.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)?.let { jsonStr ->
             try {
-                val jsonArray = JSONArray(customJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val cal = Calendar.getInstance().apply { timeInMillis = startTime }
-                    if (isSameDay(cal, targetDate)) {
-                        allEvents.add(IcsEvent(obj.getString("genre"), startTime, startTime, obj.getString("location")))
-                    }
-                }
+                val events = json.decodeFromString<List<IcsEvent>>(jsonStr)
+                allEvents.addAll(events.filter { isSameDay(Calendar.getInstance().apply { timeInMillis = it.startTime }, targetDate) })
             } catch (e: Exception) {}
         }
 
         // 2. Load External ICS from Cache
-        val timetablePrefs = context.getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-        val icsJson = timetablePrefs.getString("icsCacheJSON", null)
-        if (icsJson != null) {
+        val timetablePrefs = context.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+        timetablePrefs.getString(CuraConstants.KEY_ICS_CACHE, null)?.let { jsonStr ->
             try {
-                val jsonArray = JSONArray(icsJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val cal = Calendar.getInstance().apply { timeInMillis = startTime }
-                    if (isSameDay(cal, targetDate)) {
-                        allEvents.add(IcsEvent(
-                            obj.getString("summary"),
-                            startTime,
-                            obj.getLong("endTime"),
-                            obj.getString("location")
-                        ))
-                    }
-                }
+                val events = json.decodeFromString<List<IcsEvent>>(jsonStr)
+                allEvents.addAll(events.filter { isSameDay(Calendar.getInstance().apply { timeInMillis = it.startTime }, targetDate) })
             } catch (e: Exception) {}
         }
 
         // 3. Load Device Calendar Events
-        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val appPrefs = context.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         if (appPrefs.getBoolean("sync_device_calendar", false)) {
-            val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(context, targetDate)
-            allEvents.addAll(deviceEvents)
+            allEvents.addAll(DeviceCalendarLoader.loadDeviceEvents(context, targetDate))
         }
 
         return allEvents.sortedBy { it.startTime }
     }
 
     fun loadTasksForToday(context: Context): List<String> {
-        val prefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("taskListJSON", null)
-        val list = mutableListOf<String>()
-        if (jsonString != null) {
-            try {
-                val jsonArray = JSONArray(jsonString)
-                val today = Calendar.getInstance()
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val deadlineMillis = obj.getLong("deadlineMillis")
-                    val taskDate = Calendar.getInstance().apply { timeInMillis = deadlineMillis }
-                    
-                    if (isSameDay(taskDate, today)) {
-                        list.add(obj.getString("title"))
-                    }
-                }
-            } catch (e: Exception) {}
-        }
-        return list
+        val today = Calendar.getInstance()
+        return loadAllTasks(context)
+            .filter { isSameDay(Calendar.getInstance().apply { timeInMillis = it.deadlineMillis }, today) }
+            .map { it.title }
     }
 
     fun hasPriority5Tasks(context: Context): Boolean {
-        val prefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("taskListJSON", null) ?: return false
-        try {
-            val jsonArray = JSONArray(jsonString)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val isCompleted = obj.optBoolean("isCompleted", false)
-                if (isCompleted) continue
+        return loadAllTasks(context).any { !it.isCompleted && it.getCurrentPriority() == 5 }
+    }
 
-                val id = obj.getString("id")
-                val title = obj.getString("title")
-                val deadlineMillis = obj.getLong("deadlineMillis")
-                val basePriority = obj.getInt("basePriority")
-                val linkedEventId = obj.optString("linkedEventId", null)
-
-                val item = TaskItem(id, title, deadlineMillis, basePriority, linkedEventId, isCompleted)
-                if (item.getCurrentPriority() == 5) return true
-            }
-        } catch (e: Exception) {}
-        return false
+    private fun loadAllTasks(context: Context): List<TaskItem> {
+        val prefs = context.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_TASK_LIST, null) ?: return emptyList()
+        return try {
+            json.decodeFromString<List<TaskItem>>(jsonString)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {

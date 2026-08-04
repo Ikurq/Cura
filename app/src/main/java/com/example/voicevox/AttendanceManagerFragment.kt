@@ -6,99 +6,102 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.voicevox.databinding.DialogAttendanceDetailBinding
+import com.example.voicevox.databinding.FragmentAttendanceManagerBinding
+import com.example.voicevox.databinding.ItemAttendanceCountBinding
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
-import org.json.JSONObject
 import java.util.Calendar
+import java.util.Locale
 
 class AttendanceManagerFragment : Fragment() {
 
-    private lateinit var recyclerView: RecyclerView
-    private val subjectList = mutableListOf<SubjectStats>()
-    
-    data class SubjectStats(
-        val name: String,
-        var totalScheduled: Int = 0,
-        var attended: Int = 0,
-        var absent: Int = 0,
-        var late: Int = 0,
-        val absentDates: MutableList<String> = mutableListOf()
-    )
+    private var _binding: FragmentAttendanceManagerBinding? = null
+    private val binding get() = _binding!!
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_attendance_manager, container, false)
-        recyclerView = view.findViewById(R.id.attendanceRecyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        
+    private val subjectList = mutableListOf<SubjectStats>()
+    private lateinit var attendanceAdapter: AttendanceAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentAttendanceManagerBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
         loadStatistics()
-        recyclerView.adapter = AttendanceAdapter(subjectList)
         
-        return view
+        attendanceAdapter = AttendanceAdapter(subjectList) { stats ->
+            showAbsentHistoryDialog(stats)
+        }
+
+        binding.attendanceRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = attendanceAdapter
+        }
     }
 
     private fun loadStatistics() {
         subjectList.clear()
+        val ctx = context ?: return
         
         val occurrenceDays = mutableMapOf<String, MutableSet<String>>()
-        val statusByDay = mutableMapOf<String, MutableMap<String, String>>()
+        val statusByDay = mutableMapOf<String, MutableMap<String, AttendanceStatus>>()
 
-        fun registerOccurrence(name: String, timeMillis: Long, status: String) {
+        fun registerOccurrence(name: String, timeMillis: Long, status: AttendanceStatus) {
             val cal = Calendar.getInstance().apply { timeInMillis = timeMillis }
-            val dayKey = String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
+            val dayKey = String.format(Locale.US, "%04d-%02d-%02d", 
+                cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
             
             occurrenceDays.getOrPut(name) { mutableSetOf() }.add(dayKey)
             
             val dayStatuses = statusByDay.getOrPut(name) { mutableMapOf() }
-            val currentStatus = dayStatuses[dayKey] ?: "NONE"
+            val currentStatus = dayStatuses[dayKey] ?: AttendanceStatus.NONE
             
-            if (status == "ABSENT") {
-                dayStatuses[dayKey] = "ABSENT"
-            } else if (status == "LATE" && currentStatus != "ABSENT") {
-                dayStatuses[dayKey] = "LATE"
-            } else if (status == "ATTEND" && currentStatus == "NONE") {
-                dayStatuses[dayKey] = "ATTEND"
+            when {
+                status == AttendanceStatus.ABSENT -> dayStatuses[dayKey] = AttendanceStatus.ABSENT
+                status == AttendanceStatus.LATE && currentStatus != AttendanceStatus.ABSENT -> {
+                    dayStatuses[dayKey] = AttendanceStatus.LATE
+                }
+                status == AttendanceStatus.ATTEND && currentStatus == AttendanceStatus.NONE -> {
+                    dayStatuses[dayKey] = AttendanceStatus.ATTEND
+                }
             }
         }
 
         // 1. Process Custom Events
-        val schedulePrefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val customJson = schedulePrefs.getString("eventListJSON", null)
-        if (customJson != null) {
+        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)?.let { jsonStr ->
             try {
-                val jsonArray = JSONArray(customJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    if (obj.optBoolean("isAttendanceTracked", false)) {
-                        val name = obj.getString("genre")
-                        val time = obj.getLong("startTime")
-                        val status = obj.optString("attendanceStatus", "NONE")
-                        registerOccurrence(name, time, status)
-                    }
+                val events = Json.decodeFromString<List<IcsEvent>>(jsonStr)
+                events.filter { it.isAttendanceTracked }.forEach { event ->
+                    registerOccurrence(event.summary, event.startTime, AttendanceStatus.fromString(event.attendanceStatus))
                 }
             } catch (e: Exception) {}
         }
 
         // 2. Process External Events
-        val timetablePrefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-        val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
-        val icsJson = timetablePrefs.getString("icsCacheJSON", null)
-        if (icsJson != null) {
+        val timetablePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+        val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+        timetablePrefs.getString(CuraConstants.KEY_ICS_CACHE, null)?.let { jsonStr ->
             try {
-                val jsonArray = JSONArray(icsJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val name = obj.getString("summary")
-                    if (attendancePrefs.getBoolean("track_$name", false)) {
-                        val time = obj.getLong("startTime")
-                        val cal = Calendar.getInstance().apply { timeInMillis = time }
-                        val dayKey = String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
-                        val status = attendancePrefs.getString("status_${name}_$dayKey", "NONE") ?: "NONE"
-                        registerOccurrence(name, time, status)
+                val events = Json.decodeFromString<List<IcsEvent>>(jsonStr)
+                events.forEach { event ->
+                    if (attendancePrefs.getBoolean("track_${event.summary}", false)) {
+                        val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
+                        val dayKey = String.format(Locale.US, "%04d-%02d-%02d", 
+                            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
+                        val statusStr = attendancePrefs.getString("status_${event.summary}_$dayKey", "NONE") ?: "NONE"
+                        registerOccurrence(event.summary, event.startTime, AttendanceStatus.fromString(statusStr))
                     }
                 }
             } catch (e: Exception) {}
@@ -108,15 +111,15 @@ class AttendanceManagerFragment : Fragment() {
             val stats = SubjectStats(name)
             stats.totalScheduled = occurrenceDays[name]?.size ?: 0
             
-            val days = statusByDay[name]
-            days?.forEach { (day, status) ->
+            statusByDay[name]?.forEach { (day, status) ->
                 when (status) {
-                    "ATTEND" -> stats.attended++
-                    "ABSENT" -> {
+                    AttendanceStatus.ATTEND -> stats.attended++
+                    AttendanceStatus.ABSENT -> {
                         stats.absent++
                         stats.absentDates.add(day)
                     }
-                    "LATE" -> stats.late++
+                    AttendanceStatus.LATE -> stats.late++
+                    else -> {}
                 }
             }
             
@@ -132,77 +135,79 @@ class AttendanceManagerFragment : Fragment() {
     }
 
     private fun showAbsentHistoryDialog(stats: SubjectStats) {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_attendance_detail, null)
-        val container = dialogView.findViewById<LinearLayout>(R.id.detailContainer)
+        val ctx = context ?: return
+        val dialogBinding = DialogAttendanceDetailBinding.inflate(LayoutInflater.from(ctx))
         
         if (stats.absentDates.isEmpty()) {
-            val emptyText = TextView(requireContext()).apply {
+            val emptyText = TextView(ctx).apply {
                 text = "記録された欠席日はありません。\n(手動カウンターのみの可能性があります)"
                 setPadding(16, 16, 16, 16)
             }
-            container.addView(emptyText)
+            dialogBinding.detailContainer.addView(emptyText)
         } else {
             stats.absentDates.forEach { date ->
-                val dateText = TextView(requireContext()).apply {
+                val dateText = TextView(ctx).apply {
                     text = "・$date (欠席)"
                     textSize = 16f
                     setPadding(16, 8, 16, 8)
                 }
-                container.addView(dateText)
+                dialogBinding.detailContainer.addView(dateText)
             }
         }
 
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(ctx)
             .setTitle("${stats.name} の欠席履歴")
-            .setView(dialogView)
+            .setView(dialogBinding.root)
             .setPositiveButton("閉じる", null)
             .show()
     }
 
-    private inner class AttendanceAdapter(private val items: List<SubjectStats>) : RecyclerView.Adapter<AttendanceViewHolder>() {
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AttendanceViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_attendance_count, parent, false)
-            return AttendanceViewHolder(view)
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private class AttendanceAdapter(
+        private val items: List<SubjectStats>,
+        private val onItemClick: (SubjectStats) -> Unit
+    ) : RecyclerView.Adapter<AttendanceAdapter.ViewHolder>() {
+
+        class ViewHolder(val binding: ItemAttendanceCountBinding) : RecyclerView.ViewHolder(binding.root)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding = ItemAttendanceCountBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
         }
 
-        override fun onBindViewHolder(holder: AttendanceViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val stats = items[position]
-            holder.txtName.text = stats.name
-            holder.txtTotal.text = stats.totalScheduled.toString()
-            holder.txtAttend.text = stats.attended.toString()
-            holder.txtLate.text = stats.late.toString()
-            holder.txtAbsent.text = stats.absent.toString()
+            val binding = holder.binding
 
-            holder.itemView.setOnClickListener {
-                showAbsentHistoryDialog(stats)
-            }
+            binding.txtSubjectName.text = stats.name
+            binding.txtTotalCount.text = stats.totalScheduled.toString()
+            binding.txtAttendCount.text = stats.attended.toString()
+            binding.txtLateCount.text = stats.late.toString()
+            binding.txtAbsentCount.text = stats.absent.toString()
 
-            val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
+            binding.root.setOnClickListener { onItemClick(stats) }
 
-            holder.btnMinus.setOnClickListener {
+            val ctx = binding.root.context
+            val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+
+            binding.btnMinus.setOnClickListener {
                 if (stats.absent > 0) {
                     stats.absent--
                     attendancePrefs.edit().putInt("absent_${stats.name}", stats.absent).apply()
-                    holder.txtAbsent.text = stats.absent.toString()
+                    binding.txtAbsentCount.text = stats.absent.toString()
                 }
             }
-            holder.btnPlus.setOnClickListener {
+            binding.btnPlus.setOnClickListener {
                 stats.absent++
                 attendancePrefs.edit().putInt("absent_${stats.name}", stats.absent).apply()
-                holder.txtAbsent.text = stats.absent.toString()
+                binding.txtAbsentCount.text = stats.absent.toString()
             }
         }
 
         override fun getItemCount() = items.size
-    }
-
-    private class AttendanceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val txtName: TextView = view.findViewById(R.id.txtSubjectName)
-        val txtTotal: TextView = view.findViewById(R.id.txtTotalCount)
-        val txtAttend: TextView = view.findViewById(R.id.txtAttendCount)
-        val txtLate: TextView = view.findViewById(R.id.txtLateCount)
-        val txtAbsent: TextView = view.findViewById(R.id.txtAbsentCount)
-        val btnMinus: Button = view.findViewById(R.id.btnMinus)
-        val btnPlus: Button = view.findViewById(R.id.btnPlus)
     }
 }

@@ -2,6 +2,7 @@ package com.example.voicevox
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.io.File as JavaFile
 import java.text.SimpleDateFormat
 import java.util.*
@@ -107,9 +109,6 @@ class MainActivity : AppCompatActivity() {
         pulseBorder(binding.borderTask)
         pulseBorder(binding.borderTimetable)
         pulseBorder(binding.borderAttendance)
-        
-        // レベルカード全体ではなく、もし専用の枠Viewがあればそれを点滅させるべきですが
-        // 今は文字まで点滅するのを防ぐため、一旦カード全体のパルスは停止します。
     }
 
     private fun setupNavigation() {
@@ -133,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.sysLogLabel.setOnClickListener {
-            val prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
+            val prefs = getSharedPreferences(CuraConstants.PREFS_APP, MODE_PRIVATE)
             if (prefs.getBoolean("developer_mode_unlocked", false)) return@setOnClickListener
 
             devUnlockTapCount++
@@ -173,12 +172,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePlayerStatus() {
-        val appPrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
-        val userName = appPrefs.getString("user_name", "PLAYER")
+        val appPrefs = getSharedPreferences(CuraConstants.PREFS_APP, MODE_PRIVATE)
+        val userName = appPrefs.getString(CuraConstants.KEY_USER_NAME, "PLAYER")
         binding.welcomeTitle.text = userName
 
-        val playerPrefs = getSharedPreferences("PlayerPrefs", MODE_PRIVATE)
-        val playerTotalExp = playerPrefs.getLong("totalExp", 0L)
+        val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE)
+        val playerTotalExp = playerPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
 
         fun calculateLevelInfo(exp: Long): Triple<Int, Long, Long> {
@@ -200,8 +199,8 @@ class MainActivity : AppCompatActivity() {
         binding.expValueText.visibility = pVisibility
 
         // Character Level
-        val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
-        val charTotalExp = charPrefs.getLong("totalExp", 0L)
+        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        val charTotalExp = charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val (cLv, cCurr, cReq) = calculateLevelInfo(charTotalExp)
         binding.charLevelText.text = "CURA Lv.$cLv"
         binding.charExpProgressBar.max = cReq.toInt()
@@ -215,8 +214,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAndTriggerStory(currentLv: Int) {
-        val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
-        if (!charPrefs.getBoolean("memory_unlocked", false)) return
+        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        if (!charPrefs.getBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, false)) return
 
         val lastSeenLv = charPrefs.getInt("last_seen_story_lv", 0)
         val milestones = listOf(5, 10, 15, 20, 30)
@@ -237,14 +236,14 @@ class MainActivity : AppCompatActivity() {
             resetIdleTimer()
             val currentTime = System.currentTimeMillis()
 
-            val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
-            val currentCount = charPrefs.getLong("cumulativeInteractionCount", 0L) + 1
-            charPrefs.edit { putLong("cumulativeInteractionCount", currentCount) }
+            val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+            val currentCount = charPrefs.getLong(CuraConstants.KEY_CUMULATIVE_INTERACTION, 0L) + 1
+            charPrefs.edit { putLong(CuraConstants.KEY_CUMULATIVE_INTERACTION, currentCount) }
 
             val unlockThreshold = CuraMessageManager.getIntConstant(this, "memory_unlock_tap_count", 300).toLong()
 
-            if (!charPrefs.getBoolean("memory_unlocked", false) && currentCount >= unlockThreshold) {
-                charPrefs.edit { putBoolean("memory_unlocked", true) }
+            if (!charPrefs.getBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, false) && currentCount >= unlockThreshold) {
+                charPrefs.edit { putBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, true) }
                 CuraMessageManager.getMilestoneMessage(this, unlockThreshold)?.let { msg ->
                     showDialogueTextBubble(msg, isSkippable = false)
                     return@setOnClickListener
@@ -276,8 +275,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRandomDialogue() {
-        val charPrefs = getSharedPreferences("CharacterPrefs", MODE_PRIVATE)
-        val isMemoryUnlocked = charPrefs.getBoolean("memory_unlocked", false)
+        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        val isMemoryUnlocked = charPrefs.getBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, false)
 
         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
         val battery = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
@@ -367,13 +366,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSessionExp(amount: Int) {
-        getSharedPreferences("PlayerPrefs", MODE_PRIVATE).edit {
-            val current = getSharedPreferences("PlayerPrefs", MODE_PRIVATE).getLong("totalExp", 0L)
-            putLong("totalExp", current + amount)
+        getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE).edit {
+            val current = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE).getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
+            putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)
         }
-        getSharedPreferences("CharacterPrefs", MODE_PRIVATE).edit {
-            val current = getSharedPreferences("CharacterPrefs", MODE_PRIVATE).getLong("totalExp", 0L)
-            putLong("totalExp", current + amount)
+        getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).edit {
+            val current = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
+            putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)
         }
         updatePlayerStatus()
     }
@@ -400,25 +399,20 @@ class MainActivity : AppCompatActivity() {
         val tasks = ScheduleLoader.loadTasksForToday(this)
         binding.topMissionText.text = if (tasks.isNotEmpty()) tasks[0] else getString(R.string.dashboard_all_tasks_done)
 
-        val alarmPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
-        val alarmJson = alarmPrefs.getString("alarmListJSON", null)
+        val alarmPrefs = getSharedPreferences(CuraConstants.PREFS_ALARM, MODE_PRIVATE)
+        val alarmJson = alarmPrefs.getString(CuraConstants.KEY_ALARM_LIST, null)
         var nextAlarmStr = getString(R.string.dashboard_not_set)
         if (alarmJson != null) {
             try {
-                val arr = org.json.JSONArray(alarmJson)
-                val activeAlarms = mutableListOf<Pair<Int, Int>>()
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    if (obj.getBoolean("isEnabled")) activeAlarms.add(obj.getInt("hour") to obj.getInt("minute"))
-                }
+                val activeAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson).filter { it.isEnabled }
                 if (activeAlarms.isNotEmpty()) {
                     val cal = Calendar.getInstance()
                     val ch = cal.get(Calendar.HOUR_OF_DAY)
                     val cm = cal.get(Calendar.MINUTE)
-                    val next = activeAlarms.map { (h, m) ->
-                        var diff = (h * 60 + m) - (ch * 60 + cm)
+                    val next = activeAlarms.map { item ->
+                        var diff = (item.hour * 60 + item.minute) - (ch * 60 + cm)
                         if (diff <= 0) diff += 24 * 60
-                        diff to (h to m)
+                        diff to (item.hour to item.minute)
                     }.minBy { it.first }.second
                     nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.first, next.second)
                 }
@@ -453,15 +447,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAttendanceButtonVisibility() {
-        val schedulePrefs = getSharedPreferences("SchedulePrefs", MODE_PRIVATE)
-        val customJson = schedulePrefs.getString("eventListJSON", "[]")
+        val schedulePrefs = getSharedPreferences(CuraConstants.PREFS_SCHEDULE, MODE_PRIVATE)
+        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]")
         var hasTracked = false
         try {
-            val arr = org.json.JSONArray(customJson)
-            for (i in 0 until arr.length()) if (arr.getJSONObject(i).optBoolean("isAttendanceTracked", false)) hasTracked = true
+            val events = Json.decodeFromString<List<IcsEvent>>(customJson ?: "[]")
+            if (events.any { it.isAttendanceTracked }) hasTracked = true
         } catch (e: Exception) {}
 
-        val attendancePrefs = getSharedPreferences("AttendancePrefs", MODE_PRIVATE)
+        val attendancePrefs = getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, MODE_PRIVATE)
         for (key in attendancePrefs.all.keys) if (key.startsWith("track_") && attendancePrefs.all[key] == true) hasTracked = true
         binding.layoutAttendanceButton.visibility = if (hasTracked) View.VISIBLE else View.GONE
     }
