@@ -6,7 +6,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,140 +14,106 @@ import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.example.voicevox.databinding.DialogAddAlarmBinding
+import com.example.voicevox.databinding.DialogMandatoryAlarmBinding
+import com.example.voicevox.databinding.FragmentAlarmBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 class AlarmFragment : Fragment() {
 
+    companion object {
+        private const val DEFAULT_STYLE_ID = 3
+    }
+
+    private var _binding: FragmentAlarmBinding? = null
+    private val binding get() = _binding!!
+
     private val alarmList = ArrayList<AlarmItem>()
     private lateinit var alarmAdapter: AlarmAdapter
 
-    // 読み込まれたキャラクターモデルの情報を保持する
     private var loadedModels: List<jp.voicevox.android.VoicevoxModelInfo> = emptyList()
-
     private var previewPlayer: MediaPlayer? = null
 
-    // ダイアログの状態保持用
-    private var currentDialogView: View? = null
     private var currentPickedHour: Int = 7
     private var currentPickedMinute: Int = 0
-    private var currentDayToggles: List<Pair<android.widget.ToggleButton, Int>> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_alarm, container, false)
+    ): View {
+        _binding = FragmentAlarmBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.alarmRecyclerView)
-        val addAlarmFAB = view.findViewById<View>(R.id.addAlarmFAB)
-        val addMandatoryFAB = view.findViewById<View>(R.id.addMandatoryAlarmFAB)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         loadAlarms()
 
         alarmAdapter = AlarmAdapter(alarmList, { item, isEnabled ->
-            item.isEnabled = isEnabled
-            if (item.isEnabled) {
-                val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                scheduleVoiceAlarm(item, audioFile.absolutePath)
-                Toast.makeText(requireContext(), getString(R.string.toast_alarm_on), Toast.LENGTH_SHORT).show()
-            } else {
-                cancelVoiceAlarm(item)
-                Toast.makeText(requireContext(), getString(R.string.toast_alarm_off), Toast.LENGTH_SHORT).show()
-            }
-            saveAlarms()
+            toggleAlarm(item, isEnabled)
         }, { item ->
-            AlertDialog.Builder(requireContext())
-                .setTitle(getString(R.string.dialog_delete_alarm_title))
-                .setMessage(getString(R.string.dialog_delete_alarm_msg))
-                .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                    cancelVoiceAlarm(item)
-                    val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
-                    if (audioFile.exists()) audioFile.delete()
-                    alarmList.remove(item)
-                    alarmAdapter.notifyDataSetChanged()
-                    saveAlarms()
-                    updateEmptyView()
-                }
-                .setNegativeButton("キャンセル", null)
-                .show()
+            showDeleteConfirmation(item)
         })
 
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = alarmAdapter
-
-        addAlarmFAB.setOnClickListener {
-            showAddAlarmDialog()
+        binding.alarmRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = alarmAdapter
         }
 
-        addMandatoryFAB.setOnClickListener {
-            showMandatoryAlarmDialog()
-        }
+        binding.addAlarmFAB.setOnClickListener { showAddAlarmDialog() }
+        binding.addMandatoryAlarmFAB.setOnClickListener { showMandatoryAlarmDialog() }
 
         updateEmptyView()
-        return view
     }
 
     private fun showMandatoryAlarmDialog() {
         viewLifecycleOwner.lifecycleScope.launch {
-            loadedModels = CuraVoicevox.getModels(requireContext())
+            val ctx = context ?: return@launch
+            loadedModels = CuraVoicevox.getModels(ctx)
             
-            val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_mandatory_alarm, null)
-            val eventSpinner = dialogView.findViewById<Spinner>(R.id.spinMandatoryEvent)
-            val leadTimeInput = dialogView.findViewById<EditText>(R.id.editLeadTime)
-            val speakerSpinner = dialogView.findViewById<Spinner>(R.id.spinMandatorySpeaker)
+            val dialogBinding = DialogMandatoryAlarmBinding.inflate(LayoutInflater.from(ctx))
             
-            // 重要：マニュアル版ダイアログにはスタイルSpinnerがない場合があるため、レイアウトを確認
-            // もしレイアウトが共有でないなら、ここにも追加が必要ですが、一旦既存に合わせます。
-
-            val events = ScheduleLoader.loadAllEventsForToday(requireContext(), Calendar.getInstance())
+            val events = ScheduleLoader.loadAllEventsForToday(ctx, Calendar.getInstance())
             val calendarTomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
-            val eventsTomorrow = ScheduleLoader.loadAllEventsForToday(requireContext(), calendarTomorrow)
+            val eventsTomorrow = ScheduleLoader.loadAllEventsForToday(ctx, calendarTomorrow)
             
             val combinedEvents = (events.map { it to false } + eventsTomorrow.map { it to true })
-            val titles = combinedEvents.map { (event, isTomorrow) ->
-                val prefix = if (isTomorrow) "[明日] " else "[今日] "
-                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startTime))
-                "$prefix$time ${event.summary}"
-            }
+            val titles = combinedEvents.map { (event, isTomorrow) -> formatEventTitle(event, isTomorrow) }
             
-            eventSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, titles).apply {
+            dialogBinding.spinMandatoryEvent.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item, titles).apply {
                 setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
 
-            val uniqueNames = loadedModels.flatMap { m -> m.characters.map { it.name } }
-                .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
-                .distinct()
-            speakerSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, uniqueNames).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
+            val uniqueNames = getFilteredCharacterNames()
+            setupSpeakerSpinner(dialogBinding.spinMandatorySpeaker, uniqueNames)
 
-            AlertDialog.Builder(requireContext())
+            AlertDialog.Builder(ctx)
                 .setTitle(getString(R.string.dialog_mandatory_alarm_title))
-                .setView(dialogView)
+                .setView(dialogBinding.root)
                 .setPositiveButton(getString(R.string.dialog_generate)) { _, _ ->
-                    val selectedIndex = eventSpinner.selectedItemPosition
+                    val selectedIndex = dialogBinding.spinMandatoryEvent.selectedItemPosition
                     if (selectedIndex == -1) return@setPositiveButton
                     
                     val (event, _) = combinedEvents[selectedIndex]
-                    val leadTime = leadTimeInput.text.toString().toIntOrNull() ?: 30
-                    val charName = uniqueNames[speakerSpinner.selectedItemPosition]
+                    val leadTime = dialogBinding.editLeadTime.text.toString().toIntOrNull() ?: 30
+                    val charName = uniqueNames[dialogBinding.spinMandatorySpeaker.selectedItemPosition]
                     
-                    // スタイルはデフォルト（最初のやつ）を使用
-                    val model = loadedModels.firstOrNull { m -> m.characters.any { it.name == charName } }
-                    val styleId = model?.characters?.firstOrNull { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: 3
+                    val model = loadedModels.find { m -> m.characters.any { it.name == charName } }
+                    val styleId = model?.characters?.find { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: DEFAULT_STYLE_ID
 
-                    generateMandatoryAlarm(event, leadTime, styleId.toString(), charName)
+                    checkLicenseAndRun(charName, model?.id ?: "", styleId) { m, s ->
+                        generateMandatoryAlarm(event, leadTime, m, charName)
+                    }
                 }
-                .setNegativeButton("キャンセル", null)
+                .setNegativeButton(android.R.string.cancel, null)
                 .show()
         }
     }
@@ -161,96 +126,83 @@ class AlarmFragment : Fragment() {
         val hour = alarmCal.get(Calendar.HOUR_OF_DAY)
         val minute = alarmCal.get(Calendar.MINUTE)
         
-        val template = AlarmTemplateManager.getMandatoryAlarmTemplate(requireContext())
-        val message = String.format(Locale.getDefault(), template, hour, minute, event.summary, leadTimeMinutes)
-        
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            val ctx = context ?: return@launch
+            val template = AlarmTemplateManager.getMandatoryAlarmTemplate(ctx)
+            val message = String.format(Locale.getDefault(), template, hour, minute, event.summary, leadTimeMinutes)
             val newId = UUID.randomUUID().toString()
-            val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-            if (CuraVoicevox.createAudio(requireContext(), message, modelId, outputFile)) {
-                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: 3, speakerName, true, false, true, emptyList())
+            val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
+            
+            if (CuraVoicevox.createAudio(ctx, message, modelId, outputFile)) {
+                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList())
                 alarmList.add(newItem)
                 saveAlarms()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
                 alarmAdapter.notifyDataSetChanged()
+                updateEmptyView()
             }
         }
     }
 
     private fun showAddAlarmDialog() {
         viewLifecycleOwner.lifecycleScope.launch {
-            loadedModels = CuraVoicevox.getModels(requireContext())
+            val ctx = context ?: return@launch
+            loadedModels = CuraVoicevox.getModels(ctx)
 
-            val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_alarm, null)
-            currentDialogView = dialogView
-            val timePreviewText = dialogView.findViewById<TextView>(R.id.dialogTimePreview)
-            val speakerSpinner = dialogView.findViewById<Spinner>(R.id.dialogSpeakerSpinner)
-            val styleSpinner = dialogView.findViewById<Spinner>(R.id.dialogStyleSpinner)
-            
-            val uniqueNames = loadedModels.flatMap { m -> m.characters.map { it.name } }
-                .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
-                .distinct()
-            speakerSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, uniqueNames).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
+            val dialogBinding = DialogAddAlarmBinding.inflate(LayoutInflater.from(ctx))
+            val uniqueNames = getFilteredCharacterNames()
+            setupSpeakerSpinner(dialogBinding.dialogSpeakerSpinner, uniqueNames)
 
-            var currentStyles = mutableListOf<Pair<String, Int>>() // modelId to styleId
+            val currentStyles = mutableListOf<Pair<String, Int>>() // modelId to styleId
 
-            speakerSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            dialogBinding.dialogSpeakerSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                    val name = uniqueNames[pos]
-                    currentStyles.clear()
-                    loadedModels.forEach { m -> 
-                        m.characters.forEach { c -> 
-                            if(c.name == name) c.talkStyles.forEach { s -> currentStyles.add(m.id to s.id) }
-                        }
-                    }
-                    val styleNames = currentStyles.map { pair -> 
-                        // スタイル名だけだと分かりにくい場合があるため、モデル名も含める（例：ずんだもん (ノーマル)）
-                        val styleId = pair.second
-                        var sName = "Unknown"
-                        loadedModels.forEach { m -> m.characters.forEach { c -> c.styles.forEach { if(it.id == styleId) sName = it.name } } }
-                        sName
-                    }
-                    styleSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, styleNames).apply {
-                        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    }
+                    updateStyleSpinner(dialogBinding.dialogStyleSpinner, uniqueNames[pos], currentStyles)
                 }
                 override fun onNothingSelected(p: AdapterView<*>?) {}
             }
 
             val zIdx = uniqueNames.indexOf("ずんだもん").coerceAtLeast(0)
-            speakerSpinner.setSelection(zIdx)
+            dialogBinding.dialogSpeakerSpinner.setSelection(zIdx)
 
-            dialogView.findViewById<Button>(R.id.dialogSelectTimeButton).setOnClickListener {
-                TimePickerHelper.showWheelTimePicker(requireContext(), currentPickedHour, currentPickedMinute) { h, m ->
+            dialogBinding.dialogSelectTimeButton.setOnClickListener {
+                TimePickerHelper.showWheelTimePicker(ctx, currentPickedHour, currentPickedMinute) { h, m ->
                     currentPickedHour = h; currentPickedMinute = m
-                    timePreviewText.text = String.format(Locale.getDefault(), "設定時刻：%02d:%02d", h, m)
+                    dialogBinding.dialogTimePreview.text = String.format(Locale.getDefault(), "設定時刻：%02d:%02d", h, m)
                 }
             }
 
-            dialogView.findViewById<Button>(R.id.btnPreviewVoice).setOnClickListener {
-                val pos = styleSpinner.selectedItemPosition
-                if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startPreviewGeneration(m, s) }
+            dialogBinding.btnPreviewVoice.setOnClickListener {
+                val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
+                if(pos >= 0) {
+                    val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
+                    checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> 
+                        startPreviewGeneration(dialogBinding, m, s) 
+                    }
+                }
             }
 
-            AlertDialog.Builder(requireContext()).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogView)
+            AlertDialog.Builder(ctx).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogBinding.root)
                 .setPositiveButton(getString(R.string.dialog_save)) { _, _ ->
-                    val pos = styleSpinner.selectedItemPosition
-                    if(pos >= 0) checkLicenseAndRun(currentStyles[pos].first, currentStyles[pos].second) { m, s -> startAlarmGeneration(m, s) }
-                }.setNegativeButton("キャンセル", null).show()
+                    val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
+                    if(pos >= 0) {
+                        val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
+                        checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> 
+                            startAlarmGeneration(dialogBinding, m, s) 
+                        }
+                    }
+                }.setNegativeButton(android.R.string.cancel, null).show()
         }
     }
 
-    private fun checkLicenseAndRun(modelId: String, styleId: Int, action: (String, Int) -> Unit) {
-        val charName = currentDialogView?.findViewById<Spinner>(R.id.dialogSpeakerSpinner)?.selectedItem.toString()
-
+    private fun checkLicenseAndRun(charName: String, modelId: String, styleId: Int, action: (String, Int) -> Unit) {
         viewLifecycleOwner.lifecycleScope.launch {
-            if (CuraVoicevox.isLicenseAccepted(requireContext(), modelId)) {
+            val ctx = context ?: return@launch
+            if (CuraVoicevox.isLicenseAccepted(ctx, modelId)) {
                 action(modelId, styleId)
             } else {
-                val commonTermsUrl = CuraTerms.getCommonUrl(requireContext())
-                val charTermsUrl = CuraTerms.getUrl(requireContext(), charName)
+                val commonTermsUrl = CuraTerms.getCommonUrl(ctx)
+                val charTermsUrl = CuraTerms.getUrl(ctx, charName)
 
                 val msg = StringBuilder()
                 msg.append("「${charName}」の音声を使用するには、以下の利用規約に同意する必要があります。\n\n")
@@ -260,100 +212,83 @@ class AlarmFragment : Fragment() {
                 }
                 msg.append("\n利用前に規約の内容を確認してください。")
 
-                AlertDialog.Builder(requireContext())
+                AlertDialog.Builder(ctx)
                     .setTitle("利用規約への同意")
                     .setMessage(msg.toString())
                     .setNeutralButton("規約を見る") { _, _ ->
-                        // 共通規約を開く
                         startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(commonTermsUrl)))
-                        // 個別規約があればそれも開く
                         if (charTermsUrl != commonTermsUrl && charTermsUrl.isNotEmpty()) {
                             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(charTermsUrl)))
                         }
                     }
                     .setPositiveButton("同意して続行") { _, _ ->
                         viewLifecycleOwner.lifecycleScope.launch {
-                            // 選択されたキャラに同意
-                            CuraVoicevox.acceptLicense(requireContext(), modelId)
-                            
-                            // グループ全員に同意する（JSONから取得）
-                            val familyMembers = CuraTerms.getGroupMembers(requireContext(), charName)
-                            if (familyMembers.isNotEmpty()) {
-                                loadedModels.forEach { model ->
-                                    if (model.characters.any { it.name in familyMembers }) {
-                                        CuraVoicevox.acceptLicense(requireContext(), model.id)
-                                    }
-                                }
-                            }
-
+                            acceptLicenseGroup(charName, modelId)
                             action(modelId, styleId)
                         }
                     }
-                    .setNegativeButton("キャンセル", null)
+                    .setNegativeButton(android.R.string.cancel, null)
                     .show()
             }
         }
     }
 
-    private fun startPreviewGeneration(modelId: String, styleId: Int) {
-        val dialogView = currentDialogView ?: return
-        val message = dialogView.findViewById<EditText>(R.id.dialogMessageInput).text.toString().ifEmpty { "時間です。" }
-        val previewBtn = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
+    private suspend fun acceptLicenseGroup(charName: String, modelId: String) {
+        val ctx = context ?: return
+        CuraVoicevox.acceptLicense(ctx, modelId)
+        val familyMembers = CuraTerms.getGroupMembers(ctx, charName)
+        if (familyMembers.isNotEmpty()) {
+            loadedModels.forEach { model ->
+                if (model.characters.any { it.name in familyMembers }) {
+                    CuraVoicevox.acceptLicense(ctx, model.id)
+                }
+            }
+        }
+    }
+
+    private fun startPreviewGeneration(dialogBinding: DialogAddAlarmBinding, modelId: String, styleId: Int) {
+        val message = dialogBinding.dialogMessageInput.text.toString().ifEmpty { "時間です。" }
+        val previewBtn = dialogBinding.btnPreviewVoice
         
-        // 生成中ポップアップを再導入（生成が終わるまで表示し続ける）
-        val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage(getString(R.string.generating_audio))
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
-        
-        // UI上でも無効化
+        val progressDialog = showLoadingDialog(getString(R.string.generating_audio))
         previewBtn.isEnabled = false
         
         viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = context ?: return@launch
             try {
-                val template = AlarmTemplateManager.getPreviewTemplate(requireContext())
+                val template = AlarmTemplateManager.getPreviewTemplate(ctx)
                 val previewMessage = String.format(Locale.getDefault(), template, message)
-                val tempFile = File(requireContext().cacheDir, "preview.wav")
-                if (CuraVoicevox.createAudio(requireContext(), previewMessage, styleId.toString(), tempFile)) {
-                    // 生成成功。再生開始
-                    playPreview(tempFile)
+                val tempFile = File(ctx.cacheDir, "preview.wav")
+                if (CuraVoicevox.createAudio(ctx, previewMessage, styleId.toString(), tempFile)) {
+                    playPreview(tempFile, previewBtn)
                 } else {
-                    // 合成に失敗した場合はボタンを戻す
                     previewBtn.isEnabled = true
                 }
             } catch (e: Exception) {
                 previewBtn.isEnabled = true
             } finally {
-                // 生成が終わったのでポップアップを閉じる
                 progressDialog.dismiss()
             }
         }
     }
 
-    private fun startAlarmGeneration(modelId: String, styleId: Int) {
-        val dialogView = currentDialogView ?: return
-        val message = dialogView.findViewById<EditText>(R.id.dialogMessageInput).text.toString().ifEmpty { "時間です。" }
-        val charName = currentDialogView?.findViewById<Spinner>(R.id.dialogSpeakerSpinner)?.selectedItem.toString()
-        val styleName = currentDialogView?.findViewById<Spinner>(R.id.dialogStyleSpinner)?.selectedItem.toString()
+    private fun startAlarmGeneration(dialogBinding: DialogAddAlarmBinding, modelId: String, styleId: Int) {
+        val message = dialogBinding.dialogMessageInput.text.toString().ifEmpty { "時間です。" }
+        val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
+        val styleName = dialogBinding.dialogStyleSpinner.selectedItem.toString()
         
-        val readTasks = dialogView.findViewById<CheckBox>(R.id.dialogReadTasksCheckBox).isChecked
-        val vibrate = dialogView.findViewById<CheckBox>(R.id.dialogVibrateCheckBox).isChecked
+        val readTasks = dialogBinding.dialogReadTasksCheckBox.isChecked
+        val vibrate = dialogBinding.dialogVibrateCheckBox.isChecked
 
-        // 生成中ポップアップを表示
-        val progressDialog = AlertDialog.Builder(requireContext())
-            .setMessage(getString(R.string.generating_alarm_audio))
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
-        
+        val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         val newId = UUID.randomUUID().toString()
         val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList())
 
         viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = context ?: return@launch
             try {
-                val outputFile = File(requireContext().filesDir, "${newId}_alarm.wav")
-                if (CuraVoicevox.createAudio(requireContext(), message, styleId.toString(), outputFile)) {
+                val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
+                if (CuraVoicevox.createAudio(ctx, message, styleId.toString(), outputFile)) {
                     alarmList.add(newItem)
                     saveAlarms()
                     scheduleVoiceAlarm(newItem, outputFile.absolutePath)
@@ -361,74 +296,59 @@ class AlarmFragment : Fragment() {
                     updateEmptyView()
                 }
             } finally {
-                // 生成が終わった（成功・失敗問わず）のでポップアップを閉じる
                 progressDialog.dismiss()
             }
         }
     }
 
-    private fun playPreview(file: File) {
-        val dialogView = currentDialogView ?: return
-        val previewBtn = dialogView.findViewById<Button>(R.id.btnPreviewVoice)
-
+    private fun playPreview(file: File, previewBtn: Button) {
         try {
             previewPlayer?.let {
-                if (it.isPlaying) {
-                    it.stop()
-                }
+                if (it.isPlaying) it.stop()
                 it.release()
             }
             previewPlayer = MediaPlayer().apply {
                 setDataSource(file.absolutePath)
                 setOnPreparedListener { it.start() }
-                setOnCompletionListener {
-                    // 再生が終わったらボタンを再度有効にする
-                    previewBtn.isEnabled = true
-                }
+                setOnCompletionListener { previewBtn.isEnabled = true }
                 setOnErrorListener { _, _, _ ->
-                    // エラー時も一応有効に戻す
                     previewBtn.isEnabled = true
                     false
                 }
                 prepareAsync()
             }
         } catch (e: Exception) {
-            android.util.Log.e("AlarmFragment", "Failed to play preview", e)
             previewBtn.isEnabled = true
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         previewPlayer?.release()
+        previewPlayer = null
+        _binding = null
     }
 
     private fun updateEmptyView() {
-        view?.findViewById<View>(R.id.emptyTextView)?.visibility = if (alarmList.isEmpty()) View.VISIBLE else View.GONE
+        binding.emptyTextView.visibility = if (alarmList.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun saveAlarms() {
-        val jsonArray = JSONArray()
-        alarmList.forEach { item ->
-            jsonArray.put(JSONObject().apply {
-                put("id", item.id); put("hour", item.hour); put("minute", item.minute); put("message", item.message)
-                put("speakerId", item.speakerId); put("speakerName", item.speakerName); put("isEnabled", item.isEnabled)
-                put("readTasks", item.readTasks); put("vibrate", item.vibrate); put("repeatDays", JSONArray(item.repeatDays))
-            })
-        }
-        requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE).edit().putString("alarmListJSON", jsonArray.toString()).apply()
+        val json = Json.encodeToString(alarmList)
+        requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+            .edit().putString(CuraConstants.KEY_ALARM_LIST, json).apply()
     }
 
     private fun loadAlarms() {
         alarmList.clear()
-        val json = requireContext().getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE).getString("alarmListJSON", null)
-        if (json != null) {
-            val arr = JSONArray(json)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val days = mutableListOf<Int>(); val dArr = obj.getJSONArray("repeatDays")
-                for (j in 0 until dArr.length()) days.add(dArr.getInt(j))
-                alarmList.add(AlarmItem(obj.getString("id"), obj.getInt("hour"), obj.getInt("minute"), obj.getString("message"), obj.getInt("speakerId"), obj.getString("speakerName"), obj.getBoolean("isEnabled"), obj.optBoolean("readTasks", false), obj.optBoolean("vibrate", true), days))
+        val jsonStr = requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+            .getString(CuraConstants.KEY_ALARM_LIST, null)
+        if (jsonStr != null) {
+            try {
+                val loaded: List<AlarmItem> = Json.decodeFromString(jsonStr)
+                alarmList.addAll(loaded)
+            } catch (e: Exception) {
+                android.util.Log.e("AlarmFragment", "Failed to load alarms", e)
             }
         }
     }
@@ -441,7 +361,12 @@ class AlarmFragment : Fragment() {
             putExtra("VIBRATE", item.vibrate) 
         }
         val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val cal = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, item.hour); set(Calendar.MINUTE, item.minute); set(Calendar.SECOND, 0); if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1) }
+        val cal = Calendar.getInstance().apply { 
+            set(Calendar.HOUR_OF_DAY, item.hour)
+            set(Calendar.MINUTE, item.minute)
+            set(Calendar.SECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+        }
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
     }
 
@@ -449,5 +374,78 @@ class AlarmFragment : Fragment() {
         val am = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), Intent(requireContext(), AlarmReceiver::class.java), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
         if (pi != null) am.cancel(pi)
+    }
+
+    private fun toggleAlarm(item: AlarmItem, isEnabled: Boolean) {
+        item.isEnabled = isEnabled
+        if (item.isEnabled) {
+            val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+            scheduleVoiceAlarm(item, audioFile.absolutePath)
+            Toast.makeText(requireContext(), getString(R.string.toast_alarm_on), Toast.LENGTH_SHORT).show()
+        } else {
+            cancelVoiceAlarm(item)
+            Toast.makeText(requireContext(), getString(R.string.toast_alarm_off), Toast.LENGTH_SHORT).show()
+        }
+        saveAlarms()
+    }
+
+    private fun showDeleteConfirmation(item: AlarmItem) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_delete_alarm_title))
+            .setMessage(getString(R.string.dialog_delete_alarm_msg))
+            .setPositiveButton(getString(R.string.delete)) { _, _ -> deleteAlarm(item) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteAlarm(item: AlarmItem) {
+        cancelVoiceAlarm(item)
+        val audioFile = File(requireContext().filesDir, "${item.id}_alarm.wav")
+        if (audioFile.exists()) audioFile.delete()
+        alarmList.remove(item)
+        alarmAdapter.notifyDataSetChanged()
+        saveAlarms()
+        updateEmptyView()
+    }
+
+    private fun formatEventTitle(event: IcsEvent, isTomorrow: Boolean): String {
+        val prefix = if (isTomorrow) "[明日] " else "[今日] "
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(event.startTime))
+        return "$prefix$time ${event.summary}"
+    }
+
+    private fun getFilteredCharacterNames(): List<String> {
+        return loadedModels.flatMap { m -> m.characters.map { it.name } }
+            .filter { !it.contains("女声") && !it.contains("男声") && it != "WhiteCUL" }
+            .distinct()
+    }
+
+    private fun setupSpeakerSpinner(spinner: Spinner, names: List<String>) {
+        spinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, names).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    private fun updateStyleSpinner(styleSpinner: Spinner, characterName: String, stylesOutputList: MutableList<Pair<String, Int>>) {
+        val ctx = context ?: return
+        stylesOutputList.clear()
+        val modelAndChar = loadedModels.firstNotNullOfOrNull { model ->
+            model.characters.find { it.name == characterName }?.let { model.id to it }
+        } ?: return
+        val (modelId, character) = modelAndChar
+        val styleNames = character.talkStyles.map { style ->
+            stylesOutputList.add(modelId to style.id)
+            character.styles.find { it.id == style.id }?.name ?: "Unknown"
+        }
+        styleSpinner.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item, styleNames).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    private fun showLoadingDialog(message: String): AlertDialog {
+        return AlertDialog.Builder(requireContext())
+            .setMessage(message)
+            .setCancelable(false)
+            .show()
     }
 }

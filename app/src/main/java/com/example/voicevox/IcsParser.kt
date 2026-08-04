@@ -1,8 +1,10 @@
 package com.example.voicevox
 
+import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Serializable
 data class IcsEvent(
     val summary: String,
     val startTime: Long,
