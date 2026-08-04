@@ -173,11 +173,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun updatePlayerStatus() {
         val appPrefs = getSharedPreferences(CuraConstants.PREFS_APP, MODE_PRIVATE)
-        val userName = appPrefs.getString(CuraConstants.KEY_USER_NAME, "PLAYER")
-        binding.welcomeTitle.text = userName
+        
+        // システムステータスを表示
+        binding.welcomeTitle.text = "STATUS: ACTIVE"
 
         val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE)
-        val playerTotalExp = playerPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
+        
+        // 統計情報を表示
+        val taskCount = playerPrefs.getInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, 0)
+        val alarmCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
+
+        // 数字のみを表示（ラベルはXML側で定義）
+        binding.playerLevelText.text = taskCount.toString()
+        binding.expValueText.text = alarmCount.toString()
+
+        // 実績は常に表示
+        binding.playerLevelText.visibility = View.VISIBLE
+        binding.expValueText.visibility = View.VISIBLE
+
+        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        val charTotalExp = charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
 
         fun calculateLevelInfo(exp: Long): Triple<Int, Long, Long> {
@@ -186,21 +201,6 @@ class MainActivity : AppCompatActivity() {
             return Triple(lv, exp - currentLevelExp, expPerLevel)
         }
 
-        val (lv, current, required) = calculateLevelInfo(playerTotalExp)
-        binding.playerLevelText.text = "Lv.$lv (RANK: MASTER)"
-        binding.expProgressBar.max = required.toInt()
-        binding.expProgressBar.progress = current.toInt()
-        binding.expValueText.text = "$current / $required EXP"
-
-        val showPlayerLv = appPrefs.getBoolean("show_player_level", true)
-        val pVisibility = if (showPlayerLv) View.VISIBLE else View.GONE
-        binding.playerLevelText.visibility = pVisibility
-        binding.expProgressBar.visibility = pVisibility
-        binding.expValueText.visibility = pVisibility
-
-        // Character Level
-        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
-        val charTotalExp = charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val (cLv, cCurr, cReq) = calculateLevelInfo(charTotalExp)
         binding.charLevelText.text = "CURA Lv.$cLv"
         binding.charExpProgressBar.max = cReq.toInt()
@@ -275,7 +275,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRandomDialogue() {
+        val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE)
         val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        
+        // 1. 褒め待ちフラグを優先チェック
+        if (playerPrefs.getBoolean(CuraConstants.KEY_PENDING_TASK_PRAISE, false)) {
+            showDialogueTextBubble(CuraMessageManager.getSituationalLine(this, "task_completed_praise"))
+            playerPrefs.edit { putBoolean(CuraConstants.KEY_PENDING_TASK_PRAISE, false) }
+            return
+        }
+        if (playerPrefs.getBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, false)) {
+            showDialogueTextBubble(CuraMessageManager.getSituationalLine(this, "alarm_wakeup_praise"))
+            playerPrefs.edit { putBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, false) }
+            return
+        }
+
         val isMemoryUnlocked = charPrefs.getBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, false)
 
         val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager
@@ -366,10 +380,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSessionExp(amount: Int) {
-        getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE).edit {
-            val current = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE).getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
-            putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)
-        }
+        // プレイヤー経験値の加算はやめる（あるいは別の統計に使う？）
+        // 今回はキャラクター（キュラ）の親密度としてのみ加算を続ける
         getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).edit {
             val current = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
             putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)

@@ -57,49 +57,36 @@
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="20dp"
                         app:layout_constraintTop_toTopOf="@id/topGuideline"
-                        app:strokeColor="@color/cyber_pink">
+                        app:strokeColor="@color/cyber_cyan">
 
                         <androidx.constraintlayout.widget.ConstraintLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:padding="12dp">
 
-                            <!-- Left: Player Info -->
+                            <!-- Top Row: System Status -->
                             <TextView
                                 android:id="@+id/welcomeTitle"
                                 style="@style/CyberTypography.Header"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="PLAYER"
-                                android:textColor="@color/cyber_pink"
-                                android:textSize="20sp"
+                                android:text="STATUS: ACTIVE"
+                                android:textColor="@color/cyber_cyan"
+                                android:textSize="10sp"
+                                android:letterSpacing="0.1"
                                 app:layout_constraintStart_toStartOf="parent"
                                 app:layout_constraintTop_toTopOf="parent" />
 
-                            <TextView
-                                android:id="@+id/playerLevelText"
-                                style="@style/CyberTypography.Label"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:text="Lv.1 (MASTER)"
-                                android:textColor="@color/cyber_pink"
-                                android:textSize="14sp"
-                                app:layout_constraintBottom_toBottomOf="@id/welcomeTitle"
-                                app:layout_constraintStart_toEndOf="@id/welcomeTitle"
-                                app:layout_constraintTop_toTopOf="@id/welcomeTitle" />
-
-                            <!-- Right: Time & Battery (Integrated HUD) -->
                             <TextView
                                 android:id="@+id/hudTimeText"
                                 style="@style/CyberTypography.Header"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:letterSpacing="0.05"
                                 android:text="00:00"
                                 android:textColor="@color/cyber_cyan"
-                                android:textSize="22sp"
-                                app:layout_constraintEnd_toEndOf="parent"
+                                android:textSize="14sp"
+                                app:layout_constraintEnd_toStartOf="@id/compactBatteryHud"
+                                android:layout_marginEnd="12dp"
                                 app:layout_constraintTop_toTopOf="parent" />
 
                             <LinearLayout
@@ -109,48 +96,104 @@
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
                                 app:layout_constraintEnd_toEndOf="parent"
-                                app:layout_constraintTop_toBottomOf="@id/hudTimeText">
+                                app:layout_constraintTop_toTopOf="parent">
 
                                 <TextView
                                     android:id="@+id/hudBatteryText"
                                     style="@style/CyberTypography.Label"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginEnd="6dp"
+                                    android:layout_marginEnd="4dp"
                                     android:text="100%"
                                     android:textColor="@color/cyber_cyan"
-                                    android:textSize="11sp" />
+                                    android:textSize="10sp" />
 
                                 <ProgressBar
                                     android:id="@+id/hudBatteryBar"
                                     style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="40dp"
-                                    android:layout_height="3dp"
+                                    android:layout_width="30dp"
+                                    android:layout_height="2dp"
                                     android:progress="100"
                                     android:progressDrawable="@drawable/progress_mp" />
                             </LinearLayout>
 
-                            <!-- Bottom: Progress Bar -->
-                            <ProgressBar
-                                android:id="@+id/expProgressBar"
-                                style="?android:attr/progressBarStyleHorizontal"
+                            <!-- Middle Row: Stats Grid -->
+                            <View
+                                android:id="@+id/divider"
                                 android:layout_width="match_parent"
-                                android:layout_height="4dp"
-                                android:layout_marginTop="12dp"
-                                android:progress="0"
-                                android:progressDrawable="@drawable/progress_mp"
-                                app:layout_constraintTop_toBottomOf="@id/compactBatteryHud" />
+                                android:layout_height="1dp"
+                                android:layout_marginTop="8dp"
+                                android:background="@color/cyber_cyan"
+                                android:alpha="0.2"
+                                app:layout_constraintTop_toBottomOf="@id/welcomeTitle" />
 
-                            <TextView
-                                android:id="@+id/expValueText"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="0 / 100 EXP"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="10sp"
-                                app:layout_constraintEnd_toEndOf="parent"
-                                app:layout_constraintTop_toBottomOf="@id/expProgressBar" />
+                                android:layout_marginTop="12dp"
+                                android:orientation="horizontal"
+                                android:baselineAligned="false"
+                                app:layout_constraintTop_toBottomOf="@id/divider">
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        style="@style/CyberTypography.Label"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="TASKS CLEARED"
+                                        android:textSize="9sp"
+                                        android:textColor="@color/text_secondary" />
+
+                                    <TextView
+                                        android:id="@+id/playerLevelText"
+                                        style="@style/CyberTypography.Header"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0"
+                                        android:textColor="@color/white"
+                                        android:textSize="24sp" />
+                                </LinearLayout>
+
+                                <!-- Vertical Divider -->
+                                <View
+                                    android:layout_width="1dp"
+                                    android:layout_height="30dp"
+                                    android:layout_gravity="center_vertical"
+                                    android:background="@color/cyber_cyan"
+                                    android:alpha="0.2" />
+
+                                <!-- Wakeup Column -->
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        style="@style/CyberTypography.Label"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="WAKEUPS"
+                                        android:textSize="9sp"
+                                        android:textColor="@color/text_secondary" />
+
+                                    <TextView
+                                        android:id="@+id/expValueText"
+                                        style="@style/CyberTypography.Header"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0"
+                                        android:textColor="@color/white"
+                                        android:textSize="24sp" />
+                                </LinearLayout>
+                            </LinearLayout>
 
                         </androidx.constraintlayout.widget.ConstraintLayout>
                     </com.google.android.material.card.MaterialCardView>
