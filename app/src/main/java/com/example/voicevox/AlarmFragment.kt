@@ -337,6 +337,9 @@ class AlarmFragment : Fragment() {
         val json = Json.encodeToString(alarmList)
         requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
             .edit().putString(CuraConstants.KEY_ALARM_LIST, json).apply()
+        
+        // ウィジェットを更新
+        AlarmWidgetProvider.triggerUpdate(requireContext())
     }
 
     private fun loadAlarms() {

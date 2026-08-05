@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/surface" />
-    <corners android:radius="16dp" />
-    <stroke android:width="1dp" android:color="@color/outline" />
+    <!-- 視認性を保ちつつ透明感を出すため、少し濃いめの半透明（約85%不透明）に設定 -->
+    <solid android:color="#D90F172A" />
+    <corners android:radius="12dp" />
+    <stroke android:width="1.5dp" android:color="@color/outline_high" />
 </shape>

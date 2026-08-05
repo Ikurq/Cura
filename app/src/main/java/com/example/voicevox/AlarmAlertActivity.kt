@@ -256,6 +256,8 @@ class AlarmAlertActivity : AppCompatActivity() {
         alarmList.removeAll { it.id == alarmId }
         prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString<List<AlarmItem>>(alarmList)).apply()
         
+        AlarmWidgetProvider.triggerUpdate(this)
+        
         val audioFile = File(filesDir, "${alarmId}_alarm.wav")
         if (audioFile.exists()) audioFile.delete()
     }
@@ -272,6 +274,8 @@ class AlarmAlertActivity : AppCompatActivity() {
         
         alarmList.find { it.id == alarmId }?.let { it.isEnabled = false }
         prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString<List<AlarmItem>>(alarmList)).apply()
+        
+        AlarmWidgetProvider.triggerUpdate(this)
     }
 
     private fun scheduleVoiceAlarm(context: Context, item: AlarmItem) {

@@ -33,6 +33,9 @@ class TaskWidgetProvider : AppWidgetProvider() {
             val refreshPendingIntent = PendingIntent.getBroadcast(context, appWidgetId, refreshIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widgetRefresh, refreshPendingIntent)
             
+            // Root click also opens app
+            views.setOnClickPendingIntent(R.id.widgetTaskRoot, clickPendingIntent)
+            
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widgetListView)
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

@@ -33,6 +33,9 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             val refreshPendingIntent = PendingIntent.getBroadcast(context, appWidgetId + 100, refreshIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widgetScheduleRefresh, refreshPendingIntent)
             
+            // Root click also opens app
+            views.setOnClickPendingIntent(R.id.widgetScheduleRoot, clickPendingIntent)
+            
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widgetScheduleListView)
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
