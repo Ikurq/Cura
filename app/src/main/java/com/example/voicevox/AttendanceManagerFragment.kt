@@ -7,14 +7,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.voicevox.databinding.DialogAttendanceDetailBinding
 import com.example.voicevox.databinding.FragmentAttendanceManagerBinding
 import com.example.voicevox.databinding.ItemAttendanceCountBinding
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 import java.util.Calendar
 import java.util.Locale
 
@@ -40,9 +42,11 @@ class AttendanceManagerFragment : Fragment() {
 
         loadStatistics()
         
-        attendanceAdapter = AttendanceAdapter(subjectList) { stats ->
-            showAbsentHistoryDialog(stats)
-        }
+        attendanceAdapter = AttendanceAdapter(
+            items = subjectList,
+            onItemClick = { stats -> showAbsentHistoryDialog(stats) },
+            onItemLongClick = { stats -> showDeleteConfirmDialog(stats) }
+        )
 
         binding.attendanceRecyclerView.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -82,7 +86,7 @@ class AttendanceManagerFragment : Fragment() {
         val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)?.let { jsonStr ->
             try {
-                val events = Json.decodeFromString<List<IcsEvent>>(jsonStr)
+                val events = Json.decodeFromString<List<ScheduleEvent>>(jsonStr)
                 events.filter { it.isAttendanceTracked }.forEach { event ->
                     registerOccurrence(event.summary, event.startTime, AttendanceStatus.fromString(event.attendanceStatus))
                 }
@@ -162,6 +166,53 @@ class AttendanceManagerFragment : Fragment() {
             .show()
     }
 
+    private fun showDeleteConfirmDialog(stats: SubjectStats) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("項目の削除")
+            .setMessage("「${stats.name}」の出席管理を停止し、記録をリセットしますか？\n(予定自体は削除されません)")
+            .setPositiveButton("削除") { _, _ ->
+                performDeleteSubject(stats.name)
+            }
+            .setNegativeButton("キャンセル", null)
+            .show()
+    }
+
+    private fun performDeleteSubject(name: String) {
+        val ctx = requireContext()
+        
+        // 1. 外部連携と手動カウントをリセット
+        val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+        attendancePrefs.edit {
+            remove("track_$name")
+            remove("absent_$name")
+        }
+
+        // 2. カスタム予定の追跡をオフにする
+        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
+        if (customJson != null) {
+            try {
+                val events = Json.decodeFromString<List<ScheduleEvent>>(customJson)
+                val updatedEvents = events.map { event ->
+                    if (event.summary == name && event.isAttendanceTracked) {
+                        event.copy(isAttendanceTracked = false)
+                    } else {
+                        event
+                    }
+                }
+                schedulePrefs.edit {
+                    putString(CuraConstants.KEY_EVENT_LIST, Json.encodeToString(updatedEvents))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        loadStatistics()
+        attendanceAdapter.notifyDataSetChanged()
+        Toast.makeText(ctx, "削除しました", Toast.LENGTH_SHORT).show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -169,7 +220,8 @@ class AttendanceManagerFragment : Fragment() {
 
     private class AttendanceAdapter(
         private val items: List<SubjectStats>,
-        private val onItemClick: (SubjectStats) -> Unit
+        private val onItemClick: (SubjectStats) -> Unit,
+        private val onItemLongClick: (SubjectStats) -> Unit
     ) : RecyclerView.Adapter<AttendanceAdapter.ViewHolder>() {
 
         class ViewHolder(val binding: ItemAttendanceCountBinding) : RecyclerView.ViewHolder(binding.root)
@@ -190,6 +242,10 @@ class AttendanceManagerFragment : Fragment() {
             binding.txtAbsentCount.text = stats.absent.toString()
 
             binding.root.setOnClickListener { onItemClick(stats) }
+            binding.root.setOnLongClickListener { 
+                onItemLongClick(stats)
+                true
+            }
 
             val ctx = binding.root.context
             val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)

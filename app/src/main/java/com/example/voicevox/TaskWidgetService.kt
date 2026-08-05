@@ -2,9 +2,10 @@ package com.example.voicevox
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
-import org.json.JSONArray
+import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -16,33 +17,31 @@ class TaskWidgetService : RemoteViewsService() {
 
 class TaskRemoteViewsFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
     private val taskList = mutableListOf<TaskItem>()
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
         taskList.clear()
-        val prefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("taskListJSON", null)
+        val prefs = context.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_TASK_LIST, null)
         if (jsonString != null) {
             try {
-                val jsonArray = JSONArray(jsonString)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    taskList.add(
-                        TaskItem(
-                            obj.getString("id"),
-                            obj.getString("title"),
-                            obj.getLong("deadlineMillis"),
-                            obj.getInt("basePriority")
-                        )
-                    )
-                }
-            } catch (e: Exception) { e.printStackTrace() }
+                // 完了済みのタスクはウィジェットに出さない
+                val allTasks = json.decodeFromString<List<TaskItem>>(jsonString)
+                taskList.addAll(allTasks.filter { !it.isCompleted })
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
+        // 優先度順、次に期限順にソート
         taskList.sortWith(compareByDescending<TaskItem> { it.getCurrentPriority() }.thenBy { it.deadlineMillis })
     }
 
-    override fun onDestroy() { taskList.clear() }
+    override fun onDestroy() {
+        taskList.clear()
+    }
+
     override fun getCount(): Int = taskList.size
 
     override fun getViewAt(position: Int): RemoteViews {
@@ -50,20 +49,24 @@ class TaskRemoteViewsFactory(private val context: Context) : RemoteViewsService.
 
         val task = taskList[position]
         val views = RemoteViews(context.packageName, R.layout.item_widget_task)
+        
         views.setTextViewText(R.id.widgetTaskTitle, task.title)
         
-        val sdf = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
-        views.setTextViewText(R.id.widgetTaskDeadline, sdf.format(Date(task.deadlineMillis)))
+        // 期限の表示をよりカッコよく (例: [12:00] または [MM/dd])
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val dateStr = sdf.format(Date(task.deadlineMillis))
+        views.setTextViewText(R.id.widgetTaskDeadline, "DEADLINE: $dateStr")
         
+        // 優先度に応じた色の設定
         val priorityColor = when (task.getCurrentPriority()) {
-            5 -> 0xFFEF4444.toInt()
-            4 -> 0xFFF59E0B.toInt()
-            3 -> 0xFF3B82F6.toInt()
-            2 -> 0xFF10B981.toInt()
-            else -> 0xFF94A3B8.toInt()
+            5 -> Color.parseColor("#FF007F") // サイバーピンク
+            4 -> Color.parseColor("#00FFFF") // サイバーシアン
+            3 -> Color.parseColor("#CCFF00") // ライム
+            else -> Color.parseColor("#94A3B8") // グレー
         }
-        views.setInt(R.id.widgetPriorityIndicator, "setColorFilter", priorityColor)
+        views.setInt(R.id.widgetPriorityIndicator, "setBackgroundColor", priorityColor)
 
+        // 行全体をタップした際にアプリを開く
         val fillInIntent = Intent()
         views.setOnClickFillInIntent(R.id.widgetTaskTitle, fillInIntent)
 

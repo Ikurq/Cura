@@ -13,8 +13,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.chip.ChipGroup
+import com.example.voicevox.databinding.DialogAddScheduleEventBinding
+import com.example.voicevox.databinding.FragmentTimetableBinding
+import com.example.voicevox.databinding.ItemScheduleCardBinding
+import com.example.voicevox.databinding.ItemScheduleHeaderBinding
+import com.google.android.material.chip.Chip
 import kotlinx.coroutines.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -25,7 +31,9 @@ import java.util.*
 
 class TimetableFragment : Fragment() {
 
-    private lateinit var viewPager: ViewPager2
+    private var _binding: FragmentTimetableBinding? = null
+    private val binding get() = _binding!!
+
     private lateinit var pagerAdapter: SchedulePagerAdapter
     private var selectedDate = Calendar.getInstance()
     private var cachedIcsEvents = mutableListOf<IcsEvent>()
@@ -57,45 +65,41 @@ class TimetableFragment : Fragment() {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_timetable, container, false)
+    ): View {
+        _binding = FragmentTimetableBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val dateText = view.findViewById<TextView>(R.id.selectedDateText)
-        val prevDayButton = view.findViewById<View>(R.id.prevDayButton)
-        val nextDayButton = view.findViewById<View>(R.id.nextDayButton)
-        val resetToTodayButton = view.findViewById<View>(R.id.btnResetToToday)
-        val addEventFAB = view.findViewById<View>(R.id.addScheduleEventFAB)
-        val statsButton = view.findViewById<View>(R.id.btnAttendanceStats)
-        
-        viewPager = view.findViewById(R.id.timetableViewPager)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         pagerAdapter = SchedulePagerAdapter(this)
-        viewPager.adapter = pagerAdapter
-        viewPager.setCurrentItem(pagerAdapter.centerPosition, false)
+        binding.timetableViewPager.adapter = pagerAdapter
+        binding.timetableViewPager.setCurrentItem(pagerAdapter.centerPosition, false)
 
-        updateDateText(dateText)
+        updateDateText()
         
-        prevDayButton.setOnClickListener {
-            viewPager.setCurrentItem(viewPager.currentItem - 1, true)
+        binding.prevDayButton.setOnClickListener {
+            binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem - 1, true)
         }
 
-        nextDayButton.setOnClickListener {
-            viewPager.setCurrentItem(viewPager.currentItem + 1, true)
+        binding.nextDayButton.setOnClickListener {
+            binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem + 1, true)
         }
 
-        resetToTodayButton.setOnClickListener {
-            viewPager.setCurrentItem(pagerAdapter.centerPosition, true)
+        binding.btnResetToToday.setOnClickListener {
+            binding.timetableViewPager.setCurrentItem(pagerAdapter.centerPosition, true)
         }
 
-        dateText.setOnClickListener {
-            showDatePicker(dateText)
+        binding.selectedDateText.setOnClickListener {
+            showDatePicker()
         }
 
-        addEventFAB.setOnClickListener {
+        binding.addScheduleEventFAB.setOnClickListener {
             showAddEventDialog()
         }
 
-        statsButton.setOnClickListener {
+        binding.btnAttendanceStats.setOnClickListener {
             (activity as? MainActivity)?.let { main ->
                 main.supportFragmentManager.beginTransaction()
                     .replace(R.id.fragmentContainer, AttendanceManagerFragment())
@@ -105,20 +109,19 @@ class TimetableFragment : Fragment() {
             }
         }
 
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+        binding.timetableViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 selectedDate = pagerAdapter.getDateForPosition(position)
-                updateDateText(dateText)
+                updateDateText()
             }
         })
 
         loadIcsCache()
         loadCustomEvents()
         initialLoad()
-        checkAttendanceFeature(statsButton)
+        checkAttendanceFeature()
 
-        val filterGroup = view.findViewById<ChipGroup>(R.id.filterChipGroup)
-        filterGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+        binding.filterChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
             currentFilter = when (checkedIds.firstOrNull()) {
                 R.id.chipFilterExternal -> FilterType.EXTERNAL
                 R.id.chipFilterTask -> FilterType.TASK
@@ -127,23 +130,25 @@ class TimetableFragment : Fragment() {
             }
             notifyFragments()
         }
-
-        return view
     }
 
-    private fun checkAttendanceFeature(statsButton: View) {
-        val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
-        val hasTrackedExternal = attendancePrefs.all.keys.any { it.startsWith("track_") && attendancePrefs.getBoolean(it, false) }
+    private fun checkAttendanceFeature() {
+        val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+        val allKeys = attendancePrefs.all.keys
+        
+        val hasTrackedExternal = allKeys.any { it.startsWith("track_") && attendancePrefs.getBoolean(it, false) }
         val hasTrackedCustom = customEvents.any { it.isAttendanceTracked }
-        statsButton.visibility = if (hasTrackedExternal || hasTrackedCustom) View.VISIBLE else View.GONE
+        val hasManualCount = allKeys.any { it.startsWith("absent_") && (attendancePrefs.all[it] as? Int ?: 0) > 0 }
+        
+        binding.btnAttendanceStats.visibility = if (hasTrackedExternal || hasTrackedCustom || hasManualCount) View.VISIBLE else View.GONE
     }
 
-    private fun updateDateText(textView: TextView) {
+    private fun updateDateText() {
         val sdf = SimpleDateFormat("yyyy年M月d日 (E)", Locale.JAPAN)
-        textView.text = sdf.format(selectedDate.time)
+        binding.selectedDateText.text = sdf.format(selectedDate.time)
     }
 
-    private fun showDatePicker(dateTextView: TextView) {
+    private fun showDatePicker() {
         android.app.DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
@@ -151,7 +156,7 @@ class TimetableFragment : Fragment() {
                     set(year, month, dayOfMonth)
                 }
                 val position = pagerAdapter.getPositionForDate(newDate)
-                viewPager.setCurrentItem(position, false)
+                binding.timetableViewPager.setCurrentItem(position, false)
             },
             selectedDate.get(Calendar.YEAR),
             selectedDate.get(Calendar.MONTH),
@@ -169,98 +174,71 @@ class TimetableFragment : Fragment() {
     }
 
     private fun loadCustomEvents() {
-        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("eventListJSON", null) ?: return
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, null) ?: return
         customEvents.clear()
         try {
-            val jsonArray = JSONArray(jsonString)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                customEvents.add(ScheduleEvent(
-                    obj.getString("id"), obj.getString("genre"), obj.getLong("startTime"),
-                    obj.getString("location"), 
-                    isPreset = false,
-                    isAttendanceTracked = obj.optBoolean("isAttendanceTracked", false),
-                    attendanceStatus = obj.optString("attendanceStatus", "NONE")
-                ))
-            }
+            customEvents.addAll(Json.decodeFromString<List<ScheduleEvent>>(jsonString))
         } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun saveCustomEvents() {
-        val prefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val jsonArray = JSONArray()
-        for (event in customEvents) {
-            jsonArray.put(JSONObject().apply {
-                put("id", event.id); put("genre", event.genre); put("startTime", event.startTime)
-                put("location", event.location); put("isAttendanceTracked", event.isAttendanceTracked)
-                put("attendanceStatus", event.attendanceStatus)
-            })
-        }
-        prefs.edit().putString("eventListJSON", jsonArray.toString()).apply()
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val json = Json.encodeToString(customEvents)
+        prefs.edit().putString(CuraConstants.KEY_EVENT_LIST, json).apply()
         notifyFragments()
     }
 
     private fun showAddEventDialog() {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_schedule_event, null)
-        val genreInput = dialogView.findViewById<EditText>(R.id.editEventGenre)
-        val locationInput = dialogView.findViewById<EditText>(R.id.editEventLocation)
-        val btnSelectTime = dialogView.findViewById<Button>(R.id.btnSelectEventTime)
-        val chipGroup = dialogView.findViewById<com.google.android.material.chip.ChipGroup>(R.id.presetChipGroup)
-        val checkPreset = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.checkSaveAsPreset)
-        val checkTrack = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.checkTrackAttendance)
+        val ctx = requireContext()
+        val dialogBinding = DialogAddScheduleEventBinding.inflate(LayoutInflater.from(ctx))
         
-        val btnToggleAdvanced = dialogView.findViewById<Button>(R.id.btnToggleAdvancedSettings)
-        val layoutAdvanced = dialogView.findViewById<LinearLayout>(R.id.layoutAdvancedSettings)
-
-        btnToggleAdvanced.setOnClickListener {
-            if (layoutAdvanced.visibility == View.GONE) {
-                layoutAdvanced.visibility = View.VISIBLE
-                btnToggleAdvanced.text = "追加の設定 ▲"
+        dialogBinding.btnToggleAdvancedSettings.setOnClickListener {
+            if (dialogBinding.layoutAdvancedSettings.visibility == View.GONE) {
+                dialogBinding.layoutAdvancedSettings.visibility = View.VISIBLE
+                dialogBinding.btnToggleAdvancedSettings.text = "追加の設定 ▲"
             } else {
-                layoutAdvanced.visibility = View.GONE
-                btnToggleAdvanced.text = "追加の設定 ▼"
+                dialogBinding.layoutAdvancedSettings.visibility = View.GONE
+                dialogBinding.btnToggleAdvancedSettings.text = "追加の設定 ▼"
             }
         }
 
         var selectedHour = 9
         var selectedMinute = 0
 
-        btnSelectTime.setOnClickListener {
-            TimePickerHelper.showWheelTimePicker(requireContext(), selectedHour, selectedMinute) { h, m ->
+        dialogBinding.btnSelectEventTime.setOnClickListener {
+            TimePickerHelper.showWheelTimePicker(ctx, selectedHour, selectedMinute) { h, m ->
                 selectedHour = h
                 selectedMinute = m
-                btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
+                dialogBinding.btnSelectEventTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
             }
         }
 
-        // Load Presets into Chips
-        val schedulePrefs = requireContext().getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
+        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val presetJson = schedulePrefs.getString("presetListJSON", null)
         if (presetJson != null) {
-            val arr = JSONArray(presetJson)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val chip = com.google.android.material.chip.Chip(requireContext())
-                chip.text = obj.getString("genre")
-                chip.setOnClickListener {
-                    genreInput.setText(obj.getString("genre"))
-                    locationInput.setText(obj.getString("location"))
-                    val h = obj.optInt("hour", -1)
-                    val m = obj.optInt("minute", -1)
-                    if (h != -1) {
-                        selectedHour = h; selectedMinute = m
-                        btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
+            try {
+                val presets = Json.decodeFromString<List<EventPreset>>(presetJson)
+                presets.forEach { preset ->
+                    val chip = Chip(ctx)
+                    chip.text = preset.genre
+                    chip.setOnClickListener {
+                        dialogBinding.editEventGenre.setText(preset.genre)
+                        dialogBinding.editEventLocation.setText(preset.location)
+                        if (preset.hour != -1) {
+                            selectedHour = preset.hour; selectedMinute = preset.minute
+                            dialogBinding.btnSelectEventTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", selectedHour, selectedMinute)
+                        }
                     }
+                    dialogBinding.presetChipGroup.addView(chip)
                 }
-                chipGroup.addView(chip)
-            }
+            } catch (e: Exception) {}
         }
 
-        AlertDialog.Builder(requireContext())
-            .setView(dialogView)
+        AlertDialog.Builder(ctx)
+            .setView(dialogBinding.root)
             .setPositiveButton("追加") { _, _ ->
-                val genre = genreInput.text.toString()
+                val genre = dialogBinding.editEventGenre.text.toString()
                 if (genre.isEmpty()) return@setPositiveButton
 
                 val cal = (selectedDate.clone() as Calendar).apply {
@@ -272,25 +250,25 @@ class TimetableFragment : Fragment() {
 
                 val newEvent = ScheduleEvent(
                     id = java.util.UUID.randomUUID().toString(),
-                    genre = genre,
+                    summary = genre,
                     startTime = cal.timeInMillis,
-                    location = locationInput.text.toString(),
-                    isAttendanceTracked = checkTrack.isChecked
+                    location = dialogBinding.editEventLocation.text.toString(),
+                    isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
                 )
 
                 customEvents.add(newEvent)
                 saveCustomEvents()
 
-                if (checkPreset.isChecked) {
-                    val currentPresets = JSONArray(schedulePrefs.getString("presetListJSON", "[]"))
-                    currentPresets.put(JSONObject().apply {
-                        put("genre", genre); put("location", locationInput.text.toString())
-                        put("hour", selectedHour); put("minute", selectedMinute)
-                    })
-                    schedulePrefs.edit().putString("presetListJSON", currentPresets.toString()).apply()
+                if (dialogBinding.checkSaveAsPreset.isChecked) {
+                    val currentPresets = try {
+                        Json.decodeFromString<List<EventPreset>>(schedulePrefs.getString("presetListJSON", "[]") ?: "[]").toMutableList()
+                    } catch (e: Exception) { mutableListOf() }
+                    
+                    currentPresets.add(EventPreset(genre, dialogBinding.editEventLocation.text.toString(), selectedHour, selectedMinute))
+                    schedulePrefs.edit().putString("presetListJSON", Json.encodeToString(currentPresets)).apply()
                 }
                 
-                Toast.makeText(requireContext(), "予定を追加しました", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "予定を追加しました", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("キャンセル", null)
             .show()
@@ -319,37 +297,22 @@ class TimetableFragment : Fragment() {
     }
 
     private fun saveIcsCache(events: List<IcsEvent>) {
-        val prefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-        val jsonArray = JSONArray()
-        for (event in events) {
-            jsonArray.put(JSONObject().apply {
-                put("summary", event.summary); put("startTime", event.startTime); put("endTime", event.endTime)
-                put("location", event.location); put("isAttendanceTracked", event.isAttendanceTracked)
-                put("attendanceStatus", event.attendanceStatus)
-            })
-        }
-        prefs.edit().putString("icsCacheJSON", jsonArray.toString()).apply()
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+        val json = Json.encodeToString(events)
+        prefs.edit().putString(CuraConstants.KEY_ICS_CACHE, json).apply()
     }
 
     private fun loadIcsCache() {
-        val prefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("icsCacheJSON", null) ?: return
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ICS_CACHE, null) ?: return
         cachedIcsEvents.clear()
         try {
-            val jsonArray = JSONArray(jsonString)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                cachedIcsEvents.add(IcsEvent(
-                    obj.getString("summary"), obj.getLong("startTime"), obj.getLong("endTime"),
-                    obj.getString("location"), obj.optBoolean("isAttendanceTracked", false),
-                    obj.optString("attendanceStatus", "NONE")
-                ))
-            }
+            cachedIcsEvents.addAll(Json.decodeFromString<List<IcsEvent>>(jsonString))
         } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun loadCalendarSources(): List<CalendarSource> {
-        val prefs = requireContext().getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
         val jsonString = prefs.getString("calendarSourcesJSON", null) ?: return emptyList()
         val list = mutableListOf<CalendarSource>()
         try {
@@ -409,27 +372,28 @@ class TimetableFragment : Fragment() {
             if (event.isAttendanceTracked && status == "NONE" && event.startTime < System.currentTimeMillis()) status = "ATTEND"
             val displayType = if (event.id.startsWith("completed_task_")) "✅ 完了報告" else "🎓 予定"
             list.add(ScheduleItem(
-                event.id, timeStr, event.genre, displayType, sortTime, event.location, true,
+                event.id, timeStr, event.summary, displayType, sortTime, event.location, true,
                 isAttendanceTracked = event.isAttendanceTracked, attendanceStatus = status, startTimeMillis = event.startTime
             ))
         }
     }
 
     private fun loadTasksForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
-        val prefs = requireContext().getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val jsonString = prefs.getString("taskListJSON", null) ?: return
-        val jsonArray = JSONArray(jsonString)
+        val ctx = context ?: return
+        val prefs = ctx.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_TASK_LIST, null) ?: return
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            val deadlineMillis = obj.getLong("deadlineMillis")
-            val taskDate = Calendar.getInstance().apply { timeInMillis = deadlineMillis }
-            if (taskDate.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && taskDate.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)) {
-                val timeStr = sdfTime.format(Date(deadlineMillis))
-                val sortTime = taskDate.get(Calendar.HOUR_OF_DAY).toLong() * 60 + taskDate.get(Calendar.MINUTE)
-                list.add(ScheduleItem("", timeStr, obj.getString("title"), "📝 タスク", sortTime))
+        try {
+            val tasks = Json.decodeFromString<List<TaskItem>>(jsonString)
+            tasks.forEach { task ->
+                val taskDate = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
+                if (taskDate.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && taskDate.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)) {
+                    val timeStr = sdfTime.format(Date(task.deadlineMillis))
+                    val sortTime = taskDate.get(Calendar.HOUR_OF_DAY).toLong() * 60 + taskDate.get(Calendar.MINUTE)
+                    list.add(ScheduleItem("", timeStr, task.title, "📝 タスク", sortTime))
+                }
             }
-        }
+        } catch (e: Exception) {}
     }
 
     private fun addCachedIcsEventsForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
@@ -438,7 +402,7 @@ class TimetableFragment : Fragment() {
             val eventCal = Calendar.getInstance().apply { timeInMillis = event.startTime }
             eventCal.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && eventCal.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)
         }
-        val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
+        val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
         filtered.forEach { event ->
             val timeStr = sdfTime.format(Date(event.startTime))
             val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
@@ -455,7 +419,7 @@ class TimetableFragment : Fragment() {
     }
 
     private fun addDeviceEventsForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
-        val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val appPrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         if (!appPrefs.getBoolean("sync_device_calendar", false)) return
 
         val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(requireContext(), targetDate)
@@ -493,7 +457,7 @@ class TimetableFragment : Fragment() {
     }
 
     fun showExternalTrackingDialog(item: ScheduleItem) {
-        val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
+        val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
         val isTracked = attendancePrefs.getBoolean("track_${item.title}", false)
 
         AlertDialog.Builder(requireContext())
@@ -529,12 +493,11 @@ class TimetableFragment : Fragment() {
                 saveCustomEvents()
             }
         } else {
-            val attendancePrefs = requireContext().getSharedPreferences("AttendancePrefs", Context.MODE_PRIVATE)
+            val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
             val cal = Calendar.getInstance().apply { timeInMillis = item.startTimeMillis }
             val dayKey = String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
             attendancePrefs.edit().putString("status_${item.title}_$dayKey", status).apply()
             
-            // カウンターの加算・減算
             val currentAbsent = attendancePrefs.getInt("absent_${item.title}", 0)
             if (status == "ABSENT") {
                 attendancePrefs.edit().putInt("absent_${item.title}", currentAbsent + 1).apply()
@@ -543,6 +506,11 @@ class TimetableFragment : Fragment() {
             }
             notifyFragments()
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     private inner class SchedulePagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
@@ -619,8 +587,8 @@ class DailyScheduleFragment : Fragment() {
             is TimetableFragment.ScheduleDisplayItem.EmptyPlaceholder -> TYPE_EMPTY
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
-            TYPE_HEADER -> HeaderViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_schedule_header, parent, false))
-            TYPE_EVENT -> EventViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_schedule_card, parent, false))
+            TYPE_HEADER -> HeaderViewHolder(ItemScheduleHeaderBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+            TYPE_EVENT -> EventViewHolder(ItemScheduleCardBinding.inflate(LayoutInflater.from(parent.context), parent, false))
             else -> EmptyViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_schedule_empty_placeholder, parent, false))
         }
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -632,19 +600,15 @@ class DailyScheduleFragment : Fragment() {
         }
         override fun getItemCount() = items.size
     }
-    private class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val titleText: TextView = view.findViewById(R.id.headerTitleText)
-        fun bind(title: String) { titleText.text = title }
+    private class HeaderViewHolder(val binding: ItemScheduleHeaderBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(title: String) { binding.headerTitleText.text = title }
     }
-    private class EventViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val timeText: TextView = view.findViewById(R.id.scheduleTimeText)
-        private val titleText: TextView = view.findViewById(R.id.scheduleTitleText)
-        private val typeText: TextView = view.findViewById(R.id.scheduleTypeText)
+    private class EventViewHolder(val binding: ItemScheduleCardBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TimetableFragment.ScheduleItem, onLongClick: (TimetableFragment.ScheduleItem) -> Unit, onAttendanceChanged: (TimetableFragment.ScheduleItem, String) -> Unit, onItemClick: (TimetableFragment.ScheduleItem) -> Unit) {
-            timeText.text = item.time; titleText.text = item.title
-            typeText.text = if (item.location.isNotEmpty()) "${item.type} @ ${item.location}" else item.type
-            itemView.setOnClickListener { onItemClick(item) }
-            itemView.setOnLongClickListener { onLongClick(item); true }
+            binding.scheduleTimeText.text = item.time; binding.scheduleTitleText.text = item.title
+            binding.scheduleTypeText.text = if (item.location.isNotEmpty()) "${item.type} @ ${item.location}" else item.type
+            binding.root.setOnClickListener { onItemClick(item) }
+            binding.root.setOnLongClickListener { onLongClick(item); true }
         }
     }
     private class EmptyViewHolder(view: View) : RecyclerView.ViewHolder(view)

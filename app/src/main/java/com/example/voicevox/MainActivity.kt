@@ -446,6 +446,7 @@ class MainActivity : AppCompatActivity() {
         binding.fragmentContainer.visibility = View.GONE
         updatePlayerStatus()
         updateDashboardInfo()
+        updateAttendanceButtonVisibility()
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) supportFragmentManager.beginTransaction().remove(fragment).commit()
     }
@@ -460,15 +461,29 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateAttendanceButtonVisibility() {
         val schedulePrefs = getSharedPreferences(CuraConstants.PREFS_SCHEDULE, MODE_PRIVATE)
-        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]")
-        var hasTracked = false
-        try {
-            val events = Json.decodeFromString<List<IcsEvent>>(customJson ?: "[]")
-            if (events.any { it.isAttendanceTracked }) hasTracked = true
-        } catch (e: Exception) {}
-
         val attendancePrefs = getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, MODE_PRIVATE)
-        for (key in attendancePrefs.all.keys) if (key.startsWith("track_") && attendancePrefs.all[key] == true) hasTracked = true
+        
+        var hasTracked = false
+        
+        // 1. カスタム予定のチェック (文字列検索による超堅牢チェック)
+        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]") ?: "[]"
+        if (customJson.contains("\"isAttendanceTracked\":true")) {
+            hasTracked = true
+        }
+
+        if (!hasTracked) {
+            // 2. 外部予定(ICS)の連携中チェック
+            val allKeys = attendancePrefs.all.keys
+            val hasExternalTracked = allKeys.any { it.startsWith("track_") && attendancePrefs.getBoolean(it, false) }
+            
+            // 3. 手動カウンターのチェック (数値型に依存しない安全な取得)
+            val hasManualCount = allKeys.any { 
+                it.startsWith("absent_") && (attendancePrefs.all[it] as? Number)?.toInt() ?: 0 > 0 
+            }
+            
+            if (hasExternalTracked || hasManualCount) hasTracked = true
+        }
+
         binding.layoutAttendanceButton.visibility = if (hasTracked) View.VISIBLE else View.GONE
     }
 

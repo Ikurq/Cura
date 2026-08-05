@@ -6,9 +6,9 @@ import java.util.*
 
 @Serializable
 data class IcsEvent(
-    val summary: String,
+    val summary: String = "無題",
     val startTime: Long,
-    val endTime: Long,
+    val endTime: Long = 0L,
     val location: String = "",
     val isAttendanceTracked: Boolean = false,
     val attendanceStatus: String = "NONE"
@@ -78,7 +78,6 @@ class IcsParser {
     }
 
     private fun parseIcsDate(dateStr: String): Long {
-        // Formats: 20231027T100000Z (UTC) or 20231027T100000 (Local)
         return try {
             if (dateStr.endsWith("Z")) {
                 val sdf = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US)

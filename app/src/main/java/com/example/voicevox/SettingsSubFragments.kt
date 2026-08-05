@@ -230,6 +230,7 @@ class SettingsDevFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_dev, container, false)
         setupLevel(view)
+        setupMigration(view)
         view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
         view.findViewById<Button>(R.id.btnImportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
         return view
@@ -252,6 +253,80 @@ class SettingsDevFragment : Fragment() {
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
+    }
+
+    private fun setupMigration(view: View) {
+        val btnMigrate = view.findViewById<Button>(R.id.btnMigrateData)
+        btnMigrate?.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("データ変換の実行")
+                .setMessage("保存されている予定データを新しい形式に変換します。よろしいですか？")
+                .setPositiveButton("実行") { _, _ ->
+                    performMigration()
+                }
+                .setNegativeButton("キャンセル", null)
+                .show()
+        }
+
+        val btnResetAtt = view.findViewById<Button>(R.id.btnResetAttendance)
+        btnResetAtt?.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("出席管理のリセット")
+                .setMessage("すべての出席連携・欠席カウントを消去し、ホーム画面からボタンを非表示にします。よろしいですか？")
+                .setPositiveButton("リセット実行") { _, _ ->
+                    performAttendanceReset()
+                }
+                .setNegativeButton("キャンセル", null)
+                .show()
+        }
+    }
+
+    private fun performAttendanceReset() {
+        val ctx = context ?: return
+        
+        // 1. 出席管理用の設定をすべて削除
+        val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+        attendancePrefs.edit { clear() }
+
+        // 2. カスタム予定の中の出席管理フラグもすべて折る
+        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]")
+        if (customJson != null && customJson.contains("\"isAttendanceTracked\":true")) {
+            val migrated = customJson.replace("\"isAttendanceTracked\":true", "\"isAttendanceTracked\":false")
+            schedulePrefs.edit { putString(CuraConstants.KEY_EVENT_LIST, migrated) }
+        }
+
+        Toast.makeText(ctx, "出席データをリセットしました。ホームに戻るとボタンが消えます。", Toast.LENGTH_LONG).show()
+    }
+
+    private fun performMigration() {
+        val ctx = context ?: return
+        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val timetablePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+
+        var convertedCount = 0
+
+        // 1. Custom Events Migration
+        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
+        if (customJson != null && customJson.contains("\"genre\":")) {
+            val migrated = customJson.replace("\"genre\":", "\"summary\":")
+            schedulePrefs.edit { putString(CuraConstants.KEY_EVENT_LIST, migrated) }
+            convertedCount++
+        }
+
+        // 2. ICS Cache Migration
+        val icsJson = timetablePrefs.getString(CuraConstants.KEY_ICS_CACHE, null)
+        if (icsJson != null && icsJson.contains("\"genre\":")) {
+            val migrated = icsJson.replace("\"genre\":", "\"summary\":")
+            timetablePrefs.edit { putString(CuraConstants.KEY_ICS_CACHE, migrated) }
+            convertedCount++
+        }
+
+        if (convertedCount > 0) {
+            Toast.makeText(ctx, "データの変換が完了しました。ウィジェットを確認してください。", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(ctx, "変換が必要なデータは見つかりませんでした。", Toast.LENGTH_SHORT).show()
+        }
     }
 }
 

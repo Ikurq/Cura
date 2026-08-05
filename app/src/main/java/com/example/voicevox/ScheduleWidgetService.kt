@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
-import org.json.JSONArray
+import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -16,11 +16,12 @@ class ScheduleWidgetService : RemoteViewsService() {
 
 class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
     private val scheduleList = mutableListOf<WidgetScheduleItem>()
+    private val json = Json { ignoreUnknownKeys = true }
 
     data class WidgetScheduleItem(
         val time: String,
         val title: String,
-        val type: String,
+        val typeLabel: String,
         val sortTime: Long,
         val location: String = ""
     )
@@ -32,55 +33,35 @@ class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsServ
         val today = Calendar.getInstance()
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        // 1. Load Tasks for Today
-        val taskPrefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val taskJson = taskPrefs.getString("taskListJSON", null)
-        if (taskJson != null) {
-            try {
-                val jsonArray = JSONArray(taskJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val deadline = obj.getLong("deadlineMillis")
-                    val cal = Calendar.getInstance().apply { timeInMillis = deadline }
-                    if (isSameDay(cal, today)) {
-                        val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
-                        scheduleList.add(WidgetScheduleItem(sdfTime.format(Date(deadline)), obj.getString("title"), "📝 タスク", sortTime))
-                    }
-                }
-            } catch (e: Exception) {}
+        // 1. 今日の予定を取得 (ScheduleLoaderを使用)
+        val events = ScheduleLoader.loadAllEventsForToday(context, today)
+        events.forEach { event ->
+            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
+            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            scheduleList.add(WidgetScheduleItem(
+                sdfTime.format(Date(event.startTime)),
+                event.summary,
+                "[EVENT]",
+                sortTime,
+                event.location
+            ))
         }
 
-        // 2. Load Custom Events
-        val schedulePrefs = context.getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-        val customJson = schedulePrefs.getString("eventListJSON", null)
-        if (customJson != null) {
+        // 2. 今日のタスクを取得
+        val taskPrefs = context.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+        taskPrefs.getString(CuraConstants.KEY_TASK_LIST, null)?.let { jsonStr ->
             try {
-                val jsonArray = JSONArray(customJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val cal = Calendar.getInstance().apply { timeInMillis = startTime }
+                val tasks = json.decodeFromString<List<TaskItem>>(jsonStr)
+                tasks.filter { !it.isCompleted }.forEach { task ->
+                    val cal = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
                     if (isSameDay(cal, today)) {
                         val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
-                        scheduleList.add(WidgetScheduleItem(sdfTime.format(Date(startTime)), obj.getString("genre"), "📌 予定", sortTime, obj.getString("location")))
-                    }
-                }
-            } catch (e: Exception) {}
-        }
-
-        // 3. Load ICS Cache
-        val timetablePrefs = context.getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-        val icsJson = timetablePrefs.getString("icsCacheJSON", null)
-        if (icsJson != null) {
-            try {
-                val jsonArray = JSONArray(icsJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val cal = Calendar.getInstance().apply { timeInMillis = startTime }
-                    if (isSameDay(cal, today)) {
-                        val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
-                        scheduleList.add(WidgetScheduleItem(sdfTime.format(Date(startTime)), obj.getString("summary"), "📅 外部予定", sortTime, obj.getString("location")))
+                        scheduleList.add(WidgetScheduleItem(
+                            sdfTime.format(Date(task.deadlineMillis)),
+                            task.title,
+                            "[TASK]",
+                            sortTime
+                        ))
                     }
                 }
             } catch (e: Exception) {}
@@ -94,7 +75,10 @@ class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsServ
                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 
-    override fun onDestroy() { scheduleList.clear() }
+    override fun onDestroy() {
+        scheduleList.clear()
+    }
+
     override fun getCount(): Int = scheduleList.size
 
     override fun getViewAt(position: Int): RemoteViews {
@@ -102,12 +86,14 @@ class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsServ
 
         val item = scheduleList[position]
         val views = RemoteViews(context.packageName, R.layout.item_widget_schedule)
+        
         views.setTextViewText(R.id.widgetScheduleTime, item.time)
         views.setTextViewText(R.id.widgetScheduleTitle, item.title)
         
-        val infoText = if (item.location.isNotEmpty()) "${item.type} @ ${item.location}" else item.type
+        val infoText = if (item.location.isNotEmpty()) "${item.typeLabel} @ ${item.location}" else item.typeLabel
         views.setTextViewText(R.id.widgetScheduleInfo, infoText)
 
+        // 行全体をタップした際にアプリを開く
         val fillInIntent = Intent()
         views.setOnClickFillInIntent(R.id.widgetScheduleTitle, fillInIntent)
 
