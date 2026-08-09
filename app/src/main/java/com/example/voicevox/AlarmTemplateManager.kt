@@ -25,7 +25,7 @@ object AlarmTemplateManager {
     }
 
     /**
-     * 絶対起きるアラームの生成用テンプレートを取得する
+     * 予定連動アラームの生成用テンプレートを取得する
      * 引数: hour, minute, summary, leadTime
      */
     fun getMandatoryAlarmTemplate(context: Context): String {

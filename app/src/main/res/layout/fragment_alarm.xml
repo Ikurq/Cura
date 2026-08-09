@@ -85,7 +85,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|start"
         android:layout_margin="16dp"
-        android:text="強制アラーム"
+        android:text="予定連動アラーム"
         android:textColor="@color/white"
         app:icon="@android:drawable/ic_lock_idle_alarm"
         app:iconTint="@color/white"

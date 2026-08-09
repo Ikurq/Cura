@@ -9,8 +9,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
@@ -18,6 +18,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class AlarmReceiver : BroadcastReceiver() {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         android.util.Log.d("AlarmReceiver", "Received action: $action")
@@ -37,7 +40,6 @@ class AlarmReceiver : BroadcastReceiver() {
                 val message = intent.getStringExtra("MESSAGE") ?: ""
                 showSystemNotification(context, title, message)
 
-                // 期限超過リマインドの場合、さらに1時間後を再予約する
                 if (title.contains("【期限超過】")) {
                     rescheduleNextOverdueReminder(context, intent)
                 }
@@ -50,7 +52,6 @@ class AlarmReceiver : BroadcastReceiver() {
             val vibrate = intent.getBooleanExtra("VIBRATE", true)
 
             if (audioFilePath != null) {
-                // Start Service
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
                     putExtra("AUDIO_FILE_PATH", audioFilePath)
                     putExtra("ALARM_ID", alarmId)
@@ -63,14 +64,6 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
                 return
             }
-
-            // If we reach here, it's an unknown or malformed intent
-            if (action != null && action != "android.intent.action.BOOT_COMPLETED" && action != "ALARM_TRIGGER") {
-                android.util.Log.d("AlarmReceiver", "Unknown intent action: $action")
-            }
-            
-            // Note: AlarmService will launch AlarmAlertActivity via fullScreenIntent
-            // for better compatibility with Android 10+ background restrictions.
             
         } catch (e: Exception) {
             android.util.Log.e("AlarmReceiver", "Error in onReceive: ${e.message}")
@@ -79,40 +72,32 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun checkMandatoryReminder(context: Context) {
-        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val appPrefs = context.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         if (!appPrefs.getBoolean("mandatory_reminder", true)) return
 
-        val alarmPrefs = context.getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
-        val alarmJson = alarmPrefs.getString("alarmListJSON", "[]")
+        val alarmPrefs = context.getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val alarmJson = alarmPrefs.getString(CuraConstants.KEY_ALARM_LIST, "[]")
         
-        // Today's mandatory alarm check
         val today = Calendar.getInstance()
         var hasMandatoryToday = false
         try {
-            val jsonArray = JSONArray(alarmJson)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                if (!obj.optBoolean("isEnabled", true)) continue
+            val alarmList = json.decodeFromString<List<AlarmItem>>(alarmJson ?: "[]")
+            
+            for (item in alarmList) {
+                if (!item.isEnabled) continue
 
-                // Check repeatDays for today
-                val repeatDays = obj.optJSONArray("repeatDays") // List of "Mon", "Tue", etc.
-                val dayOfWeekStr = SimpleDateFormat("EEE", Locale.US).format(today.time) // "Mon", "Tue"...
-                
                 var scheduledForToday = false
-                if (repeatDays == null || repeatDays.length() == 0) {
-                    // One-time alarm. Check if it's for today.
-                    // (Assuming one-time alarms set without specific date are for next occurrence)
+                if (item.repeatDays.isEmpty()) {
                     scheduledForToday = true 
                 } else {
-                    for (j in 0 until repeatDays.length()) {
-                        if (repeatDays.getString(j) == dayOfWeekStr) {
-                            scheduledForToday = true
-                            break
-                        }
+                    // repeatDays is List<Int> (1=Sun, 2=Mon...)
+                    val todayInt = today.get(Calendar.DAY_OF_WEEK)
+                    if (item.repeatDays.contains(todayInt)) {
+                        scheduledForToday = true
                     }
                 }
 
-                if (scheduledForToday && obj.getString("message").contains("本日の予定である")) {
+                if (scheduledForToday && item.message.contains("本日の予定である")) {
                     hasMandatoryToday = true
                     break
                 }
@@ -122,90 +107,64 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         if (!hasMandatoryToday) {
-            showSystemNotification(context, "絶対起きるアラーム未設定", "本日の重要予定に対するアラームが設定されていません。アプリを開いて設定を確認してください。")
+            showSystemNotification(context, "予定連動アラーム未設定", "本日の予定に対するアラームが設定されていません。アプリを確認してください。")
         }
     }
 
     private fun scheduleDailyNotifications(context: Context) {
-        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val appPrefs = context.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
         val taskNotifyEnabled = appPrefs.getBoolean("task_notification", true)
         val eventNotifyEnabled = appPrefs.getBoolean("event_notification", true)
         
-        android.util.Log.d("AlarmReceiver", "Scheduling notifications. Task: $taskNotifyEnabled, Event: $eventNotifyEnabled")
-
         if (!taskNotifyEnabled && !eventNotifyEnabled) return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         val today = Calendar.getInstance()
         val now = System.currentTimeMillis()
 
-        // 1. Tasks
         if (taskNotifyEnabled) {
-            val taskPrefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-            val taskJson = taskPrefs.getString("taskListJSON", "[]")
+            val taskPrefs = context.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+            val taskJson = taskPrefs.getString(CuraConstants.KEY_TASK_LIST, "[]")
             try {
-                val jsonArray = JSONArray(taskJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    if (obj.optBoolean("isCompleted", false)) continue
-
-                    val deadline = obj.getLong("deadlineMillis")
-                    val title = obj.getString("title")
-
-                    // A. Before deadline (1 hour before)
+                val tasks = json.decodeFromString<List<TaskItem>>(taskJson ?: "[]")
+                tasks.filter { !it.isCompleted }.forEachIndexed { i, task ->
+                    val deadline = task.deadlineMillis
                     val notifyTime = deadline - (60 * 60 * 1000)
                     if (notifyTime > now && isSameDay(deadline, today)) {
-                        android.util.Log.d("AlarmReceiver", "Scheduling Task Reminder: $title at $notifyTime")
-                        scheduleSingleNotification(context, alarmManager, notifyTime, "タスク期限1時間前", title, i + 1000)
+                        scheduleSingleNotification(context, alarmManager, notifyTime, "タスク期限1時間前", task.title, i + 1000)
                     }
-
-                    // B. After deadline (Hourly reminder)
                     if (now > deadline) {
-                        // If deadline passed, schedule next hour from now
-                        // We check this every time REFRESH_CALENDARS or SCHEDULE_NOTIFICATIONS is called (e.g. at boot or midnight or app open)
-                        // To keep it simple, we schedule the "first" overdue reminder 1 hour from now.
                         val overdueTime = now + (60 * 60 * 1000)
-                        android.util.Log.d("AlarmReceiver", "Scheduling Overdue Task Reminder: $title at $overdueTime")
-                        scheduleSingleNotification(context, alarmManager, overdueTime, "【期限超過】タスク未完了", title, i + 5000)
+                        scheduleSingleNotification(context, alarmManager, overdueTime, "【期限超過】タスク未完了", task.title, i + 5000)
                     }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {}
         }
 
-        // 2. Events (Custom + ICS)
         if (eventNotifyEnabled) {
-            // --- Custom Events ---
-            val schedulePrefs = context.getSharedPreferences("SchedulePrefs", Context.MODE_PRIVATE)
-            val customJson = schedulePrefs.getString("eventListJSON", "[]")
+            val schedulePrefs = context.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+            val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]")
             try {
-                val customArray = JSONArray(customJson)
-                for (i in 0 until customArray.length()) {
-                    val obj = customArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val notifyTime = startTime - (10 * 60 * 1000) // 10 mins before
-                    if (notifyTime > System.currentTimeMillis() && isSameDay(startTime, today)) {
-                        android.util.Log.d("AlarmReceiver", "Scheduling Custom Event: ${obj.getString("genre")} at $notifyTime")
-                        scheduleSingleNotification(context, alarmManager, notifyTime, "予定10分前", obj.getString("genre"), i + 3000)
+                val events = json.decodeFromString<List<ScheduleEvent>>(customJson ?: "[]")
+                events.forEachIndexed { i, event ->
+                    val notifyTime = event.startTime - (10 * 60 * 1000)
+                    if (notifyTime > System.currentTimeMillis() && isSameDay(event.startTime, today)) {
+                        scheduleSingleNotification(context, alarmManager, notifyTime, "予定10分前", event.summary, i + 3000)
                     }
                 }
             } catch (e: Exception) {}
 
-            // --- ICS Events ---
-            val timetablePrefs = context.getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
-            val icsJson = timetablePrefs.getString("icsCacheJSON", "[]")
+            val timetablePrefs = context.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
+            val icsJson = timetablePrefs.getString(CuraConstants.KEY_ICS_CACHE, "[]")
             try {
-                val jsonArray = JSONArray(icsJson)
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val startTime = obj.getLong("startTime")
-                    val notifyTime = startTime - (10 * 60 * 1000) // 10 mins before
-                    
-                    if (notifyTime > System.currentTimeMillis() && isSameDay(startTime, today)) {
-                        android.util.Log.d("AlarmReceiver", "Scheduling ICS Event: ${obj.getString("summary")} at $notifyTime")
-                        scheduleSingleNotification(context, alarmManager, notifyTime, "予定10分前", obj.getString("summary"), i + 2000)
+                val events = json.decodeFromString<List<IcsEvent>>(icsJson ?: "[]")
+                events.forEachIndexed { i, event ->
+                    val notifyTime = event.startTime - (10 * 60 * 1000)
+                    if (notifyTime > System.currentTimeMillis() && isSameDay(event.startTime, today)) {
+                        scheduleSingleNotification(context, alarmManager, notifyTime, "予定10分前", event.summary, i + 2000)
                     }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {}
         }
     }
 
@@ -213,28 +172,19 @@ class AlarmReceiver : BroadcastReceiver() {
         val title = oldIntent.getStringExtra("TITLE") ?: ""
         val message = oldIntent.getStringExtra("MESSAGE") ?: ""
         
-        // 念のため、タスクがまだ未完了かチェック
-        val taskPrefs = context.getSharedPreferences("TodoPrefs", Context.MODE_PRIVATE)
-        val taskJson = taskPrefs.getString("taskListJSON", "[]")
+        val taskPrefs = context.getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
+        val taskJson = taskPrefs.getString(CuraConstants.KEY_TASK_LIST, "[]")
         var isStillPending = false
         try {
-            val jsonArray = JSONArray(taskJson)
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                if (obj.getString("title") == message && !obj.optBoolean("isCompleted", false)) {
-                    isStillPending = true
-                    break
-                }
-            }
+            val tasks = json.decodeFromString<List<TaskItem>>(taskJson ?: "[]")
+            isStillPending = tasks.any { it.title == message && !it.isCompleted }
         } catch (e: Exception) {}
 
         if (isStillPending) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             val nextTime = System.currentTimeMillis() + (60 * 60 * 1000)
-            // IDを維持するためにインテントから取得を試みる（またはメッセージのハッシュなど）
             val id = message.hashCode() + 5000 
             scheduleSingleNotification(context, alarmManager, nextTime, title, message, id)
-            android.util.Log.d("AlarmReceiver", "Rescheduled overdue reminder for: $message")
         }
     }
 
@@ -259,7 +209,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val channelId = "reminder_channel"
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(channelId, "リマインダー", NotificationManager.IMPORTANCE_DEFAULT)
+            val channel = NotificationChannel(channelId, "リマインダー", NotificationManager.IMPORTANCE_DEFAULT)
             manager.createNotificationChannel(channel)
         }
 
@@ -279,12 +229,12 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     private fun refreshCalendars(context: Context) {
-        val prefs = context.getSharedPreferences("TimetablePrefs", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
         val sourcesJson = prefs.getString("calendarSourcesJSON", null) ?: return
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val sourcesArray = JSONArray(sourcesJson)
+                val sourcesArray = org.json.JSONArray(sourcesJson)
                 val allEvents = mutableListOf<IcsEvent>()
                 
                 for (i in 0 until sourcesArray.length()) {
@@ -292,26 +242,14 @@ class AlarmReceiver : BroadcastReceiver() {
                     val urlStr = obj.getString("url")
                     try {
                         val url = URL(urlStr)
-                        val connection = url.openConnection()
-                        val lines = connection.getInputStream().use { stream ->
+                        val lines = url.openConnection().getInputStream().use { stream ->
                             BufferedReader(InputStreamReader(stream)).readLines()
                         }
-                        val events = IcsParser().parse(lines)
-                        allEvents.addAll(events)
+                        allEvents.addAll(IcsParser().parse(lines))
                     } catch (e: Exception) { e.printStackTrace() }
                 }
                 
-                // Save Cache
-                val cacheArray = JSONArray()
-                for (event in allEvents) {
-                    cacheArray.put(JSONObject().apply {
-                        put("summary", event.summary)
-                        put("startTime", event.startTime)
-                        put("endTime", event.endTime)
-                        put("location", event.location)
-                    })
-                }
-                prefs.edit().putString("icsCacheJSON", cacheArray.toString()).apply()
+                prefs.edit().putString(CuraConstants.KEY_ICS_CACHE, Json.encodeToString(allEvents)).apply()
             } catch (e: Exception) { e.printStackTrace() }
         }
     }

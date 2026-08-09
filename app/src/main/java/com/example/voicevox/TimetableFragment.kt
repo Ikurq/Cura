@@ -351,7 +351,7 @@ class TimetableFragment : Fragment() {
             if (pmEvents.isEmpty()) displayList.add(ScheduleDisplayItem.EmptyPlaceholder) else pmEvents.forEach { displayList.add(ScheduleDisplayItem.Event(it)) }
         } else {
             val headerTitle = when(currentFilter) {
-                FilterType.EXTERNAL -> "予定・授業一覧"; FilterType.TASK -> "本日のタスク"; FilterType.COMPLETED -> "本日の実績"; else -> ""
+                FilterType.EXTERNAL -> "予定一覧"; FilterType.TASK -> "本日のタスク"; FilterType.COMPLETED -> "本日の実績"; else -> ""
             }
             displayList.add(ScheduleDisplayItem.Header(headerTitle))
             if (sortedEvents.isEmpty()) displayList.add(ScheduleDisplayItem.EmptyPlaceholder) else sortedEvents.forEach { displayList.add(ScheduleDisplayItem.Event(it)) }

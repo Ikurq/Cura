@@ -13,14 +13,14 @@
 
     <!-- Main Activity -->
     <string name="welcome_title">Cura Online</string>
-    <string name="welcome_subtitle">あなたの学生生活を、守護・整理（キュレート）します</string>
+    <string name="welcome_subtitle">あなたの生活を、守護・整理（キュレート）します</string>
 
     <!-- Alarm Fragment -->
     <string name="title_alarm">アラーム</string>
     <string name="no_alarms">アラームが設定されていません</string>
     <string name="tap_plus_alarm">＋ボタンから新しく作成しましょう</string>
     <string name="new_alarm">新しいアラーム</string>
-    <string name="mandatory">重要予定</string>
+    <string name="mandatory">予定連動</string>
 
     <!-- Task Fragment -->
     <string name="title_tasks">タスクリスト</string>
@@ -46,7 +46,7 @@
     <string name="fullscreen_title">全画面通知の許可</string>
     <string name="fullscreen_desc">ロック画面でアラームを表示するために必要です</string>
     <string name="settings_notification">通知設定</string>
-    <string name="mandatory_reminder_title">絶対起きるアラームのリマインド</string>
+    <string name="mandatory_reminder_title">予定連動アラームのリマインド</string>
     <string name="mandatory_reminder_desc">0時にアラームが未設定なら通知</string>
     <string name="task_notification_title">タスクの締切通知</string>
     <string name="task_notification_desc">締切の1時間前に通知します</string>
@@ -73,11 +73,11 @@
     <!-- Dialogs -->
     <string name="add_event_title">予定の追加</string>
     <string name="select_from_preset">保存済みから選択</string>
-    <string name="genre_hint">ジャンル (例: バイト、講義)</string>
+    <string name="genre_hint">ジャンル (例: バイト、会議)</string>
     <string name="select_time">開始時間を選択</string>
     <string name="location_hint">場所</string>
     <string name="save_as_preset">この内容をプリセットとして保存する</string>
-    <string name="track_attendance">出席/記録を管理する (授業など)</string>
+    <string name="track_attendance">出席/記録を管理する</string>
     <string name="repeat_weekly">毎週繰り返す (年度末 3/31 まで)</string>
     <string name="alarm_message_label">アラーム時に読み上げるセリフ</string>
     <string name="preview">試聴</string>
@@ -96,7 +96,7 @@
     <string name="toast_alarm_off">アラームをOFFにしました</string>
     <string name="dialog_delete_alarm_title">アラームの削除</string>
     <string name="dialog_delete_alarm_msg">このアラームを削除しますか？</string>
-    <string name="dialog_mandatory_alarm_title">「絶対起きるアラーム」をセット</string>
+    <string name="dialog_mandatory_alarm_title">「予定連動アラーム」をセット</string>
     <string name="dialog_generate">生成</string>
     <string name="dialog_new_alarm_title">新規アラーム</string>
     <string name="dialog_save">保存</string>

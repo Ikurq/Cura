@@ -61,13 +61,13 @@ class AlarmService : Service() {
         val fullScreenPendingIntent = PendingIntent.getActivity(this, 0, alertIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         val notification: Notification = NotificationCompat.Builder(this, "ALARM_CHANNEL")
-            .setContentTitle("アラーム")
-            .setContentText("設定時刻になりました")
+            .setContentTitle("アラーム鳴動中")
+            .setContentText("タップして停止画面を開く、または下のボタンで強制停止")
             .setSmallIcon(R.drawable.ic_notification_cura)
-            .setPriority(NotificationCompat.PRIORITY_MAX) // 最高優先度
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "停止", stopPendingIntent)
+            .addAction(android.R.drawable.ic_lock_power_off, "強制停止", stopPendingIntent)
             .setOngoing(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

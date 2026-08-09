@@ -101,6 +101,18 @@ class MainActivity : AppCompatActivity() {
         // ナビゲーション設定
         setupNavigation()
         setupCharacterDialogue()
+
+        // 緊急停止ボタンの設定
+        binding.btnEmergencyStop.setOnClickListener {
+            stopAllAlarms()
+            Toast.makeText(this, "すべてのアラームを強制停止しました", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopAllAlarms() {
+        // アラームサービスを停止
+        val intent = Intent(this, AlarmService::class.java)
+        stopService(intent)
     }
 
     private fun setupCyberAnimations() {
@@ -549,7 +561,6 @@ class MainActivity : AppCompatActivity() {
         val pi = android.app.PendingIntent.getBroadcast(this, 999, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
         val cal = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 5); if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1) }
         am.setInexactRepeating(android.app.AlarmManager.RTC_WAKEUP, cal.timeInMillis, android.app.AlarmManager.INTERVAL_DAY, pi)
-        sendBroadcast(intent)
     }
 
     private fun checkExactAlarmPermission() {
