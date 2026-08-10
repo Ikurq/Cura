@@ -106,11 +106,11 @@
                             android:id="@+id/btnQuickSettings"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
-                            android:layout_marginStart="4dp"
+                            android:layout_marginStart="12dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:padding="8dp"
                             android:scaleType="fitCenter"
-                            android:src="@android:drawable/ic_menu_preferences"
+                            android:src="@drawable/ic_tech_settings"
                             app:tint="@color/cyber_cyan" />
                     </LinearLayout>
 
@@ -143,26 +143,26 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Layer 1 (Bottom): The White Sliding Circle (The Bulge) -->
+            <!-- Layer 1 (Bottom): The Sliding Circle (The Bulge) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/navBulgeCircle"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
                 android:layout_gravity="bottom|start"
                 android:layout_marginBottom="65dp"
-                app:cardBackgroundColor="#FFFFFFFF"
+                app:cardBackgroundColor="@color/primary_container"
                 app:cardCornerRadius="35dp"
                 app:cardElevation="0dp"
                 android:elevation="0dp"
                 app:strokeWidth="0dp" />
 
-            <!-- Layer 2 (Middle): The Main White Bar -->
+            <!-- Layer 2 (Middle): The Main Theme Bar -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
                 android:layout_gravity="bottom"
                 android:layout_marginBottom="30dp"
-                android:background="@drawable/bg_nav_white_base"
+                android:background="@drawable/bg_nav_primary_base"
                 android:elevation="0dp" />
 
             <!-- Layer 3 (Top): Invisible Navigation Logic / Icons -->
