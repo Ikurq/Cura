@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The white bar base starts at 30dp to allow the circle to overflow up to 30dp -->
+    <item android:top="30dp">
+        <shape>
+            <solid android:color="#FFFFFFFF" />
+            <stroke android:width="1.5dp" android:color="@color/cyber_cyan" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>

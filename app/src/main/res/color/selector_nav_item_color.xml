@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Active State: Darker Cyan for better contrast on white background -->
+    <item android:color="@color/cyber_cyan_dark" android:state_checked="true" />
+    <!-- Inactive State: Dark Slate for maximum visibility on white background -->
+    <item android:color="#475569" />
+</selector>

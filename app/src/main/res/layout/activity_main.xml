@@ -11,8 +11,11 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/bg_cyber_deep_blue"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
+        <!-- Unified Toolbar (Hidden on Home) -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -26,673 +29,169 @@
             app:titleTextColor="@color/text_primary" />
 
         <FrameLayout
-            android:id="@+id/launcherLayout"
+            android:id="@+id/mainContentFrame"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <com.example.voicevox.ParticleBackgroundView
+            <!-- Launcher Layout (Home) -->
+            <FrameLayout
+                android:id="@+id/launcherLayout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent">
 
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:fillViewport="true">
+                <com.example.voicevox.ParticleBackgroundView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
-                    <androidx.constraintlayout.widget.Guideline
-                        android:id="@+id/topGuideline"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        app:layout_constraintGuide_begin="80dp" />
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/statusCard"
-                        style="@style/CyberCard"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="20dp"
-                        app:layout_constraintTop_toTopOf="@id/topGuideline"
-                        app:strokeColor="@color/cyber_cyan">
-
-                        <androidx.constraintlayout.widget.ConstraintLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:padding="12dp">
-
-                            <!-- Top Row: System Status -->
-                            <TextView
-                                android:id="@+id/welcomeTitle"
-                                style="@style/CyberTypography.Header"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="STATUS: ACTIVE"
-                                android:textColor="@color/cyber_cyan"
-                                android:textSize="10sp"
-                                android:letterSpacing="0.1"
-                                app:layout_constraintStart_toStartOf="parent"
-                                app:layout_constraintTop_toTopOf="parent" />
-
-                            <TextView
-                                android:id="@+id/hudTimeText"
-                                style="@style/CyberTypography.Header"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="00:00"
-                                android:textColor="@color/cyber_cyan"
-                                android:textSize="14sp"
-                                app:layout_constraintEnd_toStartOf="@id/compactBatteryHud"
-                                android:layout_marginEnd="12dp"
-                                app:layout_constraintTop_toTopOf="parent" />
-
-                            <LinearLayout
-                                android:id="@+id/compactBatteryHud"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal"
-                                app:layout_constraintEnd_toEndOf="parent"
-                                app:layout_constraintTop_toTopOf="parent">
-
-                                <TextView
-                                    android:id="@+id/hudBatteryText"
-                                    style="@style/CyberTypography.Label"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginEnd="4dp"
-                                    android:text="100%"
-                                    android:textColor="@color/cyber_cyan"
-                                    android:textSize="10sp" />
-
-                                <ProgressBar
-                                    android:id="@+id/hudBatteryBar"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="30dp"
-                                    android:layout_height="2dp"
-                                    android:progress="100"
-                                    android:progressDrawable="@drawable/progress_mp" />
-                            </LinearLayout>
-
-                            <!-- Middle Row: Stats Grid -->
-                            <View
-                                android:id="@+id/divider"
-                                android:layout_width="match_parent"
-                                android:layout_height="1dp"
-                                android:layout_marginTop="8dp"
-                                android:background="@color/cyber_cyan"
-                                android:alpha="0.2"
-                                app:layout_constraintTop_toBottomOf="@id/welcomeTitle" />
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="12dp"
-                                android:orientation="horizontal"
-                                android:baselineAligned="false"
-                                app:layout_constraintTop_toBottomOf="@id/divider">
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:gravity="center"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="TASKS CLEARED"
-                                        android:textSize="9sp"
-                                        android:textColor="@color/text_secondary" />
-
-                                    <TextView
-                                        android:id="@+id/playerLevelText"
-                                        style="@style/CyberTypography.Header"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="0"
-                                        android:textColor="@color/white"
-                                        android:textSize="24sp" />
-                                </LinearLayout>
-
-                                <!-- Vertical Divider -->
-                                <View
-                                    android:layout_width="1dp"
-                                    android:layout_height="30dp"
-                                    android:layout_gravity="center_vertical"
-                                    android:background="@color/cyber_cyan"
-                                    android:alpha="0.2" />
-
-                                <!-- Wakeup Column -->
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:gravity="center"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="WAKEUPS"
-                                        android:textSize="9sp"
-                                        android:textColor="@color/text_secondary" />
-
-                                    <TextView
-                                        android:id="@+id/expValueText"
-                                        style="@style/CyberTypography.Header"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="0"
-                                        android:textColor="@color/white"
-                                        android:textSize="24sp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                        </androidx.constraintlayout.widget.ConstraintLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:id="@+id/characterSection"
-                        android:layout_width="match_parent"
-                        android:layout_height="650dp"
-                        android:layout_marginTop="16dp"
-                        app:layout_constraintTop_toBottomOf="@id/statusCard">
-
-                        <!-- Background Layer: Character -->
-                        <ImageView
-                            android:id="@+id/characterImage"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:adjustViewBounds="true"
-                            android:scaleType="fitStart"
-                            android:src="@drawable/guardian_character"
-                            android:translationX="-30dp"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent" />
-
-                        <!-- Interactive Overlays -->
-                        <View
-                            android:id="@+id/characterTouchTarget"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp"
-                            android:background="@android:color/transparent"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:translationX="-30dp"
-                            app:layout_constraintBottom_toBottomOf="@id/characterImage"
-                            app:layout_constraintEnd_toEndOf="@id/characterImage"
-                            app:layout_constraintHeight_percent="0.4"
-                            app:layout_constraintStart_toStartOf="@id/characterImage"
-                            app:layout_constraintTop_toTopOf="@id/characterImage"
-                            app:layout_constraintVertical_bias="0.1" />
-
-                        <!-- Dialogue Bubble -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/dialogueBubble"
-                            style="@style/CyberCard"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="200dp"
-                            android:layout_marginTop="32dp"
-                            android:layout_marginEnd="16dp"
-                            android:alpha="0.0"
-                            android:elevation="12dp"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:strokeColor="@color/cyber_cyan"
-                            tools:alpha="1.0">
-
-                            <TextView
-                                android:id="@+id/dialogueText"
-                                style="@style/CyberTypography.Body"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:padding="12dp"
-                                android:text="マスター、今日も一日頑張りましょう！"
-                                android:textSize="14sp" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/charLevelCard"
-                            style="@style/CyberCard"
-                            android:layout_width="160dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            app:cardElevation="10dp"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintVertical_bias="0.72"
-                            app:strokeColor="@color/cyber_lime">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="6dp">
-
-                                <RelativeLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginBottom="2dp">
-
-                                    <TextView
-                                        android:id="@+id/charLevelText"
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="CURA Lv.1"
-                                        android:textColor="@color/cyber_lime"
-                                        android:textSize="10sp" />
-
-                                    <TextView
-                                        android:id="@+id/charExpText"
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_alignParentEnd="true"
-                                        android:text="0/100"
-                                        android:textSize="10sp" />
-                                </RelativeLayout>
-
-                                <ProgressBar
-                                    android:id="@+id/charExpProgressBar"
-                                    style="?android:attr/progressBarStyleHorizontal"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="3dp"
-                                    android:progress="0"
-                                    android:progressDrawable="@drawable/progress_mp" />
-                            </LinearLayout>
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <LinearLayout
-                            android:id="@+id/infoSection"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginHorizontal="20dp"
-                            android:layout_marginBottom="12dp"
-                            android:elevation="8dp"
-                            android:orientation="vertical"
-                            app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintStart_toStartOf="parent">
-
-                            <com.google.android.material.card.MaterialCardView
-                                style="@style/CyberCard"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
-                                app:cardBackgroundColor="#770F172A"
-                                app:strokeColor="@color/cyber_cyan">
-
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal"
-                                    android:padding="12dp">
-
-                                    <TextView
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginEnd="12dp"
-                                        android:text="SCHEDULE"
-                                        android:textColor="@color/cyber_cyan"
-                                        android:textSize="11sp" />
-
-                                    <TextView
-                                        android:id="@+id/nextQuestText"
-                                        style="@style/CyberTypography.Body"
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:ellipsize="end"
-                                        android:maxLines="1"
-                                        android:text="予定なし"
-                                        android:textSize="15sp" />
-                                </LinearLayout>
-                            </com.google.android.material.card.MaterialCardView>
-
-                            <com.google.android.material.card.MaterialCardView
-                                style="@style/CyberCard"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
-                                app:cardBackgroundColor="#770F172A"
-                                app:strokeColor="@color/cyber_pink">
-
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal"
-                                    android:padding="12dp">
-
-                                    <TextView
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginEnd="12dp"
-                                        android:text="TASKS"
-                                        android:textColor="@color/cyber_pink"
-                                        android:textSize="11sp" />
-
-                                    <TextView
-                                        android:id="@+id/topMissionText"
-                                        style="@style/CyberTypography.Body"
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:ellipsize="end"
-                                        android:maxLines="1"
-                                        android:text="タスクなし"
-                                        android:textSize="15sp" />
-                                </LinearLayout>
-                            </com.google.android.material.card.MaterialCardView>
-
-                            <com.google.android.material.card.MaterialCardView
-                                style="@style/CyberCard"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                app:cardBackgroundColor="#770F172A"
-                                app:strokeColor="@color/cyber_lime">
-
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal"
-                                    android:padding="12dp">
-
-                                    <TextView
-                                        style="@style/CyberTypography.Label"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginEnd="12dp"
-                                        android:text="ALARM"
-                                        android:textColor="@color/cyber_lime"
-                                        android:textSize="11sp" />
-
-                                    <TextView
-                                        android:id="@+id/nextSummonText"
-                                        style="@style/CyberTypography.Body"
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:ellipsize="end"
-                                        android:maxLines="1"
-                                        android:text="未設定"
-                                        android:textSize="15sp" />
-                                </LinearLayout>
-                            </com.google.android.material.card.MaterialCardView>
-                        </LinearLayout>
-
-                        <!-- Decorative Rotating Core (Stay here or move near time?) -->
-                        <ImageView
-                            android:id="@+id/hudRotatingCore"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginTop="4dp"
-                            android:layout_marginEnd="4dp"
-                            android:alpha="0.3"
-                            android:src="@android:drawable/ic_menu_rotate"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:tint="@color/cyber_cyan" />
-
-                        <LinearLayout
-                            android:id="@+id/interactionContainer"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_marginStart="220dp"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:paddingHorizontal="8dp"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintHorizontal_bias="1.0"
-                            app:layout_constraintStart_toStartOf="parent">
-
-                            <!-- Menu Buttons with Animated Borders (Reordered: Alarm, Task, Schedule, Attendance) -->
-                            <FrameLayout
-                                android:id="@+id/layoutAlarmButton"
-                                android:layout_width="match_parent"
-                                android:layout_height="76dp"
-                                android:layout_marginBottom="8dp">
-
-                                <View
-                                    android:id="@+id/borderAlarm"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:background="@drawable/bg_cyber_border_lime" />
-
-                                <Button
-                                    android:id="@+id/launchAlarmButton"
-                                    style="@style/CyberButton"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="72dp"
-                                    android:layout_gravity="center"
-                                    android:layout_margin="2dp"
-                                    android:background="@drawable/bg_button_gradient_lime"
-                                    android:insetTop="0dp"
-                                    android:insetBottom="0dp"
-                                    android:text="ALARM"
-                                    android:textSize="15sp"
-                                    app:backgroundTint="@null"
-                                    app:icon="@android:drawable/ic_lock_idle_alarm"
-                                    app:strokeWidth="0dp" />
-                            </FrameLayout>
-
-                            <FrameLayout
-                                android:id="@+id/layoutTaskButton"
-                                android:layout_width="match_parent"
-                                android:layout_height="76dp"
-                                android:layout_marginBottom="8dp">
-
-                                <View
-                                    android:id="@+id/borderTask"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:background="@drawable/bg_cyber_border_pink" />
-
-                                <Button
-                                    android:id="@+id/launchTaskButton"
-                                    style="@style/CyberButton"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="72dp"
-                                    android:layout_gravity="center"
-                                    android:layout_margin="2dp"
-                                    android:background="@drawable/bg_button_gradient_pink"
-                                    android:insetTop="0dp"
-                                    android:insetBottom="0dp"
-                                    android:text="TASKS"
-                                    android:textSize="15sp"
-                                    app:backgroundTint="@null"
-                                    app:icon="@android:drawable/ic_menu_my_calendar"
-                                    app:strokeWidth="0dp" />
-                            </FrameLayout>
-
-                            <FrameLayout
-                                android:id="@+id/layoutScheduleButton"
-                                android:layout_width="match_parent"
-                                android:layout_height="76dp"
-                                android:layout_marginBottom="8dp">
-
-                                <View
-                                    android:id="@+id/borderTimetable"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:background="@drawable/bg_cyber_border_cyan" />
-
-                                <Button
-                                    android:id="@+id/launchTimetableButton"
-                                    style="@style/CyberButton"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="72dp"
-                                    android:layout_gravity="center"
-                                    android:layout_margin="2dp"
-                                    android:background="@drawable/bg_button_gradient_cyan"
-                                    android:insetTop="0dp"
-                                    android:insetBottom="0dp"
-                                    android:text="SCHEDULE"
-                                    android:textSize="15sp"
-                                    app:backgroundTint="@null"
-                                    app:icon="@android:drawable/ic_menu_today"
-                                    app:strokeWidth="0dp" />
-                            </FrameLayout>
-
-                            <FrameLayout
-                                android:id="@+id/layoutAttendanceButton"
-                                android:layout_width="match_parent"
-                                android:layout_height="76dp"
-                                android:layout_marginBottom="8dp"
-                                android:visibility="gone">
-
-                                <View
-                                    android:id="@+id/borderAttendance"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:background="@drawable/bg_cyber_border_cyan" />
-
-                                <Button
-                                    android:id="@+id/launchAttendanceButton"
-                                    style="@style/CyberButton"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="72dp"
-                                    android:layout_gravity="center"
-                                    android:layout_margin="2dp"
-                                    android:background="@drawable/bg_button_gradient_cyan"
-                                    android:insetTop="0dp"
-                                    android:insetBottom="0dp"
-                                    android:text="ATTENDANCE"
-                                    android:textSize="14sp"
-                                    app:backgroundTint="@null"
-                                    app:icon="@android:drawable/ic_menu_agenda"
-                                    app:strokeWidth="0dp" />
-                            </FrameLayout>
-                        </LinearLayout>
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    <!-- Bottom Scrolling System Log (Purely Cosmetic) -->
+                    <!-- Top Bar (Flavor HUD) -->
                     <LinearLayout
+                        android:id="@+id/topSystemBar"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:alpha="0.6"
+                        android:layout_height="90dp"
+                        android:background="#88000000"
+                        android:gravity="bottom"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="20dp"
-                        app:layout_constraintTop_toBottomOf="@id/characterSection">
+                        android:paddingHorizontal="16dp"
+                        android:paddingBottom="12dp"
+                        app:layout_constraintTop_toTopOf="parent">
 
-                        <TextView
-                            android:id="@+id/sysLogLabel"
-                            style="@style/CyberTypography.Label"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:text="SYS_LOG:"
-                            android:textColor="@color/cyber_cyan"
-                            android:textSize="10sp" />
-
-                        <TextView
-                            android:id="@+id/systemLogText"
-                            style="@style/CyberTypography.Label"
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:ellipsize="none"
-                            android:singleLine="true"
-                            android:text="INITIALIZING SYSTEM CORE... LINK ESTABLISHED."
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:orientation="vertical">
+                            <TextView
+                                android:id="@+id/welcomeTitle"
+                                style="@style/CyberTypography.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CURA_SYSTEM: ACTIVE"
+                                android:textColor="@color/cyber_cyan"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:id="@+id/hudFlavorText"
+                                style="@style/CyberTypography.Header"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="MEMORY SEA: STABLE"
+                                android:textColor="@color/white"
+                                android:alpha="0.8"
+                                android:textSize="16sp"
+                                android:ellipsize="marquee"
+                                android:marqueeRepeatLimit="marquee_forever"
+                                android:scrollHorizontally="true"
+                                android:singleLine="true" />
+                        </LinearLayout>
+
+                        <ImageButton
+                            android:id="@+id/btnEmergencyStop"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="12dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="8dp"
+                            android:scaleType="fitCenter"
+                            android:src="@android:drawable/ic_lock_power_off"
+                            app:tint="@color/error" />
+
+                        <ImageButton
+                            android:id="@+id/btnQuickSettings"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="4dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="8dp"
+                            android:scaleType="fitCenter"
+                            android:src="@android:drawable/ic_menu_preferences"
+                            app:tint="@color/cyber_cyan" />
                     </LinearLayout>
 
-                    <!-- Quick Settings Floating Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnQuickSettings"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        android:layout_marginEnd="20dp"
-                        android:layout_marginBottom="20dp"
-                        android:insetLeft="0dp"
-                        android:insetTop="0dp"
-                        android:insetRight="0dp"
-                        android:insetBottom="0dp"
-                        android:padding="0dp"
-                        app:cardElevation="10dp"
-                        app:icon="@android:drawable/ic_menu_preferences"
-                        app:iconGravity="textStart"
-                        app:iconPadding="0dp"
-                        app:iconSize="28dp"
-                        app:iconTint="@color/text_secondary"
+                    <include
+                        android:id="@+id/homeContent"
+                        layout="@layout/layout_home_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
                         app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
-                        app:strokeColor="@color/cyber_cyan"
-                        app:strokeWidth="1dp" />
-
-                    <!-- Emergency Stop Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnEmergencyStop"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        android:layout_marginStart="20dp"
-                        android:layout_marginBottom="20dp"
-                        android:insetLeft="0dp"
-                        android:insetTop="0dp"
-                        android:insetRight="0dp"
-                        android:insetBottom="0dp"
-                        android:padding="0dp"
-                        app:cardElevation="10dp"
-                        app:icon="@android:drawable/ic_lock_power_off"
-                        app:iconGravity="textStart"
-                        app:iconPadding="0dp"
-                        app:iconSize="28dp"
-                        app:iconTint="@color/error"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
-                        app:strokeColor="@color/error"
-                        app:strokeWidth="1dp" />
+                        app:layout_constraintTop_toBottomOf="@id/topSystemBar" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
-            </ScrollView>
+            </FrameLayout>
+
+            <!-- Fragment Container -->
+            <FrameLayout
+                android:id="@+id/fragmentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
         </FrameLayout>
 
+        <!-- Custom Multi-Layer Navigation Section -->
         <FrameLayout
-            android:id="@+id/fragmentContainer"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:visibility="gone" />
+            android:layout_height="150dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="8dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNavigation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/surface"
-            app:backgroundTint="@color/surface"
-            app:itemIconTint="@color/accent"
-            app:itemTextColor="@color/text_primary"
-            app:labelVisibilityMode="labeled"
-            app:menu="@menu/bottom_nav_menu" />
+            <!-- Layer 1 (Bottom): The White Sliding Circle (The Bulge) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/navBulgeCircle"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_gravity="bottom|start"
+                android:layout_marginBottom="65dp"
+                app:cardBackgroundColor="#FFFFFFFF"
+                app:cardCornerRadius="35dp"
+                app:cardElevation="0dp"
+                android:elevation="0dp"
+                app:strokeWidth="0dp" />
+
+            <!-- Layer 2 (Middle): The Main White Bar -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="30dp"
+                android:background="@drawable/bg_nav_white_base"
+                android:elevation="0dp" />
+
+            <!-- Layer 3 (Top): Invisible Navigation Logic / Icons -->
+            <!-- Balanced padding to prevent both top and bottom clipping -->
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottomNavigation"
+                style="@style/CyberBottomNavigation"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:layout_gravity="bottom"
+                android:background="@android:color/transparent"
+                android:elevation="20dp"
+                android:translationZ="20dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                app:backgroundTint="@android:color/transparent"
+                app:itemIconTint="@color/selector_nav_item_color"
+                app:itemTextColor="@color/selector_nav_item_color"
+                app:itemPaddingTop="44dp"
+                app:itemPaddingBottom="16dp"
+                app:labelVisibilityMode="labeled"
+                app:menu="@menu/bottom_nav_menu" />
+        </FrameLayout>
+
+        <!-- Bottom Log Strip (DELETED - Providing Premium White Space) -->
 
     </LinearLayout>
 
-    <!-- 起動時オーバーレイ (演出案A改: Loading) -->
+    <!-- Loading Overlay -->
     <FrameLayout
         android:id="@+id/initialLoadingOverlay"
         android:layout_width="match_parent"
@@ -701,55 +200,12 @@
         android:clickable="true"
         android:elevation="100dp"
         android:focusable="true">
-
-        <ImageView
-            android:id="@+id/initialCharacterImage"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:adjustViewBounds="true"
-            android:alpha="0.2"
-            android:scaleType="fitCenter"
-            android:src="@drawable/guardian_character" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="bottom"
-            android:orientation="vertical"
-            android:padding="32dp">
-
-            <TextView
-                android:id="@+id/loadingLogText"
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:alpha="0.8"
-                android:fontFamily="monospace"
-                android:text=""
-                android:textColor="@color/cyber_cyan"
-                android:textSize="12sp" />
-
-            <ProgressBar
-                android:id="@+id/loadingProgressBar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_marginTop="16dp"
-                android:progress="0"
-                android:progressDrawable="@drawable/progress_mp" />
-
-            <TextView
-                android:id="@+id/loadingStatusText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:fontFamily="monospace"
-                android:text="INITIALIZING..."
-                android:textColor="@color/cyber_cyan"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+        <ImageView android:id="@+id/initialCharacterImage" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_gravity="center" android:adjustViewBounds="true" android:alpha="0.2" android:scaleType="fitCenter" android:src="@drawable/guardian_character" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="bottom" android:orientation="vertical" android:padding="32dp">
+            <TextView android:id="@+id/loadingLogText" android:layout_width="match_parent" android:layout_height="200dp" android:alpha="0.8" android:fontFamily="monospace" android:text="" android:textColor="@color/cyber_cyan" android:textSize="12sp" />
+            <ProgressBar android:id="@+id/loadingProgressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="4dp" android:layout_marginTop="16dp" android:progress="0" android:progressDrawable="@drawable/progress_mp" />
+            <TextView android:id="@+id/loadingStatusText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:fontFamily="monospace" android:text="INITIALIZING..." android:textColor="@color/cyber_cyan" android:textSize="14sp" android:textStyle="bold" />
         </LinearLayout>
-
     </FrameLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -5,16 +5,12 @@ plugins {
 
 android {
     namespace = "com.example.voicevox"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.voicevox"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -50,7 +46,6 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // 魔法を非同期で唱えるための材料
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("com.google.android.material:material:1.11.0") 
 
     // UIアニメーション用の材料
     implementation("com.airbnb.android:lottie:6.4.0")

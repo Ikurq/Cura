@@ -72,6 +72,16 @@ class AlarmFragment : Fragment() {
         binding.addMandatoryAlarmFAB.setOnClickListener { showMandatoryAlarmDialog() }
 
         updateEmptyView()
+        loadStats()
+    }
+
+    private fun loadStats() {
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
+        val totalWakeups = prefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
+        val history = prefs.getString(CuraConstants.KEY_WAKEUP_HISTORY, "") ?: ""
+
+        binding.totalWakeupsText.text = "TOTAL_BOOT_SUCCESS: $totalWakeups"
+        binding.wakeupHistoryLog.text = if (history.isNotEmpty()) history else "HISTORY_EMPTY"
     }
 
     private fun showMandatoryAlarmDialog() {
