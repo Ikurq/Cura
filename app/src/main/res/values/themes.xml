@@ -109,4 +109,35 @@
         <item name="android:textColor">@color/text_secondary</item>
         <item name="android:textSize">12sp</item>
     </style>
+
+    <style name="CyberBottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconSize">30dp</item>
+        <item name="itemTextAppearanceActive">@style/CyberBottomNavText.Active</item>
+        <item name="itemTextAppearanceInactive">@style/CyberBottomNavText.Inactive</item>
+        <item name="itemIconTint">@color/selector_nav_item_color</item>
+        <item name="itemTextColor">@color/selector_nav_item_color</item>
+        <item name="itemRippleColor">@color/cyber_cyan</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="android:background">@drawable/bg_nav_cyber_floating</item>
+        <item name="itemActiveIndicatorStyle">@style/CyberActiveIndicator</item>
+    </style>
+
+    <style name="CyberBottomNavText.Active" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">0.1</item>
+    </style>
+
+    <style name="CyberBottomNavText.Inactive" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">#475569</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
+    <style name="CyberActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <!-- Hide standard indicator as we use custom bulge circle -->
+        <item name="android:color">@android:color/transparent</item>
+    </style>
 </resources>

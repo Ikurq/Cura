@@ -95,9 +95,15 @@ class AlarmAlertActivity : AppCompatActivity() {
     private fun updateWakeUpStatistics() {
         val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
         val currentCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
+        
+        val nowStr = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(Date())
+        val existingHistory = playerPrefs.getString(CuraConstants.KEY_WAKEUP_HISTORY, "") ?: ""
+        val combined = ("> BOOT: $nowStr\n$existingHistory").split("\n").take(3).joinToString("\n")
+
         playerPrefs.edit {
             putInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, currentCount + 1)
             putBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, true)
+            putString(CuraConstants.KEY_WAKEUP_HISTORY, combined)
         }
     }
 

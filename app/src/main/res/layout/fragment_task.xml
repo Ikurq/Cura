@@ -21,6 +21,41 @@
             app:titleTextColor="@color/cyber_pink"
             app:backgroundTint="@android:color/transparent"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/CyberCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"
+            app:cardBackgroundColor="#33F472B6"
+            app:strokeColor="@color/cyber_pink">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+                <TextView
+                    android:id="@+id/totalTasksText"
+                    style="@style/CyberTypography.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TOTAL_TASKS_COMPLETED: 0"
+                    android:textColor="@color/cyber_pink"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/taskHistoryLog"
+                    style="@style/CyberTypography.Label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="HISTORY_EMPTY"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:lineSpacingExtra="2dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
