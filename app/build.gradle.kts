@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.voicevox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,4 +55,9 @@ dependencies {
 
     // VOICEVOX ローカルエンジン (ローカルプロジェクトとして読み込む)
     implementation(project(":lib"))
+}
+
+// リリースビルド時の依存関係解決の順序を修正
+tasks.matching { it.name.contains("collect") && it.name.contains("Dependencies") }.configureEach {
+    dependsOn(":lib:downloadVoicevoxCore")
 }
