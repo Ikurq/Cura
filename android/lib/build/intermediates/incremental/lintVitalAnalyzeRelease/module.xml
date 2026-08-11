@@ -1,0 +1,20 @@
+<lint-module
+    format="1"
+    dir="C:\Users\I K\AndroidStudioProjects\VoiceVox2\android\lib"
+    name=":lib"
+    type="LIBRARY"
+    maven="Cura:lib:unspecified"
+    agpVersion="9.2.1"
+    buildFolder="build"
+    bootClassPath="C:\Users\I K\AppData\Local\Android\Sdk\platforms\android-35\android.jar;C:\Users\I K\AppData\Local\Android\Sdk\build-tools\36.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-35"
+    neverShrinking="true"
+    highlightGradualR8Api="false">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>
