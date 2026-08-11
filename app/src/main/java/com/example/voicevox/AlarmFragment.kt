@@ -72,16 +72,6 @@ class AlarmFragment : Fragment() {
         binding.addMandatoryAlarmFAB.setOnClickListener { showMandatoryAlarmDialog() }
 
         updateEmptyView()
-        loadStats()
-    }
-
-    private fun loadStats() {
-        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
-        val totalWakeups = prefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
-        val history = prefs.getString(CuraConstants.KEY_WAKEUP_HISTORY, "") ?: ""
-
-        binding.totalWakeupsText.text = "TOTAL_BOOT_SUCCESS: $totalWakeups"
-        binding.wakeupHistoryLog.text = if (history.isNotEmpty()) history else "HISTORY_EMPTY"
     }
 
     private fun showMandatoryAlarmDialog() {
@@ -144,7 +134,7 @@ class AlarmFragment : Fragment() {
             val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
             
             if (CuraVoicevox.createAudio(ctx, message, modelId, outputFile)) {
-                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList())
+                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList(), isOneShot = true)
                 alarmList.add(newItem)
                 saveAlarms()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
@@ -292,7 +282,7 @@ class AlarmFragment : Fragment() {
 
         val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         val newId = UUID.randomUUID().toString()
-        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList())
+        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList(), isOneShot = false)
 
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = context ?: return@launch

@@ -92,21 +92,10 @@
                         </LinearLayout>
 
                         <ImageButton
-                            android:id="@+id/btnEmergencyStop"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="12dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:padding="8dp"
-                            android:scaleType="fitCenter"
-                            android:src="@android:drawable/ic_lock_power_off"
-                            app:tint="@color/error" />
-
-                        <ImageButton
                             android:id="@+id/btnQuickSettings"
                             android:layout_width="44dp"
                             android:layout_height="44dp"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="4dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:padding="8dp"
                             android:scaleType="fitCenter"

@@ -14,5 +14,6 @@ data class AlarmItem(
     var isEnabled: Boolean,  // アラームのON/OFF状態
     var readTasks: Boolean,  // タスク読み上げを行うかどうか
     var vibrate: Boolean = true, // バイブレーションを有効にするかどうか
-    var repeatDays: List<Int> = emptyList() // 繰り返し曜日 (1=日, 2=月, ..., 7=土)
+    var repeatDays: List<Int> = emptyList(), // 繰り返し曜日 (1=日, 2=月, ..., 7=土)
+    var isOneShot: Boolean = false // 一度鳴ったら削除するかどうか
 )

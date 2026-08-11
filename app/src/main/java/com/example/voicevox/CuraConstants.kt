@@ -16,8 +16,7 @@ object CuraConstants {
     const val KEY_COMPLETED_TASK_COUNT = "completed_task_count"
     const val KEY_ALARM_WAKEUP_COUNT = "alarm_wakeup_count"
     
-    const val KEY_TASK_HISTORY = "task_history_log"
-    const val KEY_WAKEUP_HISTORY = "wakeup_history_log"
+    const val KEY_PENDING_EXP = "pending_exp"
     
     // Praise Flags
     const val KEY_PENDING_TASK_PRAISE = "pending_task_praise"

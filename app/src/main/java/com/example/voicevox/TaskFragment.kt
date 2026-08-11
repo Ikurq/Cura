@@ -60,17 +60,6 @@ class TaskFragment : Fragment() {
 
         binding.addTaskFAB.setOnClickListener { showAddTaskDialog() }
         binding.completeTasksFAB.setOnClickListener { performBatchCompletion() }
-        
-        loadStats()
-    }
-
-    private fun loadStats() {
-        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
-        val totalCompleted = prefs.getInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, 0)
-        val history = prefs.getString(CuraConstants.KEY_TASK_HISTORY, "") ?: ""
-        
-        binding.totalTasksText.text = "TOTAL_TASKS_COMPLETED: $totalCompleted"
-        binding.taskHistoryLog.text = if (history.isNotEmpty()) history else "HISTORY_EMPTY"
     }
 
     private fun updateButtonsVisibility() {
@@ -271,20 +260,19 @@ class TaskFragment : Fragment() {
         // 1. 累計タスク完了数を更新
         val playerPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
         val currentTaskCount = playerPrefs.getInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, 0)
+        
+        // 保留中の経験値として保存
+        val charPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_CHARACTER, Context.MODE_PRIVATE)
+        val currentPending = charPrefs.getLong(CuraConstants.KEY_PENDING_EXP, 0L)
+        
         playerPrefs.edit {
             putInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, currentTaskCount + completedCount)
             putBoolean(CuraConstants.KEY_PENDING_TASK_PRAISE, true)
-            
-            // タスク履歴を保存 (最新3件)
-            val existingHistory = playerPrefs.getString(CuraConstants.KEY_TASK_HISTORY, "") ?: ""
-            val newEntries = tasks.joinToString("\n") { "> ${it.title}" }
-            val combined = (newEntries + "\n" + existingHistory).split("\n").take(3).joinToString("\n")
-            putString(CuraConstants.KEY_TASK_HISTORY, combined)
         }
 
-        // 2. キャラクター（キュラ）経験値を更新
-        val charPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_CHARACTER, Context.MODE_PRIVATE)
-        charPrefs.edit().putLong(CuraConstants.KEY_TOTAL_EXP, charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L) + totalGain).apply()
+        charPrefs.edit {
+            putLong(CuraConstants.KEY_PENDING_EXP, currentPending + totalGain)
+        }
     }
 
     override fun onDestroyView() {

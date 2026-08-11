@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer Border / Shadow -->
+    <item>
+        <shape>
+            <corners android:radius="2dp" />
+            <stroke android:width="0.5dp" android:color="#4406B6D4" />
+            <solid android:color="#11000000" />
+        </shape>
+    </item>
+
+    <!-- Background Track -->
+    <item android:id="@android:id/background" android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+        <shape>
+            <corners android:radius="1dp" />
+            <solid android:color="#220F172A" />
+        </shape>
+    </item>
+
+    <!-- Progress Fill -->
+    <item android:id="@android:id/progress" android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+        <clip>
+            <shape>
+                <corners android:radius="1dp" />
+                <gradient
+                    android:startColor="#22D3EE"
+                    android:centerColor="#06B6D4"
+                    android:endColor="#0891B2"
+                    android:angle="0" />
+            </shape>
+        </clip>
+    </item>
+
+    <!-- Glass/Glossy Overlay -->
+    <item android:top="1dp" android:bottom="3dp" android:left="1dp" android:right="1dp">
+        <shape>
+            <corners android:radius="1dp" />
+            <solid android:color="#33FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

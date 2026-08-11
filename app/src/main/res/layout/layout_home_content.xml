@@ -227,10 +227,10 @@
                     android:id="@+id/charExpProgressBar"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="4dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="6dp"
                     android:progress="35"
-                    android:progressDrawable="@drawable/progress_mp" />
+                    android:progressDrawable="@drawable/progress_exp_tech" />
 
                 <TextView
                     android:id="@+id/charExpText"

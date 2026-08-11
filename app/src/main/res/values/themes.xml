@@ -22,8 +22,8 @@
         <item name="android:windowBackground">@drawable/bg_cyber_deep_blue</item>
         <item name="android:navigationBarColor">@color/background</item>
 
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/background</item>
+        <!-- Status bar color: Match with top of bg_cyber_deep_blue -->
+        <item name="android:statusBarColor">#020617</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
     </style>

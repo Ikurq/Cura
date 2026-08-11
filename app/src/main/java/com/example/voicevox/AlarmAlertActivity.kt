@@ -96,14 +96,9 @@ class AlarmAlertActivity : AppCompatActivity() {
         val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
         val currentCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
         
-        val nowStr = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(Date())
-        val existingHistory = playerPrefs.getString(CuraConstants.KEY_WAKEUP_HISTORY, "") ?: ""
-        val combined = ("> BOOT: $nowStr\n$existingHistory").split("\n").take(3).joinToString("\n")
-
         playerPrefs.edit {
             putInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, currentCount + 1)
             putBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, true)
-            putString(CuraConstants.KEY_WAKEUP_HISTORY, combined)
         }
     }
 
@@ -240,7 +235,7 @@ class AlarmAlertActivity : AppCompatActivity() {
             if (targetItem.repeatDays.isNotEmpty()) {
                 scheduleVoiceAlarm(this, targetItem)
             } else {
-                if (targetItem.readTasks) {
+                if (targetItem.isOneShot) {
                     deleteAlarm(alarmId)
                 } else {
                     disableAlarm(alarmId)
@@ -336,9 +331,9 @@ class AlarmAlertActivity : AppCompatActivity() {
 
     private fun addCharExp() {
         val prefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
-        val totalExp = prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val now = System.currentTimeMillis()
         val lastRewardTime = prefs.getLong("last_alarm_reward_millis", 0L)
+        val currentPending = prefs.getLong(CuraConstants.KEY_PENDING_EXP, 0L)
 
         val calNow = Calendar.getInstance()
         val calLast = Calendar.getInstance().apply { timeInMillis = lastRewardTime }
@@ -349,11 +344,12 @@ class AlarmAlertActivity : AppCompatActivity() {
 
         if (isSameAmPm) {
             val bonusExp = 10L
-            prefs.edit().putLong(CuraConstants.KEY_TOTAL_EXP, totalExp + bonusExp).apply()
+            prefs.edit().putLong(CuraConstants.KEY_PENDING_EXP, currentPending + bonusExp).apply()
             Toast.makeText(this, "おはようございます！起床成功です！", Toast.LENGTH_SHORT).show()
             return
         }
 
+        val totalExp = prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
 
         var currentLv = 1
@@ -361,14 +357,15 @@ class AlarmAlertActivity : AppCompatActivity() {
             currentLv++
         }
 
-        val newTotalExp = currentLv * expPerLevel
+        // 次のレベルまでの経験値をストックに
+        val gain = expPerLevel 
 
         prefs.edit()
-            .putLong(CuraConstants.KEY_TOTAL_EXP, newTotalExp)
+            .putLong(CuraConstants.KEY_PENDING_EXP, currentPending + gain)
             .putLong("last_alarm_reward_millis", now)
             .apply()
 
-        Toast.makeText(this, "CHARACTER LEVEL UP! Lv.${currentLv + 1} になりました！", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "起床成功！ホーム画面で報酬を受け取ってください", Toast.LENGTH_LONG).show()
     }
 
     private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {

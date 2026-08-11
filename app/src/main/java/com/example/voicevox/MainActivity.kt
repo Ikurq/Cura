@@ -49,6 +49,20 @@ class MainActivity : AppCompatActivity() {
     private var isDialogueSkippable: Boolean = true
 
     private var devUnlockTapCount = 0
+    private var breathingAnimator: android.animation.AnimatorSet? = null
+
+    private val powerConnectionReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            when (intent?.action) {
+                android.content.Intent.ACTION_POWER_CONNECTED -> {
+                    showDialogueTextBubble("外部電源を検知しました。エネルギー充填を開始します、マスター。")
+                }
+                android.content.Intent.ACTION_POWER_DISCONNECTED -> {
+                    showDialogueTextBubble("供給が停止されました。内部バッテリーでの駆動に移行します。")
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +101,7 @@ class MainActivity : AppCompatActivity() {
 
         // アニメーション適用
         setupCyberAnimations()
+        startCuraBreathingAnimation()
 
         // マーキー（流れる文字）を有効化するためにフォーカスを強制する
         binding.homeContent.topMissionText.isSelected = true
@@ -102,15 +117,16 @@ class MainActivity : AppCompatActivity() {
         scheduleMidnightRefresh()
         clearTempAudioFiles()
 
+        // 充電状態の監視登録
+        val filter = android.content.IntentFilter().apply {
+            addAction(android.content.Intent.ACTION_POWER_CONNECTED)
+            addAction(android.content.Intent.ACTION_POWER_DISCONNECTED)
+        }
+        registerReceiver(powerConnectionReceiver, filter)
+
         // ナビゲーション設定
         setupNavigation()
         setupCharacterDialogue()
-
-        // 緊急停止ボタンの設定
-        binding.btnEmergencyStop.setOnClickListener {
-            stopAllAlarms()
-            Toast.makeText(this, "すべてのアラームを強制停止しました", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun stopAllAlarms() {
@@ -120,6 +136,40 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupCyberAnimations() {
         // 枠の点滅（現在はすべて停止）
+    }
+
+    private fun startCuraBreathingAnimation() {
+        val image = binding.homeContent.characterImage
+        
+        // より繊細に、よりゆっくりと (0.8%の拡大、5秒周期)
+        val scaleX = ObjectAnimator.ofFloat(image, View.SCALE_X, 1.0f, 1.008f)
+        val scaleY = ObjectAnimator.ofFloat(image, View.SCALE_Y, 1.0f, 1.008f)
+        
+        breathingAnimator = android.animation.AnimatorSet().apply {
+            playTogether(scaleX, scaleY)
+            duration = 5000 // 5秒かけてゆっくり吸う
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    val reverseScaleX = ObjectAnimator.ofFloat(image, View.SCALE_X, 1.008f, 1.0f)
+                    val reverseScaleY = ObjectAnimator.ofFloat(image, View.SCALE_Y, 1.008f, 1.0f)
+                    
+                    android.animation.AnimatorSet().apply {
+                        playTogether(reverseScaleX, reverseScaleY)
+                        duration = 5000 // 5秒かけてゆっくり吐く
+                        interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+                        addListener(object : android.animation.AnimatorListenerAdapter() {
+                            override fun onAnimationEnd(animation: android.animation.Animator) {
+                                startCuraBreathingAnimation()
+                            }
+                        })
+                        start()
+                    }
+                }
+            })
+            start()
+        }
     }
 
     private fun setupNavigation() {
@@ -249,7 +299,7 @@ class MainActivity : AppCompatActivity() {
         binding.toolbar.title = getString(titleRes)
     }
 
-    private fun updatePlayerStatus() {
+    private fun updatePlayerStatus(animate: Boolean = false) {
         val appPrefs = getSharedPreferences(CuraConstants.PREFS_APP, MODE_PRIVATE)
 
         val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, MODE_PRIVATE)
@@ -269,8 +319,26 @@ class MainActivity : AppCompatActivity() {
         val (lv, current, required) = calculateLevelInfo(charTotalExp)
         binding.homeContent.charLevelText.text = "CURA Lv.$lv"
         binding.homeContent.charExpProgressBar.max = required.toInt()
-        binding.homeContent.charExpProgressBar.progress = current.toInt()
-        binding.homeContent.charExpText.text = "$current/$required"
+        
+        if (animate) {
+            // 現在のプログレスから新しい値までアニメーション
+            val startProgress = binding.homeContent.charExpProgressBar.progress
+            val endProgress = current.toInt()
+            
+            android.animation.ValueAnimator.ofInt(startProgress, endProgress).apply {
+                duration = 1000 // 1秒かけて増加
+                interpolator = android.view.animation.DecelerateInterpolator()
+                addUpdateListener { animator ->
+                    val animatedValue = animator.animatedValue as Int
+                    binding.homeContent.charExpProgressBar.progress = animatedValue
+                    binding.homeContent.charExpText.text = "$animatedValue/${required.toInt()}"
+                }
+                start()
+            }
+        } else {
+            binding.homeContent.charExpProgressBar.progress = current.toInt()
+            binding.homeContent.charExpText.text = "$current/$required"
+        }
 
         val showCharLv = appPrefs.getBoolean("show_char_level", true)
         binding.homeContent.charGrowthLayout.visibility = if (showCharLv) View.VISIBLE else View.GONE
@@ -480,7 +548,7 @@ class MainActivity : AppCompatActivity() {
             putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)
         }
         showExpFeedback(amount)
-        updatePlayerStatus()
+        updatePlayerStatus(animate = true)
     }
 
     private fun showExpFeedback(amount: Int) {
@@ -513,17 +581,27 @@ class MainActivity : AppCompatActivity() {
             "NEW LOG ENTRY DETECTED"
         )
         
-        // ランダムに選択
         val randomLine = flavorLines.random()
+        val hudText = binding.hudFlavorText
         
-        // 少しフェードアウトしてから文字を変えてフェードインさせるとカッコいい
-        binding.hudFlavorText.animate()
-            .alpha(0f)
-            .setDuration(500)
-            .withEndAction {
-                binding.hudFlavorText.text = randomLine
-                binding.hudFlavorText.animate().alpha(0.8f).setDuration(500).start()
-            }.start()
+        // コルーチンでグリッチ演出を実行
+        lifecycleScope.launch(Dispatchers.Main) {
+            // 1. フェードアウト
+            hudText.animate().alpha(0.3f).setDuration(200).start()
+            delay(200)
+            
+            // 2. グリッチ（ランダムな文字の乱舞）
+            val noiseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+            repeat(5) { // 5回高速で書き換え
+                val noise = (1..randomLine.length).map { noiseChars.random() }.joinToString("")
+                hudText.text = noise
+                delay(60)
+            }
+            
+            // 3. 定着 & フェードイン
+            hudText.text = randomLine
+            hudText.animate().alpha(0.8f).setDuration(300).start()
+        }
     }
 
     private fun updateDashboardInfo() {
@@ -575,12 +653,23 @@ class MainActivity : AppCompatActivity() {
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
+        checkPendingExp() // ホームに戻った瞬間にもチェック
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) supportFragmentManager.beginTransaction().remove(fragment).commit()
     }
 
     override fun onResume() {
         super.onResume()
+        
+        // アラーム鳴動チェック：サービスが動いていたら停止画面へ強制遷移（救済ロジック）
+        if (isServiceRunning(this, AlarmService::class.java)) {
+            val intent = Intent(this, AlarmAlertActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            return
+        }
+
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
@@ -588,7 +677,26 @@ class MainActivity : AppCompatActivity() {
         
         // ホーム画面が表示されている場合のみ、未読の褒め言葉や挨拶をチェック
         if (binding.launcherLayout.isVisible) {
+            checkPendingExp()
             showRandomDialogue()
+        }
+    }
+
+    private fun checkPendingExp() {
+        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
+        val pending = charPrefs.getLong(CuraConstants.KEY_PENDING_EXP, 0L)
+        
+        if (pending > 0) {
+            lifecycleScope.launch {
+                // ホーム画面に戻ってから少し「間」を置く (0.8秒)
+                delay(800)
+                
+                // ストックされていた経験値を放出
+                charPrefs.edit {
+                    putLong(CuraConstants.KEY_PENDING_EXP, 0L)
+                }
+                addSessionExp(pending.toInt())
+            }
         }
     }
 
@@ -691,8 +799,21 @@ class MainActivity : AppCompatActivity() {
     private fun checkBatteryOptimization() { if (!(getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)) { } }
     private fun checkNotificationPermission() { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { } }
 
+    private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
+        for (service in activityManager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        breathingAnimator?.cancel()
+        unregisterReceiver(powerConnectionReceiver)
         systemUpdateHandler.removeCallbacks(systemUpdateRunnable)
         expGainJob?.cancel()
         idleDialogueJob?.cancel()
