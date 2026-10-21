@@ -214,6 +214,41 @@ class TimetableFragment : Fragment() {
             }
         }
 
+        // 繰り返し設定の初期化
+        val sdfDate = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+        val dayOfWeekNames = arrayOf("日", "月", "火", "水", "木", "金", "土")
+        val dayName = dayOfWeekNames[selectedDate.get(Calendar.DAY_OF_WEEK) - 1]
+        dialogBinding.checkRepeatWeekly.text = "毎週${dayName}曜日に繰り返す"
+
+        val repeatEndCal = ScheduleRepeatHelper.calculateFiscalYearEnd(selectedDate)
+        fun updateRepeatEndDateText() {
+            dialogBinding.btnSelectRepeatEndDate.text = String.format(Locale.getDefault(), "%s (タップで変更)", sdfDate.format(repeatEndCal.time))
+        }
+        updateRepeatEndDateText()
+
+        dialogBinding.checkRepeatWeekly.setOnCheckedChangeListener { _, isChecked ->
+            dialogBinding.layoutRepeatEndDetails.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+
+        dialogBinding.btnSelectRepeatEndDate.setOnClickListener {
+            android.app.DatePickerDialog(
+                ctx,
+                { _, y, m, d ->
+                    repeatEndCal.set(Calendar.YEAR, y)
+                    repeatEndCal.set(Calendar.MONTH, m)
+                    repeatEndCal.set(Calendar.DAY_OF_MONTH, d)
+                    repeatEndCal.set(Calendar.HOUR_OF_DAY, 23)
+                    repeatEndCal.set(Calendar.MINUTE, 59)
+                    repeatEndCal.set(Calendar.SECOND, 59)
+                    repeatEndCal.set(Calendar.MILLISECOND, 999)
+                    updateRepeatEndDateText()
+                },
+                repeatEndCal.get(Calendar.YEAR),
+                repeatEndCal.get(Calendar.MONTH),
+                repeatEndCal.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
         val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val presetJson = schedulePrefs.getString("presetListJSON", null)
         if (presetJson != null) {
@@ -248,15 +283,27 @@ class TimetableFragment : Fragment() {
                     set(Calendar.MILLISECOND, 0)
                 }
 
-                val newEvent = ScheduleEvent(
-                    id = java.util.UUID.randomUUID().toString(),
-                    summary = genre,
-                    startTime = cal.timeInMillis,
-                    location = dialogBinding.editEventLocation.text.toString(),
-                    isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
-                )
+                val eventsToAdd = if (dialogBinding.checkRepeatWeekly.isChecked) {
+                    ScheduleRepeatHelper.generateWeeklyOccurrences(
+                        summary = genre,
+                        startCal = cal,
+                        endCal = repeatEndCal,
+                        location = dialogBinding.editEventLocation.text.toString(),
+                        isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
+                    )
+                } else {
+                    listOf(
+                        ScheduleEvent(
+                            id = java.util.UUID.randomUUID().toString(),
+                            summary = genre,
+                            startTime = cal.timeInMillis,
+                            location = dialogBinding.editEventLocation.text.toString(),
+                            isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
+                        )
+                    )
+                }
 
-                customEvents.add(newEvent)
+                customEvents.addAll(eventsToAdd)
                 saveCustomEvents()
 
                 if (dialogBinding.checkSaveAsPreset.isChecked) {
@@ -268,13 +315,18 @@ class TimetableFragment : Fragment() {
                     schedulePrefs.edit().putString("presetListJSON", Json.encodeToString(currentPresets)).apply()
                 }
                 
-                Toast.makeText(ctx, "予定を追加しました", Toast.LENGTH_SHORT).show()
+                val toastMsg = if (eventsToAdd.size > 1) {
+                    "予定を毎週繰り返しで追加しました（計" + eventsToAdd.size + "件）"
+                } else {
+                    "予定を追加しました"
+                }
+                Toast.makeText(ctx, toastMsg, Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("キャンセル", null)
             .show()
     }
 
-    private fun fetchAndCacheAllIcs(sources: List<CalendarSource>) {
+        private fun fetchAndCacheAllIcs(sources: List<CalendarSource>) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val allEvents = mutableListOf<IcsEvent>()
             val jobs = sources.map { source ->
@@ -444,16 +496,50 @@ class TimetableFragment : Fragment() {
     }
 
     fun showDeleteConfirmDialog(item: ScheduleItem) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("予定の削除")
-            .setMessage("「${item.title}」を削除しますか？")
-            .setPositiveButton("削除") { _, _ ->
-                customEvents.removeAll { it.id == item.id }
-                saveCustomEvents()
-                Toast.makeText(requireContext(), "削除しました", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("キャンセル", null)
-            .show()
+        val targetEvent = customEvents.find { it.id == item.id }
+        if (targetEvent?.repeatGroupId != null) {
+            val options = arrayOf(
+                "この予定のみ削除",
+                "これ以降の繰り返し予定を削除",
+                "すべての繰り返し予定を削除"
+            )
+            AlertDialog.Builder(requireContext())
+                .setTitle("予定の削除")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> {
+                            customEvents.removeAll { it.id == item.id }
+                            saveCustomEvents()
+                            Toast.makeText(requireContext(), "予定を削除しました", Toast.LENGTH_SHORT).show()
+                        }
+                        1 -> {
+                            val count = customEvents.count { it.repeatGroupId == targetEvent.repeatGroupId && it.startTime >= targetEvent.startTime }
+                            customEvents.removeAll { it.repeatGroupId == targetEvent.repeatGroupId && it.startTime >= targetEvent.startTime }
+                            saveCustomEvents()
+                            Toast.makeText(requireContext(), "これ以降の予定（${count}件）を削除しました", Toast.LENGTH_SHORT).show()
+                        }
+                        2 -> {
+                            val count = customEvents.count { it.repeatGroupId == targetEvent.repeatGroupId }
+                            customEvents.removeAll { it.repeatGroupId == targetEvent.repeatGroupId }
+                            saveCustomEvents()
+                            Toast.makeText(requireContext(), "繰り返しの予定（${count}件）をすべて削除しました", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton("キャンセル", null)
+                .show()
+        } else {
+            AlertDialog.Builder(requireContext())
+                .setTitle("予定の削除")
+                .setMessage("「${item.title}」を削除しますか？")
+                .setPositiveButton("削除") { _, _ ->
+                    customEvents.removeAll { it.id == item.id }
+                    saveCustomEvents()
+                    Toast.makeText(requireContext(), "削除しました", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("キャンセル", null)
+                .show()
+        }
     }
 
     fun showExternalTrackingDialog(item: ScheduleItem) {

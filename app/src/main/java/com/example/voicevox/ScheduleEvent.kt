@@ -10,7 +10,8 @@ data class ScheduleEvent(
     val location: String,
     val isPreset: Boolean = false,
     val isAttendanceTracked: Boolean = false,
-    var attendanceStatus: String = "NONE"
+    var attendanceStatus: String = "NONE",
+    val repeatGroupId: String? = null
 )
 
 @Serializable

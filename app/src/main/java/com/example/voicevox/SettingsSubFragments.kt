@@ -390,6 +390,7 @@ class SettingsPresetsFragment : Fragment() {
         val btnSelectTime = dialogView.findViewById<Button>(R.id.btnSelectEventTime)
         
         dialogView.findViewById<View>(R.id.presetChipGroup)?.visibility = View.GONE
+        dialogView.findViewById<View>(R.id.layoutRepeatSettings)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.btnToggleAdvancedSettings)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.layoutAdvancedSettings)?.visibility = View.GONE
 

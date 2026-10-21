@@ -5,7 +5,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import org.json.JSONArray
 
 class SettingsFragment : Fragment() {
@@ -19,6 +21,10 @@ class SettingsFragment : Fragment() {
 
         val menuPresets = view.findViewById<View>(R.id.menuPresets)
         val menuDev = view.findViewById<View>(R.id.menuDev)
+        val textCurrentVersion = view.findViewById<TextView>(R.id.textCurrentVersion)
+
+        val currentVer = AppUpdateHelper.getCurrentVersion(requireContext())
+        textCurrentVersion?.text = "現在のバージョン: v$currentVer"
 
         // 開発者モードの状態をチェック
         val appPrefs = requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
@@ -50,6 +56,9 @@ class SettingsFragment : Fragment() {
         }
         view.findViewById<View>(R.id.menuDev).setOnClickListener {
             navigateTo(SettingsDevFragment())
+        }
+        view.findViewById<View>(R.id.menuUpdate).setOnClickListener {
+            AppUpdateHelper.checkAndPromptUpdate(requireContext(), viewLifecycleOwner.lifecycleScope)
         }
         view.findViewById<View>(R.id.menuCredits).setOnClickListener {
             navigateTo(CreditsFragment())

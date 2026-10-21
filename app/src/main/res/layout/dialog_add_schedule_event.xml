@@ -98,12 +98,47 @@
                 android:text="@string/track_attendance"
                 android:textSize="14sp" />
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/checkRepeatWeekly"
-                android:layout_width="wrap_content"
+            <!-- Repeat Settings -->
+            <LinearLayout
+                android:id="@+id/layoutRepeatSettings"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/repeat_weekly"
-                android:textSize="14sp" />
+                android:orientation="vertical">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/checkRepeatWeekly"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/repeat_weekly"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutRepeatEndDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="32dp"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/textRepeatEndLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="終了日："
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary" />
+
+                    <Button
+                        android:id="@+id/btnSelectRepeatEndDate"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2027/03/31"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>
