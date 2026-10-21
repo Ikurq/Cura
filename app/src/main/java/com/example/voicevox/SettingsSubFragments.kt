@@ -227,12 +227,113 @@ class SettingsVoiceFragment : Fragment() {
 
 // --- 4. Dev & Character ---
 class SettingsDevFragment : Fragment() {
+
+    private val exportBackupLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            val allData = JSONObject()
+            val prefNames = listOf(
+                CuraConstants.PREFS_APP,
+                CuraConstants.PREFS_PLAYER,
+                CuraConstants.PREFS_CHARACTER,
+                CuraConstants.PREFS_ALARM,
+                CuraConstants.PREFS_TODO,
+                CuraConstants.PREFS_SCHEDULE,
+                CuraConstants.PREFS_TIMETABLE,
+                CuraConstants.PREFS_ATTENDANCE
+            )
+            val ctx = requireContext()
+            prefNames.forEach { name ->
+                val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
+                val prefObj = JSONObject()
+                prefs.all.forEach { (k, v) ->
+                    when (v) {
+                        is Boolean -> prefObj.put(k, v)
+                        is Int -> prefObj.put(k, v)
+                        is Long -> prefObj.put(k, v)
+                        is Float -> prefObj.put(k, v.toDouble())
+                        is String -> prefObj.put(k, v)
+                        is Set<*> -> {
+                            val arr = JSONArray()
+                            v.forEach { arr.put(it) }
+                            prefObj.put(k, arr)
+                        }
+                    }
+                }
+                allData.put(name, prefObj)
+            }
+
+            ctx.contentResolver.openOutputStream(uri)?.use { os ->
+                os.write(allData.toString(2).toByteArray(Charsets.UTF_8))
+            }
+            Toast.makeText(ctx, "バックアップを保存しました", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "バックアップ保存に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private val importBackupLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            val ctx = requireContext()
+            val jsonStr = ctx.contentResolver.openInputStream(uri)?.use {
+                it.bufferedReader(Charsets.UTF_8).readText()
+            } ?: throw Exception("ファイルが空です")
+
+            val allData = JSONObject(jsonStr)
+            val prefNames = listOf(
+                CuraConstants.PREFS_APP,
+                CuraConstants.PREFS_PLAYER,
+                CuraConstants.PREFS_CHARACTER,
+                CuraConstants.PREFS_ALARM,
+                CuraConstants.PREFS_TODO,
+                CuraConstants.PREFS_SCHEDULE,
+                CuraConstants.PREFS_TIMETABLE,
+                CuraConstants.PREFS_ATTENDANCE
+            )
+
+            prefNames.forEach { name ->
+                if (allData.has(name)) {
+                    val prefObj = allData.getJSONObject(name)
+                    val prefs = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
+                    prefs.edit {
+                        clear()
+                        prefObj.keys().forEach { key ->
+                            val value = prefObj.get(key)
+                            when (value) {
+                                is Boolean -> putBoolean(key, value)
+                                is Int -> putInt(key, value)
+                                is Long -> putLong(key, value)
+                                is Double -> putFloat(key, value.toFloat())
+                                is String -> putString(key, value)
+                                is JSONArray -> {
+                                    val set = mutableSetOf<String>()
+                                    for (i in 0 until value.length()) {
+                                        set.add(value.getString(i))
+                                    }
+                                    putStringSet(key, set)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Toast.makeText(ctx, "データを復元しました。アプリを再起動してください", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "復元に失敗しました: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_dev, container, false)
         setupLevel(view)
         setupMigration(view)
-        view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
-        view.findViewById<Button>(R.id.btnImportBackup).setOnClickListener { Toast.makeText(context, "準備中", Toast.LENGTH_SHORT).show() }
+        view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener {
+            exportBackupLauncher.launch("cura_backup.json")
+        }
+        view.findViewById<Button>(R.id.btnImportBackup).setOnClickListener {
+            importBackupLauncher.launch(arrayOf("application/json", "*/*"))
+        }
         return view
     }
 
