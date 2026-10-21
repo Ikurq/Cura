@@ -385,10 +385,10 @@ class TimetableFragment : Fragment() {
         addDeviceEventsForDate(date, rawEvents)
 
         val filteredEvents = when (currentFilter) {
-            FilterType.EXTERNAL -> rawEvents.filter { it.type == "📅 外部予定" || it.type == "🎓 予定" || it.type == "📱 端末予定" }
-            FilterType.TASK -> rawEvents.filter { it.type == "📝 タスク" }
-            FilterType.COMPLETED -> rawEvents.filter { it.type == "✅ 完了報告" }
-            FilterType.ALL -> rawEvents.filter { it.type != "✅ 完了報告" }
+            FilterType.EXTERNAL -> rawEvents.filter { it.type == "外部予定" || it.type == "予定" || it.type == "端末予定" }
+            FilterType.TASK -> rawEvents.filter { it.type == "タスク" }
+            FilterType.COMPLETED -> rawEvents.filter { it.type == "完了報告" }
+            FilterType.ALL -> rawEvents.filter { it.type != "完了報告" }
         }
 
         val sortedEvents = filteredEvents.sortedBy { it.sortTime }
@@ -422,7 +422,7 @@ class TimetableFragment : Fragment() {
             val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
             var status = event.attendanceStatus
             if (event.isAttendanceTracked && status == "NONE" && event.startTime < System.currentTimeMillis()) status = "ATTEND"
-            val displayType = if (event.id.startsWith("completed_task_")) "✅ 完了報告" else "🎓 予定"
+            val displayType = if (event.id.startsWith("completed_task_")) "完了報告" else "予定"
             list.add(ScheduleItem(
                 event.id, timeStr, event.summary, displayType, sortTime, event.location, true,
                 isAttendanceTracked = event.isAttendanceTracked, attendanceStatus = status, startTimeMillis = event.startTime
@@ -442,7 +442,7 @@ class TimetableFragment : Fragment() {
                 if (taskDate.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && taskDate.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)) {
                     val timeStr = sdfTime.format(Date(task.deadlineMillis))
                     val sortTime = taskDate.get(Calendar.HOUR_OF_DAY).toLong() * 60 + taskDate.get(Calendar.MINUTE)
-                    list.add(ScheduleItem("", timeStr, task.title, "📝 タスク", sortTime))
+                    list.add(ScheduleItem("", timeStr, task.title, "タスク", sortTime))
                 }
             }
         } catch (e: Exception) {}
@@ -464,7 +464,7 @@ class TimetableFragment : Fragment() {
             var status = if (isTracked) attendancePrefs.getString("status_${event.summary}_$dayKey", "NONE") ?: "NONE" else "NONE"
             if (isTracked && status == "NONE" && event.startTime < System.currentTimeMillis()) status = "ATTEND"
             list.add(ScheduleItem(
-                "ext_${event.summary}_${event.startTime}", timeStr, event.summary, "📅 外部予定", sortTime, event.location, 
+                "ext_${event.summary}_${event.startTime}", timeStr, event.summary, "外部予定", sortTime, event.location, 
                 isCustom = false, isAttendanceTracked = isTracked, attendanceStatus = status, startTimeMillis = event.startTime
             ))
         }
@@ -486,7 +486,7 @@ class TimetableFragment : Fragment() {
                 id = "dev_${event.summary}_${event.startTime}",
                 time = timeStr,
                 title = event.summary,
-                type = "📱 端末予定",
+                type = "端末予定",
                 sortTime = sortTime,
                 location = event.location,
                 isCustom = false,
@@ -643,7 +643,7 @@ class DailyScheduleFragment : Fragment() {
         adapter = DailyAdapter(displayList,
             onItemLongClick = { item ->
                 if (item.isCustom) (parentFragment as? TimetableFragment)?.showDeleteConfirmDialog(item)
-                else if (item.type == "📅 外部予定") (parentFragment as? TimetableFragment)?.showExternalTrackingDialog(item)
+                else if (item.type == "外部予定") (parentFragment as? TimetableFragment)?.showExternalTrackingDialog(item)
             },
             onAttendanceChanged = { item, status -> (parentFragment as? TimetableFragment)?.updateAttendance(item, status) },
             onItemClick = { item -> if (item.isAttendanceTracked) (parentFragment as? TimetableFragment)?.showAttendanceEditDialog(item) }

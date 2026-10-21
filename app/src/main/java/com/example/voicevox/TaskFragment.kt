@@ -215,7 +215,7 @@ class TaskFragment : Fragment() {
         tasks.forEach { task ->
             jsonArray.put(JSONObject().apply {
                 put("id", "completed_task_${UUID.randomUUID()}")
-                put("genre", "✅ ${task.title}")
+                put("genre", "[完了] ${task.title}")
                 put("startTime", now)
                 put("location", "タスク完了")
                 put("isAttendanceTracked", false)
