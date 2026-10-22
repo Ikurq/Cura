@@ -41,7 +41,7 @@ jobs:
         run: ./gradlew :app:testReleaseUnitTest --info || true
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log || (tail -n 120 build.log && exit 1)
 
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
