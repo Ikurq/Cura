@@ -15,7 +15,8 @@ import java.util.Locale
 class TaskAdapter(
     private val taskList: List<TaskItem>,
     private val onTaskStatusChanged: (TaskItem) -> Unit,
-    private val onItemLongClicked: (TaskItem) -> Unit
+    private val onItemLongClicked: (TaskItem) -> Unit,
+    private val onItemClicked: ((TaskItem) -> Unit)? = null
 ) : RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
 
     class TaskViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -55,7 +56,15 @@ class TaskAdapter(
         holder.titleText.text = task.title
         
         val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
-        holder.deadlineText.text = "期限: ${sdf.format(Date(task.deadlineMillis))}"
+        val now = System.currentTimeMillis()
+        if (task.targetDeadlineMillis != null) {
+            val targetSuffix = if (now > task.targetDeadlineMillis) " (目標超過)" else ""
+            val realSuffix = if (now > task.deadlineMillis) " (期限切れ)" else ""
+            holder.deadlineText.text = "目標: ${sdf.format(Date(task.targetDeadlineMillis))}$targetSuffix\n最終: ${sdf.format(Date(task.deadlineMillis))}$realSuffix"
+        } else {
+            val suffix = if (now > task.deadlineMillis) " (期限切れ)" else ""
+            holder.deadlineText.text = "期限: ${sdf.format(Date(task.deadlineMillis))}$suffix"
+        }
 
         holder.priorityBadge.text = "P$currentPriority"
         
@@ -72,6 +81,10 @@ class TaskAdapter(
         holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
             task.isCompleted = isChecked
             onTaskStatusChanged(task)
+        }
+
+        holder.itemView.setOnClickListener {
+            onItemClicked?.invoke(task)
         }
 
         holder.itemView.setOnLongClickListener {

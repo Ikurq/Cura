@@ -128,6 +128,12 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 val tasks = json.decodeFromString<List<TaskItem>>(taskJson ?: "[]")
                 tasks.filter { !it.isCompleted }.forEachIndexed { i, task ->
+                    task.targetDeadlineMillis?.let { targetDeadline ->
+                        val targetNotifyTime = targetDeadline - (60 * 60 * 1000)
+                        if (targetNotifyTime > now && isSameDay(targetDeadline, today)) {
+                            scheduleSingleNotification(context, alarmManager, targetNotifyTime, "タスク目標期限1時間前", task.title, i + 2000)
+                        }
+                    }
                     val deadline = task.deadlineMillis
                     val notifyTime = deadline - (60 * 60 * 1000)
                     if (notifyTime > now && isSameDay(deadline, today)) {

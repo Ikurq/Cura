@@ -6,6 +6,7 @@
     android:padding="24dp">
 
     <TextView
+        android:id="@+id/dialogTaskHeaderTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="新しいタスクを追加"
@@ -31,7 +32,41 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="締め切り"
+        android:text="目標デッドライン (目標期限)"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <Button
+            android:id="@+id/dialogTaskTargetDeadlineButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="未設定 (タップして設定)" />
+
+        <ImageButton
+            android:id="@+id/dialogTaskClearTargetDeadlineButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="目標期限を解除"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="本当のデッドライン (最終期限)"
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:layout_marginBottom="4dp" />

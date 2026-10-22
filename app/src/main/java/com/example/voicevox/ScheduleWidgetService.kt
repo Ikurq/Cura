@@ -53,12 +53,33 @@ class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsServ
             try {
                 val tasks = json.decodeFromString<List<TaskItem>>(jsonStr)
                 tasks.filter { !it.isCompleted }.forEach { task ->
-                    val cal = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
-                    if (isSameDay(cal, today)) {
-                        val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+                    val realCal = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
+                    val isRealToday = isSameDay(realCal, today)
+                    val targetCal = task.targetDeadlineMillis?.let { Calendar.getInstance().apply { timeInMillis = it } }
+                    val isTargetToday = targetCal != null && isSameDay(targetCal, today)
+
+                    if (isTargetToday && isRealToday) {
+                        val sortTime = targetCal!!.get(Calendar.HOUR_OF_DAY).toLong() * 60 + targetCal.get(Calendar.MINUTE)
+                        scheduleList.add(WidgetScheduleItem(
+                            sdfTime.format(Date(task.targetDeadlineMillis!!)),
+                            "[目標・期限] ${task.title}",
+                            "[TASK]",
+                            sortTime
+                        ))
+                    } else if (isTargetToday) {
+                        val sortTime = targetCal!!.get(Calendar.HOUR_OF_DAY).toLong() * 60 + targetCal.get(Calendar.MINUTE)
+                        scheduleList.add(WidgetScheduleItem(
+                            sdfTime.format(Date(task.targetDeadlineMillis!!)),
+                            "[目標] ${task.title}",
+                            "[TASK]",
+                            sortTime
+                        ))
+                    } else if (isRealToday) {
+                        val sortTime = realCal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + realCal.get(Calendar.MINUTE)
+                        val titleLabel = if (task.targetDeadlineMillis != null) "[最終期限] ${task.title}" else task.title
                         scheduleList.add(WidgetScheduleItem(
                             sdfTime.format(Date(task.deadlineMillis)),
-                            task.title,
+                            titleLabel,
                             "[TASK]",
                             sortTime
                         ))

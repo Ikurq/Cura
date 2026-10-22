@@ -35,7 +35,7 @@ class TaskRemoteViewsFactory(private val context: Context) : RemoteViewsService.
             }
         }
         // 優先度順、次に期限順にソート
-        taskList.sortWith(compareByDescending<TaskItem> { it.getCurrentPriority() }.thenBy { it.deadlineMillis })
+        taskList.sortWith(compareByDescending<TaskItem> { it.getCurrentPriority() }.thenBy { it.getEffectiveDeadline() }.thenBy { it.deadlineMillis })
     }
 
     override fun onDestroy() {
@@ -54,8 +54,11 @@ class TaskRemoteViewsFactory(private val context: Context) : RemoteViewsService.
         
         // 期限の表示をよりカッコよく (例: [12:00] または [MM/dd])
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val dateStr = sdf.format(Date(task.deadlineMillis))
-        views.setTextViewText(R.id.widgetTaskDeadline, "DEADLINE: $dateStr")
+        val isTarget = task.targetDeadlineMillis != null
+        val deadlineToShow = task.targetDeadlineMillis ?: task.deadlineMillis
+        val dateStr = sdf.format(Date(deadlineToShow))
+        val prefix = if (isTarget) "TARGET" else "DEADLINE"
+        views.setTextViewText(R.id.widgetTaskDeadline, "$prefix: $dateStr")
         
         // 優先度に応じた色の設定
         val priorityColor = when (task.getCurrentPriority()) {

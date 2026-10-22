@@ -527,11 +527,28 @@ class TimetableFragment : Fragment() {
         try {
             val tasks = Json.decodeFromString<List<TaskItem>>(jsonString)
             tasks.forEach { task ->
-                val taskDate = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
-                if (taskDate.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && taskDate.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)) {
+                val realDate = Calendar.getInstance().apply { timeInMillis = task.deadlineMillis }
+                val isRealDay = realDate.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) &&
+                        realDate.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)
+
+                val targetDateCal = task.targetDeadlineMillis?.let { Calendar.getInstance().apply { timeInMillis = it } }
+                val isTargetDay = targetDateCal != null &&
+                        targetDateCal.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) &&
+                        targetDateCal.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)
+
+                if (isTargetDay && isRealDay) {
+                    val timeStr = sdfTime.format(Date(task.targetDeadlineMillis!!))
+                    val sortTime = targetDateCal!!.get(Calendar.HOUR_OF_DAY).toLong() * 60 + targetDateCal.get(Calendar.MINUTE)
+                    list.add(ScheduleItem("", timeStr, "[目標・期限] ${task.title}", "タスク", sortTime))
+                } else if (isTargetDay) {
+                    val timeStr = sdfTime.format(Date(task.targetDeadlineMillis!!))
+                    val sortTime = targetDateCal!!.get(Calendar.HOUR_OF_DAY).toLong() * 60 + targetDateCal.get(Calendar.MINUTE)
+                    list.add(ScheduleItem("", timeStr, "[目標] ${task.title}", "タスク", sortTime))
+                } else if (isRealDay) {
                     val timeStr = sdfTime.format(Date(task.deadlineMillis))
-                    val sortTime = taskDate.get(Calendar.HOUR_OF_DAY).toLong() * 60 + taskDate.get(Calendar.MINUTE)
-                    list.add(ScheduleItem("", timeStr, task.title, "タスク", sortTime))
+                    val sortTime = realDate.get(Calendar.HOUR_OF_DAY).toLong() * 60 + realDate.get(Calendar.MINUTE)
+                    val label = if (task.targetDeadlineMillis != null) "[最終期限] ${task.title}" else task.title
+                    list.add(ScheduleItem("", timeStr, label, "タスク", sortTime))
                 }
             }
         } catch (e: Exception) {}
