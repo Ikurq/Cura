@@ -46,5 +46,16 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.1
+          tag_name: ver2.2
+          name: "Cura ver2.2"
+          body: |
+            Cura ver2.2 リリース
+            
+            ・Googleカレンダー形式の月間カレンダー表示（月間グリッド・予定カラーチップ・当日バッジ）を追加
+            ・ヘッダーの切り替えボタンから月表示／日別タイムラインのシームレスな行き来に対応
+            ・設定に「操作・表示設定」を追加（デフォルトの初期表示を月表示／日表示から選択可能）
+            ・予定作成時の毎週繰り返し設定（年度末3/31まで自動展開）および削除時の範囲選択（この予定のみ／これ以降／すべて）に対応
+            ・設定画面から全データ（Lv・経験値、タスク、アラーム等）のJSONバックアップ・復元に対応
+            ・UIテキストおよび通知から装飾絵文字を完全撤去
+            ・署名キーストアの整合性修正
           files: app/build/outputs/apk/release/app-release.apk
