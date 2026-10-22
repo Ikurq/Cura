@@ -1,4 +1,4 @@
-﻿package com.example.voicevox
+package com.example.voicevox
 
 import android.app.AlertDialog
 import android.content.Context
@@ -33,6 +33,11 @@ class TimetableFragment : Fragment() {
 
     private var _binding: FragmentTimetableBinding? = null
     private val binding get() = _binding!!
+
+    enum class ViewMode { MONTH, DAY }
+    private var currentViewMode = ViewMode.MONTH
+    private lateinit var monthPagerAdapter: MonthPagerAdapter
+    private var selectedMonthCal = Calendar.getInstance()
 
     private lateinit var pagerAdapter: SchedulePagerAdapter
     private var selectedDate = Calendar.getInstance()
@@ -73,22 +78,65 @@ class TimetableFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val appPrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
+        val defaultView = appPrefs.getString(CuraConstants.KEY_DEFAULT_TIMETABLE_VIEW, CuraConstants.VIEW_MODE_MONTH)
+        currentViewMode = if (defaultView == CuraConstants.VIEW_MODE_DAY) ViewMode.DAY else ViewMode.MONTH
+
+        monthPagerAdapter = MonthPagerAdapter(this)
+        binding.monthViewPager.adapter = monthPagerAdapter
+        binding.monthViewPager.setCurrentItem(monthPagerAdapter.centerPosition, false)
+
+        binding.monthViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                selectedMonthCal = monthPagerAdapter.getMonthForPosition(position)
+                if (currentViewMode == ViewMode.MONTH) {
+                    updateDateText()
+                }
+            }
+        })
+
         pagerAdapter = SchedulePagerAdapter(this)
         binding.timetableViewPager.adapter = pagerAdapter
         binding.timetableViewPager.setCurrentItem(pagerAdapter.centerPosition, false)
 
-        updateDateText()
+        binding.timetableViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                selectedDate = pagerAdapter.getDateForPosition(position)
+                if (currentViewMode == ViewMode.DAY) {
+                    updateDateText()
+                }
+            }
+        })
+
+        applyViewMode(currentViewMode)
         
         binding.prevDayButton.setOnClickListener {
-            binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem - 1, true)
+            if (currentViewMode == ViewMode.MONTH) {
+                binding.monthViewPager.setCurrentItem(binding.monthViewPager.currentItem - 1, true)
+            } else {
+                binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem - 1, true)
+            }
         }
 
         binding.nextDayButton.setOnClickListener {
-            binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem + 1, true)
+            if (currentViewMode == ViewMode.MONTH) {
+                binding.monthViewPager.setCurrentItem(binding.monthViewPager.currentItem + 1, true)
+            } else {
+                binding.timetableViewPager.setCurrentItem(binding.timetableViewPager.currentItem + 1, true)
+            }
         }
 
         binding.btnResetToToday.setOnClickListener {
+            selectedDate = Calendar.getInstance()
+            selectedMonthCal = Calendar.getInstance()
+            binding.monthViewPager.setCurrentItem(monthPagerAdapter.centerPosition, true)
             binding.timetableViewPager.setCurrentItem(pagerAdapter.centerPosition, true)
+            updateDateText()
+        }
+
+        binding.btnToggleViewMode.setOnClickListener {
+            val nextMode = if (currentViewMode == ViewMode.MONTH) ViewMode.DAY else ViewMode.MONTH
+            applyViewMode(nextMode)
         }
 
         binding.selectedDateText.setOnClickListener {
@@ -109,13 +157,6 @@ class TimetableFragment : Fragment() {
             }
         }
 
-        binding.timetableViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                selectedDate = pagerAdapter.getDateForPosition(position)
-                updateDateText()
-            }
-        })
-
         loadIcsCache()
         loadCustomEvents()
         initialLoad()
@@ -132,6 +173,34 @@ class TimetableFragment : Fragment() {
         }
     }
 
+    fun applyViewMode(mode: ViewMode) {
+        currentViewMode = mode
+        if (mode == ViewMode.MONTH) {
+            binding.monthViewPager.visibility = View.VISIBLE
+            binding.timetableViewPager.visibility = View.GONE
+            binding.dayOfWeekHeaderLayout.visibility = View.VISIBLE
+            binding.btnToggleViewMode.setImageResource(R.drawable.ic_mode_day)
+            val monthPos = monthPagerAdapter.getPositionForDate(selectedDate)
+            binding.monthViewPager.setCurrentItem(monthPos, false)
+        } else {
+            binding.monthViewPager.visibility = View.GONE
+            binding.timetableViewPager.visibility = View.VISIBLE
+            binding.dayOfWeekHeaderLayout.visibility = View.GONE
+            binding.btnToggleViewMode.setImageResource(R.drawable.ic_mode_month)
+            val dayPos = pagerAdapter.getPositionForDate(selectedDate)
+            binding.timetableViewPager.setCurrentItem(dayPos, false)
+        }
+        updateDateText()
+    }
+
+    fun onMonthDayClicked(day: MonthDay) {
+        val targetCal = Calendar.getInstance().apply {
+            timeInMillis = day.startOfDayMillis
+        }
+        selectedDate = targetCal
+        applyViewMode(ViewMode.DAY)
+    }
+
     private fun checkAttendanceFeature() {
         val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
         val allKeys = attendancePrefs.all.keys
@@ -144,23 +213,38 @@ class TimetableFragment : Fragment() {
     }
 
     private fun updateDateText() {
-        val sdf = SimpleDateFormat("yyyy年M月d日 (E)", Locale.JAPAN)
-        binding.selectedDateText.text = sdf.format(selectedDate.time)
+        if (currentViewMode == ViewMode.MONTH) {
+            val year = selectedMonthCal.get(Calendar.YEAR)
+            val month = selectedMonthCal.get(Calendar.MONTH)
+            binding.selectedDateText.text = MonthCalendarHelper.formatYearMonthTitle(year, month)
+        } else {
+            val sdf = SimpleDateFormat("yyyy年M月d日 (E)", Locale.JAPAN)
+            binding.selectedDateText.text = sdf.format(selectedDate.time)
+        }
     }
 
     private fun showDatePicker() {
+        val initialCal = if (currentViewMode == ViewMode.MONTH) selectedMonthCal else selectedDate
         android.app.DatePickerDialog(
             requireContext(),
             { _, year, month, dayOfMonth ->
                 val newDate = Calendar.getInstance().apply {
                     set(year, month, dayOfMonth)
                 }
-                val position = pagerAdapter.getPositionForDate(newDate)
-                binding.timetableViewPager.setCurrentItem(position, false)
+                selectedDate = newDate
+                selectedMonthCal = (newDate.clone() as Calendar)
+                if (currentViewMode == ViewMode.MONTH) {
+                    val position = monthPagerAdapter.getPositionForDate(newDate)
+                    binding.monthViewPager.setCurrentItem(position, false)
+                } else {
+                    val position = pagerAdapter.getPositionForDate(newDate)
+                    binding.timetableViewPager.setCurrentItem(position, false)
+                }
+                updateDateText()
             },
-            selectedDate.get(Calendar.YEAR),
-            selectedDate.get(Calendar.MONTH),
-            selectedDate.get(Calendar.DAY_OF_MONTH)
+            initialCal.get(Calendar.YEAR),
+            initialCal.get(Calendar.MONTH),
+            initialCal.get(Calendar.DAY_OF_MONTH)
         ).show()
     }
 
@@ -170,7 +254,8 @@ class TimetableFragment : Fragment() {
     }
 
     fun notifyFragments() {
-        pagerAdapter.refresh()
+        if (::pagerAdapter.isInitialized) pagerAdapter.refresh()
+        if (::monthPagerAdapter.isInitialized) monthPagerAdapter.refresh()
     }
 
     private fun loadCustomEvents() {
@@ -377,7 +462,7 @@ class TimetableFragment : Fragment() {
         return list
     }
 
-    fun getDailyData(date: Calendar): List<ScheduleDisplayItem> {
+    fun getRawEventsForDate(date: Calendar): List<ScheduleItem> {
         val rawEvents = mutableListOf<ScheduleItem>()
         loadTasksForDate(date, rawEvents)
         addCustomEventsForDate(date, rawEvents)
@@ -391,7 +476,11 @@ class TimetableFragment : Fragment() {
             FilterType.ALL -> rawEvents.filter { it.type != "完了報告" }
         }
 
-        val sortedEvents = filteredEvents.sortedBy { it.sortTime }
+        return filteredEvents.sortedBy { it.sortTime }
+    }
+
+    fun getDailyData(date: Calendar): List<ScheduleDisplayItem> {
+        val sortedEvents = getRawEventsForDate(date)
         val displayList = mutableListOf<ScheduleDisplayItem>()
         
         if (currentFilter == FilterType.ALL) {
@@ -597,6 +686,39 @@ class TimetableFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private inner class MonthPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
+        val centerPosition = 10000
+        private val baseCal = Calendar.getInstance()
+        private var refreshId = 0L
+
+        override fun getItemId(position: Int): Long = (position.toLong() shl 32) or (refreshId and 0xFFFFFFFFL)
+        override fun containsItem(itemId: Long): Boolean = (itemId and 0xFFFFFFFFL) == (refreshId and 0xFFFFFFFFL)
+        override fun getItemCount(): Int = centerPosition * 2
+
+        override fun createFragment(position: Int): Fragment {
+            val (year, month) = MonthCalendarHelper.getYearMonthForPosition(position, centerPosition, baseCal)
+            return MonthPageFragment.newInstance(year, month)
+        }
+
+        fun getMonthForPosition(position: Int): Calendar {
+            val (year, month) = MonthCalendarHelper.getYearMonthForPosition(position, centerPosition, baseCal)
+            return (baseCal.clone() as Calendar).apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month)
+                set(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        fun getPositionForDate(date: Calendar): Int {
+            return MonthCalendarHelper.getPositionForYearMonth(date.get(Calendar.YEAR), date.get(Calendar.MONTH), centerPosition, baseCal)
+        }
+
+        fun refresh() {
+            refreshId++
+            notifyDataSetChanged()
+        }
     }
 
     private inner class SchedulePagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {

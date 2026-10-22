@@ -45,6 +45,9 @@ class SettingsFragment : Fragment() {
         view.findViewById<View>(R.id.menuPermissions).setOnClickListener {
             navigateTo(SettingsPermissionsFragment())
         }
+        view.findViewById<View>(R.id.menuUsability)?.setOnClickListener {
+            navigateTo(SettingsUsabilityFragment())
+        }
         view.findViewById<View>(R.id.menuCalendar).setOnClickListener {
             navigateTo(SettingsCalendarFragment())
         }
@@ -75,6 +78,7 @@ class SettingsFragment : Fragment() {
         
         val title = when(fragment) {
             is SettingsPermissionsFragment -> "システム権限と通知"
+            is SettingsUsabilityFragment -> "操作・表示設定"
             is SettingsCalendarFragment -> "外部カレンダーの設定"
             is SettingsPresetsFragment -> "スケジュールの設定"
             is SettingsVoiceFragment -> "音声合成とストレージ"

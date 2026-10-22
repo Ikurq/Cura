@@ -22,6 +22,11 @@ object CuraConstants {
     const val KEY_PENDING_TASK_PRAISE = "pending_task_praise"
     const val KEY_PENDING_ALARM_PRAISE = "pending_alarm_praise"
     
+    // Usability / View Preferences
+    const val KEY_DEFAULT_TIMETABLE_VIEW = "default_timetable_view"
+    const val VIEW_MODE_MONTH = "MONTH"
+    const val VIEW_MODE_DAY = "DAY"
+
     // Alarm Keys
     const val KEY_ALARM_LIST = "alarmListJSON"
     

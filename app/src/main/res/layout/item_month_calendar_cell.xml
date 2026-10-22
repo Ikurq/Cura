@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="80dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_month_calendar_cell"
+    android:foreground="?attr/selectableItemBackground"
+    android:padding="2dp">
+
+    <!-- Day Number Header -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:id="@+id/textDayNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:minWidth="22dp"
+            android:minHeight="22dp"
+            android:paddingHorizontal="4dp"
+            android:text="1"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+    </FrameLayout>
+
+    <!-- Event Chips Container -->
+    <LinearLayout
+        android:id="@+id/layoutEventChips"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="top" />
+
+    <!-- More Events Indicator -->
+    <TextView
+        android:id="@+id/textMoreEvents"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:textSize="9sp"
+        android:textColor="@color/text_secondary"
+        android:visibility="gone"
+        android:text="+1" />
+
+</LinearLayout>

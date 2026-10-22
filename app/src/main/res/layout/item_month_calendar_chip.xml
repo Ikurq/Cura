@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/textChipTitle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="2dp"
+    android:background="@drawable/bg_calendar_event_chip"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:paddingHorizontal="3dp"
+    android:paddingVertical="1dp"
+    android:text="予定"
+    android:textColor="@color/cyber_cyan"
+    android:textSize="9sp" />

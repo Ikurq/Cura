@@ -37,6 +37,9 @@ jobs:
           ls -l keystore.jks
           keytool -list -v -keystore keystore.jks -storepass android -alias androiddebugkey
 
+      - name: Run Unit Tests
+        run: ./gradlew test --stacktrace
+
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
