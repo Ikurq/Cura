@@ -41,7 +41,7 @@ jobs:
         run: ./gradlew :app:testReleaseUnitTest --info || true
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log || (tail -n 120 build.log && exit 1)
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Check APK Output
         run: ls -lh app/build/outputs/apk/release/
