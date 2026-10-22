@@ -95,6 +95,13 @@ class AlarmFragment : Fragment() {
             val uniqueNames = getFilteredCharacterNames()
             setupSpeakerSpinner(dialogBinding.spinMandatorySpeaker, uniqueNames)
 
+            val categories = AlarmTemplateManager.getMandatoryCategories(ctx)
+            val categoryOptions = mutableListOf("おまかせ (全方向性からランダム)")
+            categoryOptions.addAll(categories.map { "${it.name} (${it.templates.size}種)" })
+            dialogBinding.spinMandatoryCategory.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item, categoryOptions).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+
             AlertDialog.Builder(ctx)
                 .setTitle(getString(R.string.dialog_mandatory_alarm_title))
                 .setView(dialogBinding.root)
@@ -106,11 +113,14 @@ class AlarmFragment : Fragment() {
                     val leadTime = dialogBinding.editLeadTime.text.toString().toIntOrNull() ?: 30
                     val charName = uniqueNames[dialogBinding.spinMandatorySpeaker.selectedItemPosition]
                     
+                    val categoryIndex = dialogBinding.spinMandatoryCategory.selectedItemPosition
+                    val selectedCategoryId = if (categoryIndex > 0) categories[categoryIndex - 1].id else null
+
                     val model = loadedModels.find { m -> m.characters.any { it.name == charName } }
                     val styleId = model?.characters?.find { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: DEFAULT_STYLE_ID
 
                     checkLicenseAndRun(charName, model?.id ?: "", styleId) { m, s ->
-                        generateMandatoryAlarm(event, leadTime, m, charName)
+                        generateMandatoryAlarm(event, leadTime, m, charName, selectedCategoryId)
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -118,7 +128,13 @@ class AlarmFragment : Fragment() {
         }
     }
 
-    private fun generateMandatoryAlarm(event: IcsEvent, leadTimeMinutes: Int, modelId: String, speakerName: String) {
+    private fun generateMandatoryAlarm(
+        event: IcsEvent,
+        leadTimeMinutes: Int,
+        modelId: String,
+        speakerName: String,
+        categoryId: String? = null
+    ) {
         val alarmCal = Calendar.getInstance().apply {
             timeInMillis = event.startTime
             add(Calendar.MINUTE, -leadTimeMinutes)
@@ -128,8 +144,8 @@ class AlarmFragment : Fragment() {
         
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             val ctx = context ?: return@launch
-            val template = AlarmTemplateManager.getMandatoryAlarmTemplate(ctx)
-            val message = String.format(Locale.getDefault(), template, hour, minute, event.summary, leadTimeMinutes)
+            val template = AlarmTemplateManager.getRandomMandatoryTemplate(ctx, categoryId)
+            val message = AlarmTemplateManager.formatMandatoryAlarmMessage(template, hour, minute, event.summary, leadTimeMinutes)
             val newId = UUID.randomUUID().toString()
             val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
             

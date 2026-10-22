@@ -49,17 +49,15 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.3
-          name: "Cura ver2.3"
+          tag_name: ver2.4
+          name: "Cura ver2.4"
           body: |
-            Cura ver2.3 リリース
+            Cura ver2.4 リリース
             
-            ・タスク機能の「目標デッドライン（目標期限）」と「本当のデッドライン（最終期限）」の2重期限設定に対応
-            ・目標デッドラインに応じた優先度動的計算（目標日が近づく／超過すると優先度上昇）
-            ・タスクカードでの両期限表示（目標期限超過・期限切れアラート表示）
-            ・タスクカードのタップによる既存タスク編集機能の追加
-            ・タイムラインおよびホーム画面／ウィジェットでの目標期限・最終期限の統合表示
-            ・目標期限1時間前の事前リマインダー通知を追加
-            ・旧バージョンデータとの完全な下位互換性を維持
+            ・予定連動アラームのセリフ拡張システム（JSONベースの方向性・バリエーション登録機構）を導入
+            ・アラーム生成ダイアログに「セリフの方向性（トーン）」選択肢を追加（おまかせ/標準/焦り・緊急/優しめ/厳しめ/元気 など）
+            ・テンプレートでの柔軟なプレースホルダー記法（{time}, {event}, {leadTime}, {hour}, {minute}）に対応
+            ・起床後モーニングリーディング各文の配列化によるランダム選出に対応
+            ・セリフ拡張ガイド（docs/ALARM_TEMPLATES.md）を追加
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
