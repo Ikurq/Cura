@@ -1,8 +1,7 @@
 package com.example.voicevox
 
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.json.*
 import java.io.File
 import java.util.Locale
 import kotlin.random.Random
@@ -19,7 +18,8 @@ object AlarmTemplateManager {
         val templates: List<String>
     )
 
-    private var cachedJson: JSONObject? = null
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+    private var cachedRoot: JsonObject? = null
     private var testJsonString: String? = null
 
     /**
@@ -27,20 +27,20 @@ object AlarmTemplateManager {
      */
     fun setTestJson(jsonStr: String?) {
         testJsonString = jsonStr
-        cachedJson = null
+        cachedRoot = null
     }
 
-    private fun loadData(context: Context? = null): JSONObject {
-        cachedJson?.let { return it }
+    private fun loadData(context: Context? = null): JsonObject {
+        cachedRoot?.let { return it }
 
         if (testJsonString != null) {
-            val json = JSONObject(testJsonString!!)
-            cachedJson = json
-            return json
+            val root = json.parseToJsonElement(testJsonString!!).jsonObject
+            cachedRoot = root
+            return root
         }
 
         if (context == null) {
-            return JSONObject()
+            return buildJsonObject {}
         }
 
         val customFile = File(context.filesDir, "custom_alarm_templates.json")
@@ -54,16 +54,16 @@ object AlarmTemplateManager {
             context.assets.open("alarm_templates.json").bufferedReader().use { it.readText() }
         }
 
-        val json = JSONObject(jsonString)
-        cachedJson = json
-        return json
+        val root = json.parseToJsonElement(jsonString).jsonObject
+        cachedRoot = root
+        return root
     }
 
     /**
      * キャッシュをクリアして次回アクセス時に再読み込みさせます。
      */
     fun clearCache() {
-        cachedJson = null
+        cachedRoot = null
     }
 
     /**
@@ -71,7 +71,8 @@ object AlarmTemplateManager {
      */
     fun getPreviewTemplate(context: Context? = null): String {
         return try {
-            loadData(context).getJSONObject("preview").getString("template")
+            val preview = loadData(context)["preview"]?.jsonObject
+            preview?.get("template")?.jsonPrimitive?.content ?: "これは試聴です。%s"
         } catch (e: Exception) {
             "これは試聴です。%s"
         }
@@ -82,44 +83,36 @@ object AlarmTemplateManager {
      */
     fun getMandatoryCategories(context: Context? = null): List<AlarmCategory> {
         val root = loadData(context)
-        val mandatory = root.optJSONObject("mandatory_alarm") ?: return emptyList()
-        val categoriesObj = mandatory.optJSONObject("categories")
+        val mandatory = root["mandatory_alarm"]?.jsonObject ?: return emptyList()
+        val categoriesObj = mandatory["categories"]?.jsonObject
 
         val result = mutableListOf<AlarmCategory>()
 
         if (categoriesObj != null) {
-            val keys = categoriesObj.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                val item = categoriesObj.opt(key)
-                when (item) {
-                    is JSONObject -> {
-                        val name = item.optString("name", key)
-                        val templatesArray = item.optJSONArray("templates") ?: JSONArray()
-                        val list = mutableListOf<String>()
-                        for (i in 0 until templatesArray.length()) {
-                            list.add(templatesArray.getString(i))
-                        }
+            for ((key, element) in categoriesObj) {
+                when (element) {
+                    is JsonObject -> {
+                        val name = element["name"]?.jsonPrimitive?.content ?: key
+                        val templatesArray = element["templates"]?.jsonArray
+                        val list = templatesArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList()
                         if (list.isNotEmpty()) {
                             result.add(AlarmCategory(key, name, list))
                         }
                     }
-                    is JSONArray -> {
-                        val list = mutableListOf<String>()
-                        for (i in 0 until item.length()) {
-                            list.add(item.getString(i))
-                        }
+                    is JsonArray -> {
+                        val list = element.mapNotNull { it.jsonPrimitive.contentOrNull }
                         if (list.isNotEmpty()) {
                             result.add(AlarmCategory(key, key, list))
                         }
                     }
+                    else -> {}
                 }
             }
         }
 
         // カテゴリー未定義だが単体テンプレートがある場合の下位互換
         if (result.isEmpty()) {
-            val legacy = mandatory.optString("generation_template", "")
+            val legacy = mandatory["generation_template"]?.jsonPrimitive?.contentOrNull ?: ""
             if (legacy.isNotEmpty()) {
                 result.add(AlarmCategory("standard", "標準", listOf(legacy)))
             }
@@ -203,12 +196,15 @@ object AlarmTemplateManager {
      */
     fun getMorningTemplate(context: Context? = null, key: String): String {
         val root = loadData(context)
-        val morning = root.optJSONObject("morning_reading") ?: return ""
-        val array = morning.optJSONArray(key)
-        if (array != null && array.length() > 0) {
-            val idx = Random.nextInt(array.length())
-            return array.getString(idx)
+        val morning = root["morning_reading"]?.jsonObject ?: return ""
+        val element = morning[key] ?: return ""
+        return when (element) {
+            is JsonArray -> {
+                val list = element.mapNotNull { it.jsonPrimitive.contentOrNull }
+                if (list.isNotEmpty()) list.random() else ""
+            }
+            is JsonPrimitive -> element.content
+            else -> ""
         }
-        return morning.optString(key, "")
     }
 }
