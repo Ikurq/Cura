@@ -38,7 +38,7 @@ jobs:
           keytool -list -v -keystore keystore.jks -storepass android -alias androiddebugkey
 
       - name: Run App Unit Tests
-        run: ./gradlew :app:testReleaseUnitTest --info || true
+        run: ./gradlew :app:testDebugUnitTest --info
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
