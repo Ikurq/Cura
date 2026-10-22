@@ -43,6 +43,9 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log || (tail -n 120 build.log && exit 1)
 
+      - name: Check APK Output
+        run: ls -lh app/build/outputs/apk/release/
+
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -58,4 +61,5 @@ jobs:
             ・設定画面から全データ（Lv・経験値、タスク、アラーム等）のJSONバックアップ・復元に対応
             ・UIテキストおよび通知から装飾絵文字を完全撤去
             ・署名キーストアの整合性修正
-          files: app/build/outputs/apk/release/app-release.apk
+          fail_on_unmatched_files: true
+          files: app/build/outputs/apk/release/*.apk
