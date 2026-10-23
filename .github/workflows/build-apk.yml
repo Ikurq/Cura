@@ -49,15 +49,14 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.8
-          name: "Cura ver2.8"
+          tag_name: ver2.9
+          name: "Cura ver2.9"
           body: |
-            Cura ver2.8 リリース
+            Cura ver2.9 リリース
             
-            ・タスク追加・編集ダイアログのUI要素を大幅に整理
-              - 機能していなかった「予定と連動させる」スピナーおよびラベルを撤去
-              - 「目標期限も設定する (詳細設定)」チェックボックスを導入
-              - 通常時はシンプルな「期限」のみを表示し、チェック時のみ目標期限設定欄を展開
-              - タスク作成・編集時の入力ステップを最小化
+            ・タスク作成・編集画面の文言をわかりやすく改善
+              - 「目標デッドライン（目標期限）」表記を廃止し、「目標期限 (これまでに終わらせたい)」に変更
+              - メイン期限表記を「最終期限」に変更
+              - 期限不整合時のバリデーション文言を自然な日本語表現に統一
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk

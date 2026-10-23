@@ -159,7 +159,7 @@ class TaskFragment : Fragment() {
         fun updateAdvancedModeUi(isAdvanced: Boolean) {
             if (isAdvanced) {
                 dialogBinding.dialogTargetDeadlineContainer.visibility = View.VISIBLE
-                dialogBinding.dialogRealDeadlineLabel.text = "本当のデッドライン (最終期限)"
+                dialogBinding.dialogRealDeadlineLabel.text = "最終期限"
             } else {
                 dialogBinding.dialogTargetDeadlineContainer.visibility = View.GONE
                 dialogBinding.dialogRealDeadlineLabel.text = "期限"
@@ -211,7 +211,7 @@ class TaskFragment : Fragment() {
 
                 if (dialogBinding.dialogTaskAdvancedDeadlineCheckbox.isChecked &&
                     selectedTargetDeadline != null && selectedTargetDeadline!! > selectedRealDeadline) {
-                    Toast.makeText(ctx, "目標デッドラインは本当のデッドライン以前の日時を指定してください", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "目標期限は最終期限以前の日時を指定してください", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 

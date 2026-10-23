@@ -42,7 +42,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="目標デッドライン (目標期限)"
+            android:text="目標期限 (これまでに終わらせたい)"
             android:textSize="12sp"
             android:textColor="@color/cyber_cyan"
             android:textStyle="bold"
@@ -97,7 +97,7 @@
         android:id="@+id/dialogTaskAdvancedDeadlineCheckbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="目標期限も設定する (詳細設定)"
+        android:text="目標期限も設定する"
         android:textSize="13sp"
         android:textColor="@color/text_secondary"
         android:layout_marginBottom="14dp" />
