@@ -49,15 +49,20 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.4
-          name: "Cura ver2.4"
+          tag_name: ver2.5
+          name: "Cura ver2.5"
           body: |
-            Cura ver2.4 リリース
+            Cura ver2.5 リリース
             
-            ・予定連動アラームのセリフ拡張システム（JSONベースの方向性・バリエーション登録機構）を導入
-            ・アラーム生成ダイアログに「セリフの方向性（トーン）」選択肢を追加（おまかせ/標準/焦り・緊急/優しめ/厳しめ/元気 など）
-            ・テンプレートでの柔軟なプレースホルダー記法（{time}, {event}, {leadTime}, {hour}, {minute}）に対応
-            ・起床後モーニングリーディング各文の配列化によるランダム選出に対応
-            ・セリフ拡張ガイド（docs/ALARM_TEMPLATES.md）を追加
+            ・予定連動アラームのセリフ集を大幅拡充（全7カテゴリ、計94パターン）
+              - 標準 (4種)
+              - 焦り・緊急 (15種)
+              - 優しめ (15種)
+              - 厳しめ・叱咤 (15種)
+              - 元気・活発 (15種)
+              - ツンデレ (15種)
+              - 論理的・執事 (15種)
+            ・アラーム編集画面でトーンごとの登録件数表示に対応
+            ・起床後モーニングリーディングのランダム選出に対応
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
