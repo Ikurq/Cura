@@ -49,11 +49,13 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.10
-          name: "Cura ver2.10"
+          tag_name: ver2.11
+          name: "Cura ver2.11"
           body: |
-            Cura ver2.10 リリース
+            Cura ver2.11 リリース
             
-            ・タスクダイアログの目標期限ラベルをシンプルに「目標期限」のみへ変更
+            ・ボトムナビゲーションのアイコンデザインを刷新・修正
+              - ホームアイコン: 二重線やズレが生じていたパスを解消し、すっきりとしたシングルストロークのモダンな家アイコンに修正
+              - 出欠アイコン: アカウント/ユーザー風かつ二重線だったアイコンを、出欠確認を直感的に表す「出席チェック（人物＋チェックマーク）」の統一ストロークアイコンに刷新
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
