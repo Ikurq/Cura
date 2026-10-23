@@ -134,33 +134,25 @@ class TimetableFragment : Fragment() {
             updateDateText()
         }
 
-        binding.btnToggleViewMode.setOnClickListener {
-            val nextMode = if (currentViewMode == ViewMode.MONTH) ViewMode.DAY else ViewMode.MONTH
-            applyViewMode(nextMode)
+        binding.btnModeDay.setOnClickListener {
+            if (currentViewMode != ViewMode.DAY) {
+                applyViewMode(ViewMode.DAY)
+            }
         }
 
-        binding.selectedDateText.setOnClickListener {
-            showDatePicker()
+        binding.btnModeMonth.setOnClickListener {
+            if (currentViewMode != ViewMode.MONTH) {
+                applyViewMode(ViewMode.MONTH)
+            }
         }
 
         binding.addScheduleEventFAB.setOnClickListener {
             showAddEventDialog()
         }
 
-        binding.btnAttendanceStats.setOnClickListener {
-            (activity as? MainActivity)?.let { main ->
-                main.supportFragmentManager.beginTransaction()
-                    .replace(R.id.fragmentContainer, AttendanceManagerFragment())
-                    .addToBackStack(null)
-                    .commit()
-                main.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar).title = "出欠管理カウンター"
-            }
-        }
-
         loadIcsCache()
         loadCustomEvents()
         initialLoad()
-        checkAttendanceFeature()
 
         binding.filterChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
             currentFilter = when (checkedIds.firstOrNull()) {
@@ -179,14 +171,30 @@ class TimetableFragment : Fragment() {
             binding.monthViewPager.visibility = View.VISIBLE
             binding.timetableViewPager.visibility = View.GONE
             binding.dayOfWeekHeaderLayout.visibility = View.VISIBLE
-            binding.btnToggleViewMode.setImageResource(R.drawable.ic_mode_day)
+
+            binding.btnModeDay.setBackgroundResource(android.R.color.transparent)
+            binding.btnModeDay.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            binding.btnModeDay.typeface = android.graphics.Typeface.DEFAULT
+
+            binding.btnModeMonth.setBackgroundResource(R.drawable.bg_segmented_selected)
+            binding.btnModeMonth.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.background))
+            binding.btnModeMonth.typeface = android.graphics.Typeface.DEFAULT_BOLD
+
             val monthPos = monthPagerAdapter.getPositionForDate(selectedDate)
             binding.monthViewPager.setCurrentItem(monthPos, false)
         } else {
             binding.monthViewPager.visibility = View.GONE
             binding.timetableViewPager.visibility = View.VISIBLE
             binding.dayOfWeekHeaderLayout.visibility = View.GONE
-            binding.btnToggleViewMode.setImageResource(R.drawable.ic_mode_month)
+
+            binding.btnModeDay.setBackgroundResource(R.drawable.bg_segmented_selected)
+            binding.btnModeDay.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.background))
+            binding.btnModeDay.typeface = android.graphics.Typeface.DEFAULT_BOLD
+
+            binding.btnModeMonth.setBackgroundResource(android.R.color.transparent)
+            binding.btnModeMonth.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            binding.btnModeMonth.typeface = android.graphics.Typeface.DEFAULT
+
             val dayPos = pagerAdapter.getPositionForDate(selectedDate)
             binding.timetableViewPager.setCurrentItem(dayPos, false)
         }
@@ -201,16 +209,7 @@ class TimetableFragment : Fragment() {
         applyViewMode(ViewMode.DAY)
     }
 
-    private fun checkAttendanceFeature() {
-        val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
-        val allKeys = attendancePrefs.all.keys
-        
-        val hasTrackedExternal = allKeys.any { it.startsWith("track_") && attendancePrefs.getBoolean(it, false) }
-        val hasTrackedCustom = customEvents.any { it.isAttendanceTracked }
-        val hasManualCount = allKeys.any { it.startsWith("absent_") && (attendancePrefs.all[it] as? Int ?: 0) > 0 }
-        
-        binding.btnAttendanceStats.visibility = if (hasTrackedExternal || hasTrackedCustom || hasManualCount) View.VISIBLE else View.GONE
-    }
+
 
     private fun updateDateText() {
         if (currentViewMode == ViewMode.MONTH) {
@@ -223,30 +222,7 @@ class TimetableFragment : Fragment() {
         }
     }
 
-    private fun showDatePicker() {
-        val initialCal = if (currentViewMode == ViewMode.MONTH) selectedMonthCal else selectedDate
-        android.app.DatePickerDialog(
-            requireContext(),
-            { _, year, month, dayOfMonth ->
-                val newDate = Calendar.getInstance().apply {
-                    set(year, month, dayOfMonth)
-                }
-                selectedDate = newDate
-                selectedMonthCal = (newDate.clone() as Calendar)
-                if (currentViewMode == ViewMode.MONTH) {
-                    val position = monthPagerAdapter.getPositionForDate(newDate)
-                    binding.monthViewPager.setCurrentItem(position, false)
-                } else {
-                    val position = pagerAdapter.getPositionForDate(newDate)
-                    binding.timetableViewPager.setCurrentItem(position, false)
-                }
-                updateDateText()
-            },
-            initialCal.get(Calendar.YEAR),
-            initialCal.get(Calendar.MONTH),
-            initialCal.get(Calendar.DAY_OF_MONTH)
-        ).show()
-    }
+
 
     private fun initialLoad() {
         val sources = loadCalendarSources()

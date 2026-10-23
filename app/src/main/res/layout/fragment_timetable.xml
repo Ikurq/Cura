@@ -19,22 +19,23 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="12dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageButton
                     android:id="@+id/prevDayButton"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="4dp"
                     android:scaleType="fitCenter"
-                    android:src="@android:drawable/ic_media_previous"
+                    android:src="@drawable/ic_chevron_left"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="@color/text_secondary" />
 
@@ -44,21 +45,18 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="4dp"
                     android:text=""
-                    android:textSize="17sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:textColor="@color/cyber_cyan"
-                    android:fontFamily="sans-serif-medium"
-                    app:drawableEndCompat="@android:drawable/arrow_down_float"
-                    android:drawablePadding="2dp"
-                    app:drawableTint="@color/text_secondary" />
+                    android:fontFamily="sans-serif-medium" />
 
                 <ImageButton
                     android:id="@+id/nextDayButton"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="4dp"
                     android:scaleType="fitCenter"
-                    android:src="@android:drawable/ic_media_next"
+                    android:src="@drawable/ic_chevron_right"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:tint="@color/text_secondary" />
 
@@ -69,37 +67,53 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <ImageButton
+                <TextView
                     android:id="@+id/btnResetToToday"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
-                    android:scaleType="fitCenter"
-                    android:src="@android:drawable/ic_menu_today"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="@color/text_secondary" />
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:gravity="center"
+                    android:paddingHorizontal="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="今日"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bg_today_pill" />
 
-                <ImageButton
-                    android:id="@+id/btnToggleViewMode"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/ic_mode_day"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="@color/cyber_cyan" />
+                <!-- Mode Toggle: Segmented Control [日 | 月] -->
+                <LinearLayout
+                    android:id="@+id/viewModeToggleGroup"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_segmented_container"
+                    android:padding="2dp">
 
-                <ImageButton
-                    android:id="@+id/btnAttendanceStats"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:padding="8dp"
-                    android:scaleType="fitCenter"
-                    android:src="@android:drawable/ic_menu_myplaces"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="@color/accent" />
+                    <TextView
+                        android:id="@+id/btnModeDay"
+                        android:layout_width="32dp"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="日"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/background"
+                        android:background="@drawable/bg_segmented_selected" />
+
+                    <TextView
+                        android:id="@+id/btnModeMonth"
+                        android:layout_width="32dp"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="月"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:background="@android:color/transparent" />
+                </LinearLayout>
+
             </LinearLayout>
         </RelativeLayout>
 
