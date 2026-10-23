@@ -13,8 +13,9 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/text_primary"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="16dp" />
 
+    <!-- 1. タスクの内容 -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -29,44 +30,56 @@
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="目標デッドライン (目標期限)"
-        android:textSize="12sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="4dp" />
-
+    <!-- 2. 目標デッドライン (詳細設定ON時のみ表示) -->
     <LinearLayout
+        android:id="@+id/dialogTargetDeadlineContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:visibility="gone"
         android:layout_marginBottom="12dp">
 
-        <Button
-            android:id="@+id/dialogTaskTargetDeadlineButton"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="未設定 (タップして設定)" />
+            android:text="目標デッドライン (目標期限)"
+            android:textSize="12sp"
+            android:textColor="@color/cyber_cyan"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
-        <ImageButton
-            android:id="@+id/dialogTaskClearTargetDeadlineButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="6dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_close"
-            android:contentDescription="目標期限を解除"
-            android:visibility="gone" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/dialogTaskTargetDeadlineButton"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="未設定 (タップして設定)" />
+
+            <ImageButton
+                android:id="@+id/dialogTaskClearTargetDeadlineButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close"
+                android:contentDescription="目標期限を解除"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- 3. メインデッドライン (通常は「期限」、詳細設定時は「本当のデッドライン (最終期限)」) -->
     <TextView
+        android:id="@+id/dialogRealDeadlineLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="本当のデッドライン (最終期限)"
+        android:text="期限"
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:layout_marginBottom="4dp" />
@@ -77,8 +90,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="日付を選択してください"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="10dp" />
 
+    <!-- 4. 詳細設定チェックボックス -->
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/dialogTaskAdvancedDeadlineCheckbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="目標期限も設定する (詳細設定)"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="14dp" />
+
+    <!-- 5. 基本優先度 -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -91,7 +115,6 @@
         android:id="@+id/dialogTaskPrioritySpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:layout_marginBottom="16dp" />
+        android:minHeight="48dp" />
 
 </LinearLayout>

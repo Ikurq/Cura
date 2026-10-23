@@ -114,7 +114,6 @@ class TaskFragment : Fragment() {
         val calendar = Calendar.getInstance()
         var selectedRealDeadline = taskToEdit?.deadlineMillis ?: calendar.timeInMillis
         var selectedTargetDeadline: Long? = taskToEdit?.targetDeadlineMillis
-        var selectedEventId: String? = taskToEdit?.linkedEventId
 
         val isEdit = taskToEdit != null
         dialogBinding.dialogTaskHeaderTitle.text = if (isEdit) "タスクの編集" else "新しいタスクを追加"
@@ -156,60 +155,34 @@ class TaskFragment : Fragment() {
             updateTargetDeadlineUi()
         }
 
-        // --- 本当のデッドライン設定 ---
+        // --- 詳細設定 (目標期限) 切り替え ---
+        fun updateAdvancedModeUi(isAdvanced: Boolean) {
+            if (isAdvanced) {
+                dialogBinding.dialogTargetDeadlineContainer.visibility = View.VISIBLE
+                dialogBinding.dialogRealDeadlineLabel.text = "本当のデッドライン (最終期限)"
+            } else {
+                dialogBinding.dialogTargetDeadlineContainer.visibility = View.GONE
+                dialogBinding.dialogRealDeadlineLabel.text = "期限"
+                selectedTargetDeadline = null
+                updateTargetDeadlineUi()
+            }
+        }
+
+        val hasInitialTarget = selectedTargetDeadline != null
+        dialogBinding.dialogTaskAdvancedDeadlineCheckbox.isChecked = hasInitialTarget
+        updateAdvancedModeUi(hasInitialTarget)
+
+        dialogBinding.dialogTaskAdvancedDeadlineCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            updateAdvancedModeUi(isChecked)
+        }
+
+        // --- 期限設定 ---
         dialogBinding.dialogTaskDeadlineButton.text = sdf.format(Date(selectedRealDeadline))
-
-        val eventLabel = TextView(ctx).apply {
-            text = "予定と連動させる"
-            setPadding(0, 16, 0, 8)
-            setTextColor(resources.getColor(R.color.text_secondary, null))
-        }
-        val eventSpinner = Spinner(ctx)
-        (dialogBinding.root as LinearLayout).addView(eventLabel)
-        (dialogBinding.root as LinearLayout).addView(eventSpinner)
-
         val realCal = Calendar.getInstance().apply { timeInMillis = selectedRealDeadline }
-
-        fun updateEventSpinner() {
-            val eventList = ScheduleLoader.loadAllEventsForToday(ctx, realCal)
-            val eventTitles = mutableListOf("指定なし (手動入力)")
-            eventTitles.addAll(eventList.map {
-                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.startTime))
-                "[$time] ${it.summary}"
-            })
-            eventSpinner.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item, eventTitles).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
-
-            var initialSelection = 0
-            if (selectedEventId != null) {
-                val idx = eventList.indexOfFirst { "${it.summary}_${it.startTime}" == selectedEventId }
-                if (idx != -1) initialSelection = idx + 1
-            }
-            eventSpinner.setSelection(initialSelection)
-
-            eventSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(p: AdapterView<*>?, v: View?, position: Int, id: Long) {
-                    if (position > 0) {
-                        val event = eventList[position - 1]
-                        selectedRealDeadline = event.startTime
-                        selectedEventId = "${event.summary}_${event.startTime}"
-                        dialogBinding.dialogTaskDeadlineButton.text = sdf.format(Date(selectedRealDeadline))
-                        dialogBinding.dialogTaskDeadlineButton.isEnabled = false
-                    } else {
-                        selectedEventId = null
-                        dialogBinding.dialogTaskDeadlineButton.isEnabled = true
-                    }
-                }
-                override fun onNothingSelected(p: AdapterView<*>?) {}
-            }
-        }
-        updateEventSpinner()
 
         dialogBinding.dialogTaskDeadlineButton.setOnClickListener {
             DatePickerDialog(ctx, { _, year, month, day ->
                 realCal.set(year, month, day)
-                updateEventSpinner()
                 TimePickerDialog(ctx, { _, h, m ->
                     realCal.set(Calendar.HOUR_OF_DAY, h)
                     realCal.set(Calendar.MINUTE, m)
@@ -236,11 +209,13 @@ class TaskFragment : Fragment() {
                     return@setPositiveButton
                 }
 
-                if (selectedTargetDeadline != null && selectedTargetDeadline!! > selectedRealDeadline) {
+                if (dialogBinding.dialogTaskAdvancedDeadlineCheckbox.isChecked &&
+                    selectedTargetDeadline != null && selectedTargetDeadline!! > selectedRealDeadline) {
                     Toast.makeText(ctx, "目標デッドラインは本当のデッドライン以前の日時を指定してください", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
+                val finalTargetDeadline = if (dialogBinding.dialogTaskAdvancedDeadlineCheckbox.isChecked) selectedTargetDeadline else null
                 val basePriority = dialogBinding.dialogTaskPrioritySpinner.selectedItemPosition + 1
 
                 if (isEdit) {
@@ -249,9 +224,9 @@ class TaskFragment : Fragment() {
                         taskList[index] = taskToEdit.copy(
                             title = title,
                             deadlineMillis = selectedRealDeadline,
-                            targetDeadlineMillis = selectedTargetDeadline,
+                            targetDeadlineMillis = finalTargetDeadline,
                             basePriority = basePriority,
-                            linkedEventId = selectedEventId
+                            linkedEventId = taskToEdit.linkedEventId
                         )
                     }
                 } else {
@@ -260,9 +235,9 @@ class TaskFragment : Fragment() {
                         title = title,
                         deadlineMillis = selectedRealDeadline,
                         basePriority = basePriority,
-                        linkedEventId = selectedEventId,
+                        linkedEventId = null,
                         isCompleted = false,
-                        targetDeadlineMillis = selectedTargetDeadline
+                        targetDeadlineMillis = finalTargetDeadline
                     )
                     taskList.add(newTask)
                 }
@@ -275,7 +250,6 @@ class TaskFragment : Fragment() {
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
-
     private fun showDeleteConfirmDialog(task: TaskItem) {
         AlertDialog.Builder(requireContext())
             .setTitle("タスクの削除")

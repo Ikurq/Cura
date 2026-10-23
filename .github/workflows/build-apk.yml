@@ -49,15 +49,15 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.7
-          name: "Cura ver2.7"
+          tag_name: ver2.8
+          name: "Cura ver2.8"
           body: |
-            Cura ver2.7 リリース
+            Cura ver2.8 リリース
             
-            ・予定画面（SCHEDULE_MAP）ヘッダーUIの整理・最適化
-              - 日付横の下矢印（DatePickerDialog）を撤去し、シンプルで視認性の高い日付表示へ変更
-              - 媒体操作用アイコン（⏮/⏭）を洗練されたシェブロン（＜/＞）に変更
-              - 曖昧だったアイコンボタン群を撤去し、「今日」ボタンおよび「日 / 月」セグメント切り替えUIを新設
-              - 下部ナビゲーションと重複していた出欠アイコンをヘッダーから削除し、画面上部の余白と整理性を向上
+            ・タスク追加・編集ダイアログのUI要素を大幅に整理
+              - 機能していなかった「予定と連動させる」スピナーおよびラベルを撤去
+              - 「目標期限も設定する (詳細設定)」チェックボックスを導入
+              - 通常時はシンプルな「期限」のみを表示し、チェック時のみ目標期限設定欄を展開
+              - タスク作成・編集時の入力ステップを最小化
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
