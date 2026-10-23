@@ -42,7 +42,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="目標期限 (これまでに終わらせたい)"
+            android:text="目標期限"
             android:textSize="12sp"
             android:textColor="@color/cyber_cyan"
             android:textStyle="bold"

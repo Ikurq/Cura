@@ -49,14 +49,11 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.9
-          name: "Cura ver2.9"
+          tag_name: ver2.10
+          name: "Cura ver2.10"
           body: |
-            Cura ver2.9 リリース
+            Cura ver2.10 リリース
             
-            ・タスク作成・編集画面の文言をわかりやすく改善
-              - 「目標デッドライン（目標期限）」表記を廃止し、「目標期限 (これまでに終わらせたい)」に変更
-              - メイン期限表記を「最終期限」に変更
-              - 期限不整合時のバリデーション文言を自然な日本語表現に統一
+            ・タスクダイアログの目標期限ラベルをシンプルに「目標期限」のみへ変更
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
