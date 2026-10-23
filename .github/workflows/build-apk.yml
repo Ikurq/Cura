@@ -49,13 +49,14 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.11
-          name: "Cura ver2.11"
+          tag_name: ver2.12
+          name: "Cura ver2.12"
           body: |
-            Cura ver2.11 リリース
+            Cura ver2.12 リリース
             
-            ・ボトムナビゲーションのアイコンデザインを刷新・修正
-              - ホームアイコン: 二重線やズレが生じていたパスを解消し、すっきりとしたシングルストロークのモダンな家アイコンに修正
-              - 出欠アイコン: アカウント/ユーザー風かつ二重線だったアイコンを、出欠確認を直感的に表す「出席チェック（人物＋チェックマーク）」の統一ストロークアイコンに刷新
+            ・タスク期限プッシュ通知リマインダーシステムの実装
+              - 目標期限および最終期限に応じた多段階リマインダー通知（目標期限当日朝 8:00、目標期限1時間前、最終期限前日夜 20:00、最終期限1時間前）
+              - タスク完了時に未発火のリマインダー予約を自動解除
+              - リマインダー通知タップ時にアプリ内のタスク画面へダイレクト遷移
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk

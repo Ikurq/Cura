@@ -127,21 +127,34 @@ class AlarmReceiver : BroadcastReceiver() {
             val taskJson = taskPrefs.getString(CuraConstants.KEY_TASK_LIST, "[]")
             try {
                 val tasks = json.decodeFromString<List<TaskItem>>(taskJson ?: "[]")
-                tasks.filter { !it.isCompleted }.forEachIndexed { i, task ->
-                    task.targetDeadlineMillis?.let { targetDeadline ->
-                        val targetNotifyTime = targetDeadline - (60 * 60 * 1000)
-                        if (targetNotifyTime > now && isSameDay(targetDeadline, today)) {
-                            scheduleSingleNotification(context, alarmManager, targetNotifyTime, "タスク目標期限1時間前", task.title, i + 2000)
+                tasks.forEach { task ->
+                    if (task.isCompleted) {
+                        // 完了済みタスクのリマインダー予約を解除
+                        TaskReminderHelper.getAllRequestCodes(task.id).forEach { reqCode ->
+                            val cancelIntent = Intent(context, AlarmReceiver::class.java).apply {
+                                action = "SHOW_NOTIFICATION"
+                            }
+                            val pi = PendingIntent.getBroadcast(
+                                context,
+                                reqCode,
+                                cancelIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            alarmManager.cancel(pi)
                         }
-                    }
-                    val deadline = task.deadlineMillis
-                    val notifyTime = deadline - (60 * 60 * 1000)
-                    if (notifyTime > now && isSameDay(deadline, today)) {
-                        scheduleSingleNotification(context, alarmManager, notifyTime, "タスク期限1時間前", task.title, i + 1000)
-                    }
-                    if (now > deadline) {
-                        val overdueTime = now + (60 * 60 * 1000)
-                        scheduleSingleNotification(context, alarmManager, overdueTime, "【期限超過】タスク未完了", task.title, i + 5000)
+                    } else {
+                        // 目標期限・最終期限のリマインダーを算出・予約
+                        val reminders = TaskReminderHelper.calculateReminders(task, now)
+                        reminders.forEach { reminder ->
+                            scheduleSingleNotification(
+                                context,
+                                alarmManager,
+                                reminder.triggerTimeMillis,
+                                reminder.title,
+                                reminder.message,
+                                reminder.requestCode
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {}
@@ -219,8 +232,11 @@ class AlarmReceiver : BroadcastReceiver() {
             manager.createNotificationChannel(channel)
         }
 
-        val intent = Intent(context, MainActivity::class.java)
-        val pi = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("OPEN_TAB", "TASKS")
+        }
+        val pi = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification_cura)

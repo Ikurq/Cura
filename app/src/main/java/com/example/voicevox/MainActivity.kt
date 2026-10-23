@@ -127,6 +127,18 @@ class MainActivity : AppCompatActivity() {
         // ナビゲーション設定
         setupNavigation()
         setupCharacterDialogue()
+        handleNavigationIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { handleNavigationIntent(it) }
+    }
+
+    private fun handleNavigationIntent(intent: Intent) {
+        if (intent.getStringExtra("OPEN_TAB") == "TASKS") {
+            binding.bottomNavigation.selectedItemId = R.id.nav_tasks
+        }
     }
 
     private fun stopAllAlarms() {
