@@ -21,6 +21,7 @@ object CuraVoicevox {
     private var lastText: String? = null
     private var lastStyleId: String? = null
     private var lastSpeedScale: Float? = null
+    private var lastVolumeScale: Float? = null
 
     /**
      * エンジンの初期化
@@ -56,7 +57,8 @@ object CuraVoicevox {
         text: String,
         styleId: String,
         outputFile: File,
-        speedScale: Float = 1.15f
+        speedScale: Float = 1.15f,
+        volumeScale: Float = 1.4f
     ): Boolean = withContext(Dispatchers.Default) {
         // 連打対策：実行中のJobがあればキャンセル
         val currentJob = Job()
@@ -65,7 +67,7 @@ object CuraVoicevox {
 
         try {
             // MD5キャッシュチェック（永続化）
-            val cacheFile = getCacheFile(context, text, styleId, speedScale)
+            val cacheFile = getCacheFile(context, text, styleId, speedScale, volumeScale)
             val isTempFile = outputFile.absolutePath.contains("cache") || outputFile.absolutePath.contains("preview")
 
             if (isTempFile && cacheFile.exists() && cacheFile.length() > 0) {
@@ -75,7 +77,7 @@ object CuraVoicevox {
 
             // メモリキャッシュチェック（高速化）
             if (isTempFile && outputFile.exists() &&
-                text == lastText && styleId == lastStyleId && speedScale == lastSpeedScale) {
+                text == lastText && styleId == lastStyleId && speedScale == lastSpeedScale && volumeScale == lastVolumeScale) {
                 return@withContext true
             }
 
@@ -87,7 +89,7 @@ object CuraVoicevox {
 
             if (!vvx.isLicenseAccepted(targetModelId)) return@withContext false
 
-            val wavBytes = vvx.synthesis(text, targetModelId, styleId.toInt(), speedScale)
+            val wavBytes = vvx.synthesis(text, targetModelId, styleId.toInt(), speedScale, volumeScale)
             outputFile.writeBytes(wavBytes)
             
             // 永続キャッシュに保存
@@ -97,6 +99,7 @@ object CuraVoicevox {
                 lastText = text
                 lastStyleId = styleId
                 lastSpeedScale = speedScale
+                lastVolumeScale = volumeScale
             }
             
             true
@@ -112,8 +115,12 @@ object CuraVoicevox {
         }
     }
 
-    private fun getCacheFile(context: Context, text: String, styleId: String, speed: Float): File {
-        val hash = md5("$text|$styleId|$speed")
+    internal fun getCacheKey(text: String, styleId: String, speed: Float, volume: Float): String {
+        return "$text|$styleId|$speed|$volume"
+    }
+
+    internal fun getCacheFile(context: Context, text: String, styleId: String, speed: Float, volume: Float = 1.4f): File {
+        val hash = md5(getCacheKey(text, styleId, speed, volume))
         return File(File(context.filesDir, "voice_cache"), "cache_$hash.wav")
     }
 

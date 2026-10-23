@@ -146,12 +146,14 @@ class Voicevox private constructor(
      *   talk スタイルを持たないモデル(歌唱合成用の s0 など)は
      *   [VoicevoxException.TalkNotSupported] を投げる。
      * @param speedScale 話速 (既定 1.15)。
+     * @param volumeScale 音量倍率 (既定 1.4)。
      */
     suspend fun synthesis(
         text: String,
         modelId: String,
         styleId: Int? = null,
         speedScale: Float = 1.15f,
+        volumeScale: Float = 1.4f,
     ): ByteArray {
         val info = manager.info(modelId)
         if (!info.supportsTalk) {
@@ -182,6 +184,7 @@ class Voicevox private constructor(
         return withContext(Dispatchers.Default) {
             val audioQuery = synthesizer.createAudioQuery(text, style)
             audioQuery.speedScale = speedScale.toDouble()
+            audioQuery.volumeScale = volumeScale.toDouble()
             synthesizer.synthesis(audioQuery, style).perform()
         }
     }
