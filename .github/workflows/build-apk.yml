@@ -49,15 +49,11 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.13
-          name: "Cura ver2.13"
+          tag_name: ver2.14
+          name: "Cura:CareYou ver2.14"
           body: |
-            Cura ver2.13 リリース
+            Cura:CareYou ver2.14 リリース
             
-            ・カレンダー・スケジュール機能の拡張（終日設定および終了時刻指定）
-              - 予定追加ダイアログに「終日」チェックボックスを追加（最上部に終日セクションとして配置）
-              - 予定の「終了時刻」指定機能を追加（開始時刻と終了時刻の並列選択・未設定解除に対応）
-              - 予定カードおよびウィジェットでの終了時刻（〜HH:mm）表示対応
-              - 毎週繰り返しの予定作成時にも終日・終了時刻属性を自動継承
+            ・アプリ名を「Cura」から「Cura:CareYou」に変更
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk

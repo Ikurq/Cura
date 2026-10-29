@@ -50,6 +50,7 @@ class AlarmService : Service() {
         }
 
         requestAggressiveFocus()
+        sendBroadcast(Intent(CuraConstants.ACTION_ALARM_STARTED))
         createNotificationChannel()
 
         val audioFilePath = intent?.getStringExtra("AUDIO_FILE_PATH")
@@ -140,6 +141,7 @@ class AlarmService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         currentAlarmId = null
+        sendBroadcast(Intent(CuraConstants.ACTION_ALARM_DISMISSED))
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null

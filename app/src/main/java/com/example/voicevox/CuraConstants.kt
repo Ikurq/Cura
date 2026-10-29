@@ -42,4 +42,8 @@ object CuraConstants {
     // Character Keys
     const val KEY_MEMORY_UNLOCKED = "memory_unlocked"
     const val KEY_CUMULATIVE_INTERACTION = "cumulativeInteractionCount"
+
+    // Ecosystem Broadcast Actions
+    const val ACTION_ALARM_STARTED = "jp.cura.action.ALARM_STARTED"
+    const val ACTION_ALARM_DISMISSED = "jp.cura.action.ALARM_DISMISSED"
 }

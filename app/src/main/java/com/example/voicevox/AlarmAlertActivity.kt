@@ -77,6 +77,7 @@ class AlarmAlertActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_alarm_alert)
+        sendBroadcast(Intent(CuraConstants.ACTION_ALARM_STARTED))
 
         alertTimeText = findViewById(R.id.alertTime)
         updateCurrentTime()
@@ -199,6 +200,7 @@ class AlarmAlertActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        sendBroadcast(Intent(CuraConstants.ACTION_ALARM_DISMISSED))
         timeHandler.removeCallbacks(timeRunnable)
         mediaPlayer?.release()
         mediaPlayer = null

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Cura</string>
+    <string name="app_name">Cura:CareYou</string>
 
     <!-- Navigation -->
     <string name="nav_alarm">Wake (アラーム)</string>
