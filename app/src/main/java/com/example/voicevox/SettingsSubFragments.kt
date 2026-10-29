@@ -449,13 +449,23 @@ class SettingsPresetsFragment : Fragment() {
                 val obj = list.getJSONObject(i)
                 val genre = obj.getString("genre")
                 val location = obj.optString("location", "")
+                val isAllDay = obj.optBoolean("isAllDay", false)
                 val h = obj.optInt("hour", -1)
                 val m = obj.optInt("minute", -1)
+                val endH = obj.optInt("endHour", -1)
+                val endM = obj.optInt("endMinute", -1)
                 
                 val infoText = StringBuilder(location)
-                if (h != -1) {
+                if (isAllDay) {
                     if (infoText.isNotEmpty()) infoText.append(" / ")
-                    infoText.append(String.format(Locale.getDefault(), "%02d:%02d", h, m))
+                    infoText.append(getString(R.string.all_day_event))
+                } else if (h != -1) {
+                    if (infoText.isNotEmpty()) infoText.append(" / ")
+                    if (endH != -1) {
+                        infoText.append(String.format(Locale.getDefault(), "%02d:%02d〜%02d:%02d", h, m, endH, endM))
+                    } else {
+                        infoText.append(String.format(Locale.getDefault(), "%02d:%02d", h, m))
+                    }
                 }
                 if (infoText.isEmpty()) infoText.append("詳細なし")
 
@@ -488,25 +498,79 @@ class SettingsPresetsFragment : Fragment() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_schedule_event, null)
         val genreInput = dialogView.findViewById<EditText>(R.id.editEventGenre)
         val locationInput = dialogView.findViewById<EditText>(R.id.editEventLocation)
-        val btnSelectTime = dialogView.findViewById<Button>(R.id.btnSelectEventTime)
+        val checkAllDay = dialogView.findViewById<android.widget.CompoundButton>(R.id.checkAllDay)
+        val layoutTimeSelection = dialogView.findViewById<View>(R.id.layoutTimeSelection)
+        val btnSelectStartTime = dialogView.findViewById<Button>(R.id.btnSelectStartTime)
+        val btnSelectEndTime = dialogView.findViewById<Button>(R.id.btnSelectEndTime)
         
         dialogView.findViewById<View>(R.id.presetChipGroup)?.visibility = View.GONE
-        dialogView.findViewById<View>(R.id.layoutRepeatSettings)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.btnToggleAdvancedSettings)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.layoutAdvancedSettings)?.visibility = View.GONE
 
-        dialogView.findViewById<TextView>(android.R.id.text1)?.text = "プリセットの編集"
-
         genreInput.setText(originalObj.getString("genre"))
         locationInput.setText(originalObj.optString("location", ""))
-        var selectedHour = originalObj.optInt("hour", 9)
-        var selectedMinute = originalObj.optInt("minute", 0)
-        btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", selectedHour, selectedMinute)
+        var isAllDay = originalObj.optBoolean("isAllDay", false)
+        var selectedStartHour = originalObj.optInt("hour", 9)
+        var selectedStartMinute = originalObj.optInt("minute", 0)
+        var selectedEndHour = originalObj.optInt("endHour", -1)
+        var selectedEndMinute = originalObj.optInt("endMinute", -1)
 
-        btnSelectTime.setOnClickListener {
-            TimePickerHelper.showWheelTimePicker(requireContext(), selectedHour, selectedMinute) { h, m ->
-                selectedHour = h; selectedMinute = m
-                btnSelectTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
+        fun updateStartTimeText() {
+            btnSelectStartTime.text = String.format(Locale.getDefault(), getString(R.string.start_time_format), selectedStartHour, selectedStartMinute)
+        }
+
+        fun updateEndTimeText() {
+            if (selectedEndHour != -1 && selectedEndMinute != -1) {
+                btnSelectEndTime.text = String.format(Locale.getDefault(), getString(R.string.end_time_format), selectedEndHour, selectedEndMinute)
+            } else {
+                btnSelectEndTime.text = getString(R.string.end_time_none)
+            }
+        }
+
+        checkAllDay.isChecked = isAllDay
+        layoutTimeSelection.visibility = if (isAllDay) View.GONE else View.VISIBLE
+        updateStartTimeText()
+        updateEndTimeText()
+
+        checkAllDay.setOnCheckedChangeListener { _, isChecked ->
+            isAllDay = isChecked
+            layoutTimeSelection.visibility = if (isChecked) View.GONE else View.VISIBLE
+        }
+
+        btnSelectStartTime.setOnClickListener {
+            TimePickerHelper.showWheelTimePicker(requireContext(), selectedStartHour, selectedStartMinute, getString(R.string.picker_start_title)) { h, m ->
+                selectedStartHour = h
+                selectedStartMinute = m
+                updateStartTimeText()
+
+                if (selectedEndHour != -1 && selectedEndMinute != -1) {
+                    if (selectedEndHour < selectedStartHour || (selectedEndHour == selectedStartHour && selectedEndMinute <= selectedStartMinute)) {
+                        selectedEndHour = (selectedStartHour + 1).coerceAtMost(23)
+                        selectedEndMinute = selectedStartMinute
+                        updateEndTimeText()
+                    }
+                }
+            }
+        }
+
+        btnSelectEndTime.setOnClickListener {
+            val initH = if (selectedEndHour != -1) selectedEndHour else (selectedStartHour + 1).coerceAtMost(23)
+            val initM = if (selectedEndMinute != -1) selectedEndMinute else selectedStartMinute
+            TimePickerHelper.showWheelTimePicker(
+                context = requireContext(),
+                initialHour = initH,
+                initialMinute = initM,
+                title = getString(R.string.picker_end_title),
+                neutralButtonText = getString(R.string.clear_end_time),
+                onNeutralClicked = {
+                    selectedEndHour = -1
+                    selectedEndMinute = -1
+                    updateEndTimeText()
+                }
+            ) { h, m ->
+                selectedEndHour = h
+                selectedEndMinute = m
+                updateEndTimeText()
             }
         }
 
@@ -521,8 +585,11 @@ class SettingsPresetsFragment : Fragment() {
                 val newObj = JSONObject().apply {
                     put("genre", genre)
                     put("location", locationInput.text.toString())
-                    put("hour", selectedHour)
-                    put("minute", selectedMinute)
+                    put("hour", if (isAllDay) -1 else selectedStartHour)
+                    put("minute", if (isAllDay) -1 else selectedStartMinute)
+                    put("endHour", if (isAllDay) -1 else selectedEndHour)
+                    put("endMinute", if (isAllDay) -1 else selectedEndMinute)
+                    put("isAllDay", isAllDay)
                 }
                 
                 val newList = JSONArray()

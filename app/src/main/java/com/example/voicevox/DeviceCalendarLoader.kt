@@ -6,66 +6,71 @@ import java.util.Calendar
 
 object DeviceCalendarLoader {
 
-    /**
-     * Represents a local Android Calendar retrieved from the device's CalendarProvider.
-     */
-    data class DeviceCalendarInfo(
-        val id: Long,
-        val displayName: String,
-        val accountName: String,
-        val color: Int
-    )
+    data class DeviceCalendarInfo(val id: Long, val name: String, val account: String)
 
-    /**
-     * Queries all readable calendar sources from the device.
-     */
-    fun getAvailableCalendars(context: Context): List<DeviceCalendarInfo> {
+    fun getAllCalendars(context: Context): List<DeviceCalendarInfo> {
         val list = mutableListOf<DeviceCalendarInfo>()
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CALENDAR) 
+            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return emptyList()
+        }
+
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
             CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
-            CalendarContract.Calendars.ACCOUNT_NAME,
-            CalendarContract.Calendars.CALENDAR_COLOR
+            CalendarContract.Calendars.ACCOUNT_NAME
         )
 
-        val uri = CalendarContract.Calendars.CONTENT_URI
-        val cursor = context.contentResolver.query(uri, projection, null, null, null)
-
-        cursor?.use {
-            while (it.moveToNext()) {
-                val id = it.getLong(0)
-                val displayName = it.getString(1) ?: "不明"
-                val accountName = it.getString(2) ?: "不明"
-                val color = it.getInt(3)
-                list.add(DeviceCalendarInfo(id, displayName, accountName, color))
+        context.contentResolver.query(
+            CalendarContract.Calendars.CONTENT_URI,
+            projection,
+            null, null, null
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                list.add(DeviceCalendarInfo(
+                    cursor.getLong(0),
+                    cursor.getString(1) ?: "不明",
+                    cursor.getString(2) ?: "不明"
+                ))
             }
         }
-
         return list
     }
 
-    /**
-     * Reads calendar instances for a specific day from the device.
-     */
     fun loadDeviceEvents(context: Context, targetDate: Calendar): List<IcsEvent> {
         val events = mutableListOf<IcsEvent>()
+        
+        // ユーザーが選択したカレンダーIDを取得
+        val appPrefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        val selectedIdsJson = appPrefs.getString("selected_calendar_ids", null)
+        val selectedIds = mutableSetOf<Long>()
+        if (selectedIdsJson != null) {
+            try {
+                val arr = org.json.JSONArray(selectedIdsJson)
+                for (i in 0 until arr.length()) selectedIds.add(arr.getLong(i))
+            } catch (e: Exception) {}
+        }
+        
+        // Ensure permission is granted (caller should check, but safe check here)
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CALENDAR) 
+            != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return emptyList()
+        }
 
-        val prefs = context.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
-        val selectedIds = prefs.getStringSet("selected_device_calendar_ids", emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
-
-        val startMillis = (targetDate.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-
-        val endMillis = (targetDate.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, 23)
-            set(Calendar.MINUTE, 59)
-            set(Calendar.SECOND, 59)
-            set(Calendar.MILLISECOND, 999)
-        }.timeInMillis
+        val startMillis: Long = targetDate.clone().let {
+            val c = it as Calendar
+            c.set(Calendar.HOUR_OF_DAY, 0)
+            c.set(Calendar.MINUTE, 0)
+            c.set(Calendar.SECOND, 0)
+            c.timeInMillis
+        }
+        val endMillis: Long = targetDate.clone().let {
+            val c = it as Calendar
+            c.set(Calendar.HOUR_OF_DAY, 23)
+            c.set(Calendar.MINUTE, 59)
+            c.set(Calendar.SECOND, 59)
+            c.timeInMillis
+        }
 
         val projection = arrayOf(
             CalendarContract.Instances.TITLE,
