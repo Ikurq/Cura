@@ -112,4 +112,14 @@
     <string name="dashboard_not_set">未設定</string>
     <string name="generating_audio">音声を生成中...</string>
     <string name="generating_alarm_audio">アラーム音声を生成中...</string>
+    <string name="all_day_event">終日</string>
+    <string name="start_time_default">開始 09:00</string>
+    <string name="end_time_default">終了 10:00</string>
+    <string name="start_time_format">開始 %02d:%02d</string>
+    <string name="end_time_format">終了 %02d:%02d</string>
+    <string name="end_time_none">終了 未設定</string>
+    <string name="clear_end_time">未設定にする</string>
+    <string name="all_day_header">終日</string>
+    <string name="picker_start_title">開始時刻を選択</string>
+    <string name="picker_end_title">終了時刻を選択</string>
 </resources>

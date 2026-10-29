@@ -3,6 +3,9 @@ package com.example.voicevox
 import android.content.Context
 import kotlinx.serialization.json.*
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import kotlin.random.Random
 
@@ -206,5 +209,109 @@ object AlarmTemplateManager {
             is JsonPrimitive -> element.content
             else -> ""
         }
+    }
+
+    /**
+     * 起床後の予定・タスク読み上げ文章（モーニングリーディング）を組み立てる。
+     */
+    fun buildMorningReadingMessage(
+        context: Context? = null,
+        events: List<IcsEvent>,
+        tasks: List<String>,
+        now: Calendar = Calendar.getInstance()
+    ): String {
+        val timeStrNow = SimpleDateFormat("H時m分", Locale.JAPAN).format(now.time)
+        val sb = StringBuilder()
+
+        val greetingTemplate = getMorningTemplate(context, "greeting")
+        if (greetingTemplate.isNotEmpty()) {
+            sb.append(try {
+                String.format(Locale.getDefault(), greetingTemplate, timeStrNow)
+            } catch (e: Exception) {
+                "おはようございます。ただいま、${timeStrNow}です。"
+            })
+        } else {
+            sb.append("おはようございます。ただいま、${timeStrNow}です。")
+        }
+
+        val mandatoryEvent = events.find { event ->
+            val diffMinutes = (event.startTime - now.timeInMillis) / (1000 * 60)
+            diffMinutes in -30..60
+        }
+
+        if (mandatoryEvent != null) {
+            val diffMinutes = (mandatoryEvent.startTime - now.timeInMillis) / (1000 * 60)
+            val templateKey = when {
+                diffMinutes > 0 -> "event_relative_before"
+                diffMinutes < 0 -> "event_relative_after"
+                else -> "event_relative_just"
+            }
+            val template = getMorningTemplate(context, templateKey)
+            if (template.isNotEmpty()) {
+                val absDiff = if (diffMinutes < 0) -diffMinutes else diffMinutes
+                sb.append(try {
+                    String.format(Locale.getDefault(), template, mandatoryEvent.summary, absDiff)
+                } catch (e: Exception) {
+                    "「${mandatoryEvent.summary}」の予定があります。"
+                })
+            }
+        }
+
+        if (events.isNotEmpty()) {
+            val header = getMorningTemplate(context, "event_list_header")
+            sb.append(if (header.isNotEmpty()) header else "今日の予定は、")
+            events.forEach { event ->
+                val time = SimpleDateFormat("H時m分", Locale.JAPAN).format(Date(event.startTime))
+                val template = getMorningTemplate(context, "event_item")
+                if (template.isNotEmpty()) {
+                    sb.append(try {
+                        String.format(Locale.getDefault(), template, time, event.summary)
+                    } catch (e: Exception) {
+                        "${time}から${event.summary}、"
+                    })
+                } else {
+                    sb.append("${time}から${event.summary}、")
+                }
+            }
+            val footer = getMorningTemplate(context, "event_list_footer")
+            sb.append(if (footer.isNotEmpty()) footer else "です。")
+        }
+
+        if (tasks.isNotEmpty()) {
+            val header = getMorningTemplate(context, "task_list_header")
+            sb.append(if (header.isNotEmpty()) header else "今日のタスクは、")
+            tasks.forEach { task ->
+                val template = getMorningTemplate(context, "task_item")
+                if (template.isNotEmpty()) {
+                    sb.append(try {
+                        String.format(Locale.getDefault(), template, task)
+                    } catch (e: Exception) {
+                        "${task}、"
+                    })
+                } else {
+                    sb.append("${task}、")
+                }
+            }
+            val footer = getMorningTemplate(context, "task_list_footer")
+            sb.append(if (footer.isNotEmpty()) footer else "があります。")
+        }
+
+        if (events.isEmpty() && tasks.isEmpty()) {
+            val emptyTemplate = getMorningTemplate(context, "empty_schedule")
+            if (emptyTemplate.isNotEmpty()) {
+                sb.append(emptyTemplate)
+            } else {
+                sb.append("本日の予定やタスクはありません。")
+            }
+        }
+
+        val closing = getMorningTemplate(context, "closing")
+        if (closing.isNotEmpty()) {
+            sb.append(closing)
+        } else {
+            sb.append("今日も一日、元気に頑張りましょう！")
+        }
+
+        return sb.toString()
     }
 }

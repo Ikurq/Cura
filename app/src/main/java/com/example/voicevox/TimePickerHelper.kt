@@ -13,6 +13,8 @@ object TimePickerHelper {
         initialHour: Int,
         initialMinute: Int,
         title: String = "時刻を選択",
+        neutralButtonText: String? = null,
+        onNeutralClicked: (() -> Unit)? = null,
         onTimeSelected: (hour: Int, minute: Int) -> Unit
     ) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_wheel_time_picker, null)
@@ -34,12 +36,19 @@ object TimePickerHelper {
         minutePicker.value = initialMinute
         minutePicker.setFormatter { String.format("%02d", it) }
 
-        AlertDialog.Builder(context)
+        val builder = AlertDialog.Builder(context)
             .setView(view)
             .setPositiveButton("決定") { _, _ ->
                 onTimeSelected(hourPicker.value, minutePicker.value)
             }
             .setNegativeButton("キャンセル", null)
-            .show()
+
+        if (neutralButtonText != null) {
+            builder.setNeutralButton(neutralButtonText) { _, _ ->
+                onNeutralClicked?.invoke()
+            }
+        }
+
+        builder.show()
     }
 }

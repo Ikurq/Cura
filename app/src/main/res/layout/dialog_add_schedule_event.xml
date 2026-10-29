@@ -46,13 +46,53 @@
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
-            android:id="@+id/btnSelectEventTime"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+        <!-- All-Day Option -->
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkAllDay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/all_day_event"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Start & End Time Selection Row -->
+        <LinearLayout
+            android:id="@+id/layoutTimeSelection"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="@string/select_time"
-            android:layout_marginBottom="12dp" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/btnSelectStartTime"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:text="@string/start_time_default"
+                android:textSize="13sp"
+                android:paddingHorizontal="4dp" />
+
+            <TextView
+                android:id="@+id/textTimeSeparator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="〜"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginHorizontal="6dp" />
+
+            <Button
+                android:id="@+id/btnSelectEndTime"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:text="@string/end_time_default"
+                android:textSize="13sp"
+                android:paddingHorizontal="4dp" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"

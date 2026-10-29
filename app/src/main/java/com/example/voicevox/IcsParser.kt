@@ -11,7 +11,8 @@ data class IcsEvent(
     val endTime: Long = 0L,
     val location: String = "",
     val isAttendanceTracked: Boolean = false,
-    val attendanceStatus: String = "NONE"
+    val attendanceStatus: String = "NONE",
+    val isAllDay: Boolean = false
 )
 
 class IcsParser {
@@ -24,6 +25,7 @@ class IcsParser {
         var currentStart = 0L
         var currentEnd = 0L
         var currentLocation = ""
+        var currentIsAllDay = false
 
         for (line in unfoldedLines) {
             when {
@@ -33,10 +35,11 @@ class IcsParser {
                     currentStart = 0L
                     currentEnd = 0L
                     currentLocation = ""
+                    currentIsAllDay = false
                 }
                 line.startsWith("END:VEVENT") -> {
                     if (inEvent) {
-                        events.add(IcsEvent(currentSummary, currentStart, currentEnd, currentLocation))
+                        events.add(IcsEvent(currentSummary, currentStart, currentEnd, currentLocation, isAllDay = currentIsAllDay))
                         inEvent = false
                     }
                 }
@@ -46,7 +49,12 @@ class IcsParser {
                     when (key) {
                         "SUMMARY" -> currentSummary = decodeIcsValue(value)
                         "LOCATION" -> currentLocation = decodeIcsValue(value)
-                        "DTSTART" -> currentStart = parseIcsDate(value)
+                        "DTSTART" -> {
+                            if (line.contains("VALUE=DATE") || value.trim().length == 8) {
+                                currentIsAllDay = true
+                            }
+                            currentStart = parseIcsDate(value)
+                        }
                         "DTEND" -> currentEnd = parseIcsDate(value)
                     }
                 }
@@ -79,13 +87,17 @@ class IcsParser {
 
     private fun parseIcsDate(dateStr: String): Long {
         return try {
-            if (dateStr.endsWith("Z")) {
+            val trimmed = dateStr.trim()
+            if (trimmed.length == 8) {
+                val sdf = SimpleDateFormat("yyyyMMdd", Locale.US)
+                sdf.parse(trimmed)?.time ?: 0L
+            } else if (trimmed.endsWith("Z")) {
                 val sdf = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US)
                 sdf.timeZone = TimeZone.getTimeZone("UTC")
-                sdf.parse(dateStr)?.time ?: 0L
+                sdf.parse(trimmed)?.time ?: 0L
             } else {
                 val sdf = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.US)
-                sdf.parse(dateStr)?.time ?: 0L
+                sdf.parse(trimmed)?.time ?: 0L
             }
         } catch (e: Exception) {
             0L

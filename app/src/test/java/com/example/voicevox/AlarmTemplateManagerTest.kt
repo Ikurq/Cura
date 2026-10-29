@@ -4,6 +4,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
 
 class AlarmTemplateManagerTest {
 
@@ -38,10 +39,20 @@ class AlarmTemplateManagerTest {
       },
       "morning_reading": {
         "greeting": [
-          "おはようございます。%sです。",
-          "朝ですよ。%sです。"
+          "おはようございます。ただいま、%sです。",
+          "朝の予定確認です。現在は%sになります。"
         ],
-        "event_list_header": "予定は以下の通りです。"
+        "event_relative_before": "「%s」まで、あと%d分です。",
+        "event_relative_after": "「%s」の開始時刻から、%d分過ぎています！急いでください！",
+        "event_relative_just": "「%s」の開始時刻ちょうどです。",
+        "event_list_header": "今日の予定は、",
+        "event_item": "%sから%s、",
+        "event_list_footer": "です。",
+        "task_list_header": "今日のタスクは、",
+        "task_item": "%s、",
+        "task_list_footer": "があります。",
+        "empty_schedule": "本日の予定やタスクはありません。",
+        "closing": "今日も一日、元気に頑張りましょう！"
       }
     }
     """.trimIndent()
@@ -147,15 +158,88 @@ class AlarmTemplateManagerTest {
     @Test
     fun getMorningTemplate_supportsArrayAndString() {
         val greetingPool = listOf(
-            "おはようございます。%sです。",
-            "朝ですよ。%sです。"
+            "おはようございます。ただいま、%sです。",
+            "朝の予定確認です。現在は%sになります。"
         )
 
         val greeting = AlarmTemplateManager.getMorningTemplate(key = "greeting")
         assertTrue(greetingPool.contains(greeting))
 
         val header = AlarmTemplateManager.getMorningTemplate(key = "event_list_header")
-        assertEquals("予定は以下の通りです。", header)
+        assertEquals("今日の予定は、", header)
+    }
+
+    @Test
+    fun buildMorningReadingMessage_whenEventsAndTasksEmpty_returnsGreetingEmptyAndClosing() {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 7)
+            set(Calendar.MINUTE, 0)
+        }
+
+        val message = AlarmTemplateManager.buildMorningReadingMessage(
+            events = emptyList(),
+            tasks = emptyList(),
+            now = cal
+        )
+
+        assertTrue("Message must contain 7時0分", message.contains("7時0分"))
+        assertTrue("Message must contain empty schedule message", message.contains("本日の予定やタスクはありません。"))
+        assertTrue("Message must contain closing", message.contains("今日も一日、元気に頑張りましょう！"))
+    }
+
+    @Test
+    fun buildMorningReadingMessage_withEventsAndTasks_formatsCorrectly() {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 0)
+        }
+
+        val eventTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 10)
+            set(Calendar.MINUTE, 30)
+        }.timeInMillis
+
+        val events = listOf(
+            IcsEvent(summary = "研究ミーティング", startTime = eventTime)
+        )
+        val tasks = listOf("レポート提出")
+
+        val message = AlarmTemplateManager.buildMorningReadingMessage(
+            events = events,
+            tasks = tasks,
+            now = cal
+        )
+
+        assertTrue(message.contains("今日の予定は、"))
+        assertTrue(message.contains("10時30分から研究ミーティング、です。"))
+        assertTrue(message.contains("今日のタスクは、"))
+        assertTrue(message.contains("レポート提出、があります。"))
+        assertTrue(message.contains("今日も一日、元気に頑張りましょう！"))
+        assertFalse(message.contains("本日の予定やタスクはありません。"))
+    }
+
+    @Test
+    fun buildMorningReadingMessage_withMandatoryEventNear_includesRelativeNotice() {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        // 30分後の予定
+        val eventTime = cal.timeInMillis + (30 * 60 * 1000)
+        val events = listOf(
+            IcsEvent(summary = "朝礼", startTime = eventTime)
+        )
+
+        val message = AlarmTemplateManager.buildMorningReadingMessage(
+            events = events,
+            tasks = emptyList(),
+            now = cal
+        )
+
+        assertTrue(message.contains("「朝礼」まで、あと30分です。"))
     }
 
     @Test

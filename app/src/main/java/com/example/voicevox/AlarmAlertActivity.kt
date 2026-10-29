@@ -28,8 +28,13 @@ import java.util.*
 
 class AlarmAlertActivity : AppCompatActivity() {
 
+    companion object {
+        private const val DEFAULT_STYLE_ID = 3
+    }
+
     private lateinit var alertTimeText: TextView
     private var mediaPlayer: MediaPlayer? = null
+    private var isReading: Boolean = false
     private val timeHandler = Handler(Looper.getMainLooper())
     private val timeRunnable = object : Runnable {
         override fun run() {
@@ -38,9 +43,14 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
-        if (!isServiceRunning(this, AlarmService::class.java)) {
+        if (!isReading && !isServiceRunning(this, AlarmService::class.java)) {
             finish()
         }
     }
@@ -73,22 +83,42 @@ class AlarmAlertActivity : AppCompatActivity() {
         timeHandler.post(timeRunnable)
 
         val stopAlarmNowButton = findViewById<Button>(R.id.stopAlarmNowButton)
-        val alarmId = intent.getStringExtra("ALARM_ID")
 
         stopAlarmNowButton.setOnClickListener {
+            if (isReading) return@setOnClickListener
+            isReading = true
+
+            stopAlarmNowButton.isEnabled = false
+            stopAlarmNowButton.text = "予定を確認中..."
+            alertTimeText.text = "アラーム停止"
+
             val serviceIntent = Intent(this, AlarmService::class.java)
             stopService(serviceIntent)
             
             // 起床統計とキャラクター経験値を付与
             updateWakeUpStatistics()
             addCharExp()
+
+            val resolvedAlarmId = intent.getStringExtra("ALARM_ID") ?: AlarmService.currentAlarmId
+            // アラーム削除・リスケジュール前に話者スタイルIDを特定
+            val styleId = resolveSpeakerId(resolvedAlarmId)
             
-            if (alarmId != null) {
-                rescheduleNextAlarm(alarmId)
-                startMorningReading(alarmId)
-            } else {
-                finish()
+            if (resolvedAlarmId != null) {
+                rescheduleNextAlarm(resolvedAlarmId)
             }
+            startMorningReading(styleId)
+        }
+    }
+
+    private fun resolveSpeakerId(alarmId: String?): Int {
+        if (alarmId == null) return DEFAULT_STYLE_ID
+        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return DEFAULT_STYLE_ID
+        return try {
+            val alarmList = Json.decodeFromString<List<AlarmItem>>(jsonString)
+            alarmList.find { it.id == alarmId }?.speakerId ?: DEFAULT_STYLE_ID
+        } catch (e: Exception) {
+            DEFAULT_STYLE_ID
         }
     }
 
@@ -102,108 +132,68 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
-    private fun startMorningReading(alarmId: String) {
-        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
-        
-        val alarmList = try {
-            Json.decodeFromString<List<AlarmItem>>(jsonString)
-        } catch (e: Exception) {
-            emptyList()
-        }
-        
-        val alarmItem = alarmList.find { it.id == alarmId } ?: return
-        val styleId = alarmItem.speakerId
-
+    private fun startMorningReading(styleId: Int) {
         lifecycleScope.launch {
-            val events = ScheduleLoader.loadAllEventsForToday(this@AlarmAlertActivity, Calendar.getInstance())
-            val tasks = ScheduleLoader.loadTasksForToday(this@AlarmAlertActivity)
+            try {
+                val events = ScheduleLoader.loadAllEventsForToday(this@AlarmAlertActivity, Calendar.getInstance())
+                val tasks = ScheduleLoader.loadTasksForToday(this@AlarmAlertActivity)
 
-            if (events.isEmpty() && tasks.isEmpty()) {
-                finish()
-                return@launch
-            }
+                val message = AlarmTemplateManager.buildMorningReadingMessage(
+                    context = this@AlarmAlertActivity,
+                    events = events,
+                    tasks = tasks,
+                    now = Calendar.getInstance()
+                )
 
-            val now = Calendar.getInstance()
-            val timeStrNow = SimpleDateFormat("H時m分", Locale.JAPAN).format(now.time)
-            
-            val sb = StringBuilder()
-            sb.append(String.format(Locale.getDefault(), AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "greeting"), timeStrNow))
-
-            val mandatoryEvent = events.find { event ->
-                val diffMinutes = (event.startTime - now.timeInMillis) / (1000 * 60)
-                diffMinutes in -30..60
-            }
-
-            if (mandatoryEvent != null) {
-                val diffMinutes = (mandatoryEvent.startTime - now.timeInMillis) / (1000 * 60)
-                val templateKey = when {
-                    diffMinutes > 0 -> "event_relative_before"
-                    diffMinutes < 0 -> "event_relative_after"
-                    else -> "event_relative_just"
+                val outputFile = File(cacheDir, "morning_reading.wav")
+                
+                findViewById<Button>(R.id.stopAlarmNowButton).apply {
+                    isEnabled = false
+                    text = "読み上げ中..."
                 }
-                val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, templateKey)
-                sb.append(String.format(Locale.getDefault(), template, mandatoryEvent.summary, if (diffMinutes < 0) -diffMinutes else diffMinutes))
-            }
+                findViewById<TextView>(R.id.alertTime).text = "予定を読み上げ中"
 
-            if (events.isNotEmpty()) {
-                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_list_header"))
-                events.forEach { event ->
-                    val time = SimpleDateFormat("H時m分", Locale.JAPAN).format(Date(event.startTime))
-                    val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_item")
-                    sb.append(String.format(Locale.getDefault(), template, time, event.summary))
+                val success = withContext(Dispatchers.IO) {
+                    CuraVoicevox.createAudio(this@AlarmAlertActivity, message, styleId.toString(), outputFile)
                 }
-                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "event_list_footer"))
-            }
-            
-            if (tasks.isNotEmpty()) {
-                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_list_header"))
-                tasks.forEach { task ->
-                    val template = AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_item")
-                    sb.append(String.format(Locale.getDefault(), template, task))
+
+                if (success && outputFile.exists() && outputFile.length() > 0) {
+                    playAudio(outputFile)
+                } else {
+                    finish()
                 }
-                sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "task_list_footer"))
-            }
-            
-            sb.append(AlarmTemplateManager.getMorningTemplate(this@AlarmAlertActivity, "closing"))
-
-            val message = sb.toString()
-            val outputFile = File(cacheDir, "morning_reading.wav")
-            
-            findViewById<Button>(R.id.stopAlarmNowButton).apply {
-                isEnabled = false
-                text = "読み上げ中..."
-            }
-            findViewById<TextView>(R.id.alertTime).text = "予定を確認中..."
-
-            val success = withContext(Dispatchers.IO) {
-                CuraVoicevox.createAudio(this@AlarmAlertActivity, message, styleId.toString(), outputFile)
-            }
-
-            if (success) {
-                playAudio(outputFile)
-            } else {
+            } catch (e: Exception) {
+                android.util.Log.e("AlarmAlertActivity", "Error during morning reading", e)
                 finish()
             }
         }
     }
 
     private fun playAudio(file: File) {
-        mediaPlayer?.release()
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .build()
-            )
-            setDataSource(applicationContext, Uri.fromFile(file))
-            setVolume(1.0f, 1.0f)
-            setOnCompletionListener { 
-                finish() 
+        try {
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .build()
+                )
+                setDataSource(applicationContext, Uri.fromFile(file))
+                setVolume(1.0f, 1.0f)
+                setOnCompletionListener { 
+                    finish() 
+                }
+                setOnErrorListener { _, _, _ ->
+                    finish()
+                    true
+                }
+                setOnPreparedListener { it.start() }
+                prepareAsync()
             }
-            setOnPreparedListener { it.start() }
-            prepareAsync()
+        } catch (e: Exception) {
+            android.util.Log.e("AlarmAlertActivity", "Failed to play morning reading audio", e)
+            finish()
         }
     }
 

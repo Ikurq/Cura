@@ -70,6 +70,44 @@ class ScheduleRepeatHelperTest {
     }
 
     @Test
+    fun generateWeeklyOccurrences_withDurationAndAllDay_propagatesCorrectly() {
+        val startCal = Calendar.getInstance().apply {
+            set(2026, Calendar.OCTOBER, 1, 9, 0, 0)
+        }
+        val endCal = Calendar.getInstance().apply {
+            set(2026, Calendar.OCTOBER, 15, 23, 59, 59)
+        }
+        val duration = 90 * 60 * 1000L // 90分
+
+        val timedEvents = ScheduleRepeatHelper.generateWeeklyOccurrences(
+            summary = "定例会議",
+            startCal = startCal,
+            endCal = endCal,
+            durationMillis = duration,
+            isAllDay = false
+        )
+
+        assertEquals(3, timedEvents.size)
+        for (event in timedEvents) {
+            assertFalse(event.isAllDay)
+            assertNotNull(event.endTime)
+            assertEquals(duration, event.endTime!! - event.startTime)
+        }
+
+        val allDayEvents = ScheduleRepeatHelper.generateWeeklyOccurrences(
+            summary = "定期休校日",
+            startCal = startCal,
+            endCal = endCal,
+            isAllDay = true
+        )
+
+        assertEquals(3, allDayEvents.size)
+        for (event in allDayEvents) {
+            assertTrue(event.isAllDay)
+        }
+    }
+
+    @Test
     fun generateWeeklyOccurrences_endDateBeforeStart_createsAtLeastOneEvent() {
         val startCal = Calendar.getInstance().apply {
             set(2026, Calendar.OCTOBER, 10, 9, 0, 0)

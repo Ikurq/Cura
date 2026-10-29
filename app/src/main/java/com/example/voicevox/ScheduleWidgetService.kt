@@ -36,10 +36,10 @@ class ScheduleRemoteViewsFactory(private val context: Context) : RemoteViewsServ
         // 1. 今日の予定を取得 (ScheduleLoaderを使用)
         val events = ScheduleLoader.loadAllEventsForToday(context, today)
         events.forEach { event ->
-            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
-            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            val timeStr = ScheduleEventHelper.formatTimeDisplay(event.startTime, if (event.endTime > 0) event.endTime else null, event.isAllDay)
+            val sortTime = ScheduleEventHelper.calculateSortTime(event.startTime, event.isAllDay)
             scheduleList.add(WidgetScheduleItem(
-                sdfTime.format(Date(event.startTime)),
+                timeStr,
                 event.summary,
                 "[EVENT]",
                 sortTime,

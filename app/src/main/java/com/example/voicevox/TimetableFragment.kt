@@ -63,7 +63,9 @@ class TimetableFragment : Fragment() {
         val isCustom: Boolean = false,
         val isAttendanceTracked: Boolean = false,
         val attendanceStatus: String = "NONE",
-        val startTimeMillis: Long = 0L
+        val startTimeMillis: Long = 0L,
+        val endTimeMillis: Long? = null,
+        val isAllDay: Boolean = false
     )
 
     data class CalendarSource(val name: String, val url: String)
@@ -264,14 +266,67 @@ class TimetableFragment : Fragment() {
             }
         }
 
-        var selectedHour = 9
-        var selectedMinute = 0
+        var isAllDay = false
+        var selectedStartHour = 9
+        var selectedStartMinute = 0
+        var selectedEndHour: Int? = 10
+        var selectedEndMinute: Int? = 0
 
-        dialogBinding.btnSelectEventTime.setOnClickListener {
-            TimePickerHelper.showWheelTimePicker(ctx, selectedHour, selectedMinute) { h, m ->
-                selectedHour = h
-                selectedMinute = m
-                dialogBinding.btnSelectEventTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", h, m)
+        fun updateStartTimeText() {
+            dialogBinding.btnSelectStartTime.text = String.format(Locale.getDefault(), getString(R.string.start_time_format), selectedStartHour, selectedStartMinute)
+        }
+
+        fun updateEndTimeText() {
+            if (selectedEndHour != null && selectedEndMinute != null) {
+                dialogBinding.btnSelectEndTime.text = String.format(Locale.getDefault(), getString(R.string.end_time_format), selectedEndHour!!, selectedEndMinute!!)
+            } else {
+                dialogBinding.btnSelectEndTime.text = getString(R.string.end_time_none)
+            }
+        }
+
+        updateStartTimeText()
+        updateEndTimeText()
+
+        dialogBinding.checkAllDay.setOnCheckedChangeListener { _, isChecked ->
+            isAllDay = isChecked
+            dialogBinding.layoutTimeSelection.visibility = if (isChecked) View.GONE else View.VISIBLE
+        }
+
+        dialogBinding.btnSelectStartTime.setOnClickListener {
+            TimePickerHelper.showWheelTimePicker(ctx, selectedStartHour, selectedStartMinute, getString(R.string.picker_start_title)) { h, m ->
+                selectedStartHour = h
+                selectedStartMinute = m
+                updateStartTimeText()
+
+                // 終了時刻が開始時刻以下の場合、自動的に1時間後に再設定
+                if (selectedEndHour != null && selectedEndMinute != null) {
+                    if (selectedEndHour!! < selectedStartHour || (selectedEndHour == selectedStartHour && selectedEndMinute!! <= selectedStartMinute)) {
+                        selectedEndHour = (selectedStartHour + 1).coerceAtMost(23)
+                        selectedEndMinute = selectedStartMinute
+                        updateEndTimeText()
+                    }
+                }
+            }
+        }
+
+        dialogBinding.btnSelectEndTime.setOnClickListener {
+            val initialH = selectedEndHour ?: (selectedStartHour + 1).coerceAtMost(23)
+            val initialM = selectedEndMinute ?: selectedStartMinute
+            TimePickerHelper.showWheelTimePicker(
+                context = ctx,
+                initialHour = initialH,
+                initialMinute = initialM,
+                title = getString(R.string.picker_end_title),
+                neutralButtonText = getString(R.string.clear_end_time),
+                onNeutralClicked = {
+                    selectedEndHour = null
+                    selectedEndMinute = null
+                    updateEndTimeText()
+                }
+            ) { h, m ->
+                selectedEndHour = h
+                selectedEndMinute = m
+                updateEndTimeText()
             }
         }
 
@@ -321,9 +376,21 @@ class TimetableFragment : Fragment() {
                     chip.setOnClickListener {
                         dialogBinding.editEventGenre.setText(preset.genre)
                         dialogBinding.editEventLocation.setText(preset.location)
-                        if (preset.hour != -1) {
-                            selectedHour = preset.hour; selectedMinute = preset.minute
-                            dialogBinding.btnSelectEventTime.text = String.format(Locale.getDefault(), "時刻：%02d:%02d", selectedHour, selectedMinute)
+                        if (preset.isAllDay) {
+                            dialogBinding.checkAllDay.isChecked = true
+                        } else if (preset.hour != -1) {
+                            dialogBinding.checkAllDay.isChecked = false
+                            selectedStartHour = preset.hour
+                            selectedStartMinute = preset.minute
+                            if (preset.endHour != -1) {
+                                selectedEndHour = preset.endHour
+                                selectedEndMinute = preset.endMinute
+                            } else {
+                                selectedEndHour = (preset.hour + 1).coerceAtMost(23)
+                                selectedEndMinute = preset.minute
+                            }
+                            updateStartTimeText()
+                            updateEndTimeText()
                         }
                     }
                     dialogBinding.presetChipGroup.addView(chip)
@@ -337,29 +404,64 @@ class TimetableFragment : Fragment() {
                 val genre = dialogBinding.editEventGenre.text.toString()
                 if (genre.isEmpty()) return@setPositiveButton
 
-                val cal = (selectedDate.clone() as Calendar).apply {
-                    set(Calendar.HOUR_OF_DAY, selectedHour)
-                    set(Calendar.MINUTE, selectedMinute)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
+                val startCal = (selectedDate.clone() as Calendar).apply {
+                    if (isAllDay) {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    } else {
+                        set(Calendar.HOUR_OF_DAY, selectedStartHour)
+                        set(Calendar.MINUTE, selectedStartMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                }
+
+                val endCalMillis: Long? = if (isAllDay) {
+                    (startCal.clone() as Calendar).apply {
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                        set(Calendar.MILLISECOND, 999)
+                    }.timeInMillis
+                } else if (selectedEndHour != null && selectedEndMinute != null) {
+                    (selectedDate.clone() as Calendar).apply {
+                        set(Calendar.HOUR_OF_DAY, selectedEndHour!!)
+                        set(Calendar.MINUTE, selectedEndMinute!!)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                } else {
+                    null
+                }
+
+                val durationMillis = if (endCalMillis != null && endCalMillis > startCal.timeInMillis) {
+                    endCalMillis - startCal.timeInMillis
+                } else {
+                    null
                 }
 
                 val eventsToAdd = if (dialogBinding.checkRepeatWeekly.isChecked) {
                     ScheduleRepeatHelper.generateWeeklyOccurrences(
                         summary = genre,
-                        startCal = cal,
+                        startCal = startCal,
                         endCal = repeatEndCal,
                         location = dialogBinding.editEventLocation.text.toString(),
-                        isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
+                        isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked,
+                        durationMillis = durationMillis,
+                        isAllDay = isAllDay
                     )
                 } else {
                     listOf(
                         ScheduleEvent(
                             id = java.util.UUID.randomUUID().toString(),
                             summary = genre,
-                            startTime = cal.timeInMillis,
+                            startTime = startCal.timeInMillis,
                             location = dialogBinding.editEventLocation.text.toString(),
-                            isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked
+                            isAttendanceTracked = dialogBinding.checkTrackAttendance.isChecked,
+                            endTime = endCalMillis,
+                            isAllDay = isAllDay
                         )
                     )
                 }
@@ -372,7 +474,15 @@ class TimetableFragment : Fragment() {
                         Json.decodeFromString<List<EventPreset>>(schedulePrefs.getString("presetListJSON", "[]") ?: "[]").toMutableList()
                     } catch (e: Exception) { mutableListOf() }
                     
-                    currentPresets.add(EventPreset(genre, dialogBinding.editEventLocation.text.toString(), selectedHour, selectedMinute))
+                    currentPresets.add(EventPreset(
+                        genre = genre,
+                        location = dialogBinding.editEventLocation.text.toString(),
+                        hour = if (isAllDay) -1 else selectedStartHour,
+                        minute = if (isAllDay) -1 else selectedStartMinute,
+                        endHour = if (isAllDay || selectedEndHour == null) -1 else selectedEndHour!!,
+                        endMinute = if (isAllDay || selectedEndMinute == null) -1 else selectedEndMinute!!,
+                        isAllDay = isAllDay
+                    ))
                     schedulePrefs.edit().putString("presetListJSON", Json.encodeToString(currentPresets)).apply()
                 }
                 
@@ -460,10 +570,18 @@ class TimetableFragment : Fragment() {
         val displayList = mutableListOf<ScheduleDisplayItem>()
         
         if (currentFilter == FilterType.ALL) {
-            val amEvents = sortedEvents.filter { it.sortTime < 12 * 60 }
-            val pmEvents = sortedEvents.filter { it.sortTime >= 12 * 60 }
+            val allDayEvents = sortedEvents.filter { it.isAllDay }
+            val amEvents = sortedEvents.filter { !it.isAllDay && it.sortTime < 12 * 60 }
+            val pmEvents = sortedEvents.filter { !it.isAllDay && it.sortTime >= 12 * 60 }
+
+            if (allDayEvents.isNotEmpty()) {
+                displayList.add(ScheduleDisplayItem.Header(getString(R.string.all_day_header)))
+                allDayEvents.forEach { displayList.add(ScheduleDisplayItem.Event(it)) }
+            }
+
             displayList.add(ScheduleDisplayItem.Header("午前 (AM)"))
             if (amEvents.isEmpty()) displayList.add(ScheduleDisplayItem.EmptyPlaceholder) else amEvents.forEach { displayList.add(ScheduleDisplayItem.Event(it)) }
+
             displayList.add(ScheduleDisplayItem.Header("午後 (PM)"))
             if (pmEvents.isEmpty()) displayList.add(ScheduleDisplayItem.EmptyPlaceholder) else pmEvents.forEach { displayList.add(ScheduleDisplayItem.Event(it)) }
         } else {
@@ -477,20 +595,28 @@ class TimetableFragment : Fragment() {
     }
 
     private fun addCustomEventsForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
-        val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         customEvents.filter { event ->
             val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
             cal.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && cal.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)
         }.forEach { event ->
-            val timeStr = sdfTime.format(Date(event.startTime))
-            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
-            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            val timeStr = ScheduleEventHelper.formatTimeDisplay(event.startTime, event.endTime, event.isAllDay)
+            val sortTime = ScheduleEventHelper.calculateSortTime(event.startTime, event.isAllDay)
             var status = event.attendanceStatus
             if (event.isAttendanceTracked && status == "NONE" && event.startTime < System.currentTimeMillis()) status = "ATTEND"
             val displayType = if (event.id.startsWith("completed_task_")) "完了報告" else "予定"
             list.add(ScheduleItem(
-                event.id, timeStr, event.summary, displayType, sortTime, event.location, true,
-                isAttendanceTracked = event.isAttendanceTracked, attendanceStatus = status, startTimeMillis = event.startTime
+                id = event.id,
+                time = timeStr,
+                title = event.summary,
+                type = displayType,
+                sortTime = sortTime,
+                location = event.location,
+                isCustom = true,
+                isAttendanceTracked = event.isAttendanceTracked,
+                attendanceStatus = status,
+                startTimeMillis = event.startTime,
+                endTimeMillis = event.endTime,
+                isAllDay = event.isAllDay
             ))
         }
     }
@@ -531,23 +657,32 @@ class TimetableFragment : Fragment() {
     }
 
     private fun addCachedIcsEventsForDate(targetDate: Calendar, list: MutableList<ScheduleItem>) {
-        val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         val filtered = cachedIcsEvents.filter { event ->
             val eventCal = Calendar.getInstance().apply { timeInMillis = event.startTime }
             eventCal.get(Calendar.YEAR) == targetDate.get(Calendar.YEAR) && eventCal.get(Calendar.DAY_OF_YEAR) == targetDate.get(Calendar.DAY_OF_YEAR)
         }
         val attendancePrefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
         filtered.forEach { event ->
-            val timeStr = sdfTime.format(Date(event.startTime))
-            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
-            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            val timeStr = ScheduleEventHelper.formatTimeDisplay(event.startTime, if (event.endTime > 0) event.endTime else null, event.isAllDay)
+            val sortTime = ScheduleEventHelper.calculateSortTime(event.startTime, event.isAllDay)
             val isTracked = attendancePrefs.getBoolean("track_${event.summary}", false)
+            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
             val dayKey = String.format("%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
             var status = if (isTracked) attendancePrefs.getString("status_${event.summary}_$dayKey", "NONE") ?: "NONE" else "NONE"
             if (isTracked && status == "NONE" && event.startTime < System.currentTimeMillis()) status = "ATTEND"
             list.add(ScheduleItem(
-                "ext_${event.summary}_${event.startTime}", timeStr, event.summary, "外部予定", sortTime, event.location, 
-                isCustom = false, isAttendanceTracked = isTracked, attendanceStatus = status, startTimeMillis = event.startTime
+                id = "ext_${event.summary}_${event.startTime}",
+                time = timeStr,
+                title = event.summary,
+                type = "外部予定",
+                sortTime = sortTime,
+                location = event.location, 
+                isCustom = false,
+                isAttendanceTracked = isTracked,
+                attendanceStatus = status,
+                startTimeMillis = event.startTime,
+                endTimeMillis = if (event.endTime > 0) event.endTime else null,
+                isAllDay = event.isAllDay
             ))
         }
     }
@@ -557,12 +692,10 @@ class TimetableFragment : Fragment() {
         if (!appPrefs.getBoolean("sync_device_calendar", false)) return
 
         val deviceEvents = DeviceCalendarLoader.loadDeviceEvents(requireContext(), targetDate)
-        val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         
         deviceEvents.forEach { event ->
-            val timeStr = sdfTime.format(Date(event.startTime))
-            val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
-            val sortTime = cal.get(Calendar.HOUR_OF_DAY).toLong() * 60 + cal.get(Calendar.MINUTE)
+            val timeStr = ScheduleEventHelper.formatTimeDisplay(event.startTime, if (event.endTime > 0) event.endTime else null, event.isAllDay)
+            val sortTime = ScheduleEventHelper.calculateSortTime(event.startTime, event.isAllDay)
             
             list.add(ScheduleItem(
                 id = "dev_${event.summary}_${event.startTime}",
@@ -572,7 +705,9 @@ class TimetableFragment : Fragment() {
                 sortTime = sortTime,
                 location = event.location,
                 isCustom = false,
-                startTimeMillis = event.startTime
+                startTimeMillis = event.startTime,
+                endTimeMillis = if (event.endTime > 0) event.endTime else null,
+                isAllDay = event.isAllDay
             ))
         }
     }
@@ -806,7 +941,19 @@ class DailyScheduleFragment : Fragment() {
     }
     private class EventViewHolder(val binding: ItemScheduleCardBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(item: TimetableFragment.ScheduleItem, onLongClick: (TimetableFragment.ScheduleItem) -> Unit, onAttendanceChanged: (TimetableFragment.ScheduleItem, String) -> Unit, onItemClick: (TimetableFragment.ScheduleItem) -> Unit) {
-            binding.scheduleTimeText.text = item.time; binding.scheduleTitleText.text = item.title
+            val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+            if (item.isAllDay) {
+                binding.scheduleTimeText.text = "終日"
+                binding.scheduleEndTimeText.visibility = View.GONE
+            } else if (item.endTimeMillis != null && item.endTimeMillis > item.startTimeMillis) {
+                binding.scheduleTimeText.text = sdfTime.format(Date(item.startTimeMillis))
+                binding.scheduleEndTimeText.text = ScheduleEventHelper.formatEndTimeLabel(item.endTimeMillis)
+                binding.scheduleEndTimeText.visibility = View.VISIBLE
+            } else {
+                binding.scheduleTimeText.text = item.time
+                binding.scheduleEndTimeText.visibility = View.GONE
+            }
+            binding.scheduleTitleText.text = item.title
             binding.scheduleTypeText.text = if (item.location.isNotEmpty()) "${item.type} @ ${item.location}" else item.type
             binding.root.setOnClickListener { onItemClick(item) }
             binding.root.setOnLongClickListener { onLongClick(item); true }

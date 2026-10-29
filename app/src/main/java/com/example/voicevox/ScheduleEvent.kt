@@ -11,7 +11,9 @@ data class ScheduleEvent(
     val isPreset: Boolean = false,
     val isAttendanceTracked: Boolean = false,
     var attendanceStatus: String = "NONE",
-    val repeatGroupId: String? = null
+    val repeatGroupId: String? = null,
+    val endTime: Long? = null,
+    val isAllDay: Boolean = false
 )
 
 @Serializable
@@ -19,5 +21,8 @@ data class EventPreset(
     val genre: String, // UI上のラベル名として genre を維持
     val location: String,
     val hour: Int = -1,
-    val minute: Int = -1
+    val minute: Int = -1,
+    val endHour: Int = -1,
+    val endMinute: Int = -1,
+    val isAllDay: Boolean = false
 )

@@ -677,6 +677,7 @@ class MainActivity : AppCompatActivity() {
         if (isServiceRunning(this, AlarmService::class.java)) {
             val intent = Intent(this, AlarmAlertActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                AlarmService.currentAlarmId?.let { putExtra("ALARM_ID", it) }
             }
             startActivity(intent)
             return

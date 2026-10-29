@@ -22,6 +22,10 @@ import java.io.File
 
 class AlarmService : Service() {
 
+    companion object {
+        var currentAlarmId: String? = null
+    }
+
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var audioManager: AudioManager? = null
@@ -50,6 +54,7 @@ class AlarmService : Service() {
 
         val audioFilePath = intent?.getStringExtra("AUDIO_FILE_PATH")
         val alarmId = intent?.getStringExtra("ALARM_ID")
+        currentAlarmId = alarmId
 
         val stopIntent = Intent(this, AlarmService::class.java).apply { action = "STOP_ACTION" }
         val stopPendingIntent = PendingIntent.getService(this, 0, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -134,6 +139,7 @@ class AlarmService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        currentAlarmId = null
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null

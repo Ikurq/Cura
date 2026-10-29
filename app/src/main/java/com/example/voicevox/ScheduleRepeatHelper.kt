@@ -34,20 +34,26 @@ object ScheduleRepeatHelper {
         endCal: Calendar,
         location: String = "",
         isAttendanceTracked: Boolean = false,
-        repeatGroupId: String = UUID.randomUUID().toString()
+        repeatGroupId: String = UUID.randomUUID().toString(),
+        durationMillis: Long? = null,
+        isAllDay: Boolean = false
     ): List<ScheduleEvent> {
         val result = mutableListOf<ScheduleEvent>()
         val curCal = (startCal.clone() as Calendar)
 
         while (!curCal.after(endCal)) {
+            val eventStart = curCal.timeInMillis
+            val eventEnd = durationMillis?.let { eventStart + it }
             result.add(
                 ScheduleEvent(
                     id = UUID.randomUUID().toString(),
                     summary = summary,
-                    startTime = curCal.timeInMillis,
+                    startTime = eventStart,
                     location = location,
                     isAttendanceTracked = isAttendanceTracked,
-                    repeatGroupId = repeatGroupId
+                    repeatGroupId = repeatGroupId,
+                    endTime = eventEnd,
+                    isAllDay = isAllDay
                 )
             )
             curCal.add(Calendar.WEEK_OF_YEAR, 1)
@@ -55,14 +61,18 @@ object ScheduleRepeatHelper {
 
         // 終了日が開始日より前の設定でも最低限1件は生成
         if (result.isEmpty()) {
+            val eventStart = startCal.timeInMillis
+            val eventEnd = durationMillis?.let { eventStart + it }
             result.add(
                 ScheduleEvent(
                     id = UUID.randomUUID().toString(),
                     summary = summary,
-                    startTime = startCal.timeInMillis,
+                    startTime = eventStart,
                     location = location,
                     isAttendanceTracked = isAttendanceTracked,
-                    repeatGroupId = repeatGroupId
+                    repeatGroupId = repeatGroupId,
+                    endTime = eventEnd,
+                    isAllDay = isAllDay
                 )
             )
         }
