@@ -122,4 +122,14 @@
     <string name="all_day_header">終日</string>
     <string name="picker_start_title">開始時刻を選択</string>
     <string name="picker_end_title">終了時刻を選択</string>
+    <string name="export_schedule">予定のエクスポート</string>
+    <string name="export_schedule_title">カレンダーのエクスポート</string>
+    <string name="export_ics_button">予定をエクスポート (.ics)</string>
+    <string name="export_ics_desc">登録した予定をiCalendar形式で書き出します</string>
+    <string name="export_button">エクスポート</string>
+    <string name="export_method_save_file">ファイルに保存 (.ics)</string>
+    <string name="export_method_share">他のアプリへ共有</string>
+    <string name="export_success">予定をエクスポートしました</string>
+    <string name="export_no_events">エクスポート対象の予定がありません</string>
+    <string name="export_error">エクスポートに失敗しました</string>
 </resources>

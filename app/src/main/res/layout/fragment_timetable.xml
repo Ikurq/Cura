@@ -114,6 +114,18 @@
                         android:background="@android:color/transparent" />
                 </LinearLayout>
 
+                <ImageButton
+                    android:id="@+id/btnExportSchedule"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="8dp"
+                    android:padding="4dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_export_schedule"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/text_secondary"
+                    android:contentDescription="@string/export_schedule" />
+
             </LinearLayout>
         </RelativeLayout>
 

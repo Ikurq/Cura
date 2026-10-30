@@ -2,6 +2,9 @@ package com.example.voicevox
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -43,6 +46,14 @@ class TimetableFragment : Fragment() {
     private var selectedDate = Calendar.getInstance()
     private var cachedIcsEvents = mutableListOf<IcsEvent>()
     private val customEvents = mutableListOf<ScheduleEvent>()
+
+    private val exportIcsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/calendar")) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        val ics = ScheduleExporter.exportToIcs(customEvents)
+        val success = ScheduleExporter.writeIcsToUri(requireContext(), uri, ics)
+        val msgRes = if (success) R.string.export_success else R.string.export_error
+        Toast.makeText(requireContext(), msgRes, Toast.LENGTH_SHORT).show()
+    }
 
     enum class FilterType { ALL, EXTERNAL, TASK, COMPLETED }
     private var currentFilter = FilterType.ALL
@@ -146,6 +157,29 @@ class TimetableFragment : Fragment() {
             if (currentViewMode != ViewMode.MONTH) {
                 applyViewMode(ViewMode.MONTH)
             }
+        }
+
+        binding.btnExportSchedule.setOnClickListener {
+            if (customEvents.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.export_no_events, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            ScheduleExporter.showExportOptionDialog(
+                context = requireContext(),
+                onSaveToFile = {
+                    exportIcsLauncher.launch("cura_schedule.ics")
+                },
+                onShare = {
+                    try {
+                        val ics = ScheduleExporter.exportToIcs(customEvents)
+                        val shareIntent = ScheduleExporter.createShareIntent(requireContext(), ics)
+                        startActivity(Intent.createChooser(shareIntent, getString(R.string.export_schedule)))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(requireContext(), R.string.export_error, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
         }
 
         binding.addScheduleEventFAB.setOnClickListener {

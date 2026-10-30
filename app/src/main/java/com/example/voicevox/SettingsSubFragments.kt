@@ -79,6 +79,20 @@ class SettingsPermissionsFragment : Fragment() {
 // --- 2. External Calendar ---
 class SettingsCalendarFragment : Fragment() {
     
+    private val exportIcsLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/calendar")) { uri: Uri? ->
+        if (uri == null) return@registerForActivityResult
+        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, "[]") ?: "[]"
+        val events = try {
+            Json.decodeFromString<List<ScheduleEvent>>(jsonString)
+        } catch (e: Exception) { emptyList() }
+
+        val ics = ScheduleExporter.exportToIcs(events)
+        val success = ScheduleExporter.writeIcsToUri(requireContext(), uri, ics)
+        val msgRes = if (success) R.string.export_success else R.string.export_error
+        Toast.makeText(requireContext(), msgRes, Toast.LENGTH_SHORT).show()
+    }
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -97,7 +111,41 @@ class SettingsCalendarFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_settings_calendar, container, false)
         setupDeviceSync(view)
         setupCalendar(view)
+        setupExport(view)
         return view
+    }
+
+    private fun setupExport(view: View) {
+        val btnExport = view.findViewById<Button>(R.id.btnExportIcsFile) ?: return
+        btnExport.setOnClickListener {
+            val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
+            val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, "[]") ?: "[]"
+            val events = try {
+                Json.decodeFromString<List<ScheduleEvent>>(jsonString)
+            } catch (e: Exception) { emptyList() }
+
+            if (events.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.export_no_events, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            ScheduleExporter.showExportOptionDialog(
+                context = requireContext(),
+                onSaveToFile = {
+                    exportIcsLauncher.launch("cura_schedule.ics")
+                },
+                onShare = {
+                    try {
+                        val ics = ScheduleExporter.exportToIcs(events)
+                        val shareIntent = ScheduleExporter.createShareIntent(requireContext(), ics)
+                        startActivity(Intent.createChooser(shareIntent, getString(R.string.export_schedule)))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(requireContext(), R.string.export_error, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
     }
 
     private fun setupDeviceSync(view: View) {

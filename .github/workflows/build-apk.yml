@@ -49,11 +49,15 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.14
-          name: "Cura:CareYou ver2.14"
+          tag_name: ver2.15
+          name: "Cura:CareYou ver2.15"
           body: |
-            Cura:CareYou ver2.14 リリース
+            Cura:CareYou ver2.15 リリース
             
-            ・アプリ名を「Cura」から「Cura:CareYou」に変更
+            ### Added
+            - 予定のエクスポート機能（iCalendar / .ics形式）を追加
+              - カレンダー画面（SCHEDULE_MAP）ヘッダーにエクスポートボタンを配置
+              - 設定画面のカレンダー管理内に「予定をエクスポート」機能を追加
+              - ファイル保存（.ics）および他アプリへの共有（ShareSheet）に対応
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
