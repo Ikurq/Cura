@@ -47,7 +47,7 @@ class TaskFragment : Fragment() {
             saveTasks()
             taskAdapter.notifyDataSetChanged()
         }, { task ->
-            showDeleteConfirmDialog(task)
+            showTaskActionDialog(task)
         }, { task ->
             showTaskDialog(task)
         })
@@ -79,6 +79,11 @@ class TaskFragment : Fragment() {
             .setTitle("タスクの完了")
             .setMessage("${completedCount}件のタスクを完了としてマークし、リストから消去しますか？")
             .setPositiveButton("完了") { _, _ ->
+                selectedTasks.forEach { task ->
+                    task.linkedEventId?.let { id ->
+                        TaskScheduleSyncHelper.removeTaskFromSchedule(requireContext(), id)
+                    }
+                }
                 taskList.removeAll { it.isCompleted }
                 saveTasks()
                 recordCompletedTasksToSchedule(selectedTasks)
@@ -199,6 +204,7 @@ class TaskFragment : Fragment() {
         }
         val defaultPriorityIndex = if (taskToEdit != null) (taskToEdit.basePriority - 1).coerceIn(0, 4) else 2
         dialogBinding.dialogTaskPrioritySpinner.setSelection(defaultPriorityIndex)
+        dialogBinding.dialogTaskAddToScheduleCheckbox.isChecked = (taskToEdit?.linkedEventId != null)
 
         AlertDialog.Builder(ctx)
             .setView(dialogBinding.root)
@@ -218,19 +224,29 @@ class TaskFragment : Fragment() {
                 val finalTargetDeadline = if (dialogBinding.dialogTaskAdvancedDeadlineCheckbox.isChecked) selectedTargetDeadline else null
                 val basePriority = dialogBinding.dialogTaskPrioritySpinner.selectedItemPosition + 1
 
+                val shouldAddToSchedule = dialogBinding.dialogTaskAddToScheduleCheckbox.isChecked
+                val currentLinkedId = taskToEdit?.linkedEventId
+
                 if (isEdit) {
                     val index = taskList.indexOfFirst { it.id == taskToEdit.id }
                     if (index != -1) {
-                        taskList[index] = taskToEdit.copy(
+                        var updatedTask = taskToEdit.copy(
                             title = title,
                             deadlineMillis = selectedRealDeadline,
                             targetDeadlineMillis = finalTargetDeadline,
                             basePriority = basePriority,
-                            linkedEventId = taskToEdit.linkedEventId
+                            linkedEventId = currentLinkedId
                         )
+                        if (shouldAddToSchedule) {
+                            updatedTask = TaskScheduleSyncHelper.saveTaskToSchedule(ctx, updatedTask)
+                        } else if (currentLinkedId != null) {
+                            TaskScheduleSyncHelper.removeTaskFromSchedule(ctx, currentLinkedId)
+                            updatedTask = updatedTask.copy(linkedEventId = null)
+                        }
+                        taskList[index] = updatedTask
                     }
                 } else {
-                    val newTask = TaskItem(
+                    var newTask = TaskItem(
                         id = UUID.randomUUID().toString(),
                         title = title,
                         deadlineMillis = selectedRealDeadline,
@@ -239,6 +255,9 @@ class TaskFragment : Fragment() {
                         isCompleted = false,
                         targetDeadlineMillis = finalTargetDeadline
                     )
+                    if (shouldAddToSchedule) {
+                        newTask = TaskScheduleSyncHelper.saveTaskToSchedule(ctx, newTask)
+                    }
                     taskList.add(newTask)
                 }
 
@@ -250,11 +269,57 @@ class TaskFragment : Fragment() {
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+    private fun showTaskActionDialog(task: TaskItem) {
+        val isScheduled = task.linkedEventId != null
+        val options = arrayOf(
+            getString(R.string.task_action_edit),
+            if (isScheduled) getString(R.string.task_action_remove_schedule) else getString(R.string.task_action_add_schedule),
+            getString(R.string.task_action_delete)
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.task_operation_title))
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showTaskDialog(task)
+                    1 -> {
+                        if (isScheduled) {
+                            task.linkedEventId?.let { id ->
+                                TaskScheduleSyncHelper.removeTaskFromSchedule(requireContext(), id)
+                            }
+                            val index = taskList.indexOfFirst { it.id == task.id }
+                            if (index != -1) {
+                                taskList[index] = task.copy(linkedEventId = null)
+                                saveTasks()
+                                taskAdapter.notifyItemChanged(index)
+                            }
+                            Toast.makeText(requireContext(), R.string.task_remove_from_schedule_success, Toast.LENGTH_SHORT).show()
+                        } else {
+                            val updated = TaskScheduleSyncHelper.saveTaskToSchedule(requireContext(), task)
+                            val index = taskList.indexOfFirst { it.id == task.id }
+                            if (index != -1) {
+                                taskList[index] = updated
+                                saveTasks()
+                                taskAdapter.notifyItemChanged(index)
+                            }
+                            Toast.makeText(requireContext(), R.string.task_add_to_schedule_success, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    2 -> showDeleteConfirmDialog(task)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun showDeleteConfirmDialog(task: TaskItem) {
         AlertDialog.Builder(requireContext())
             .setTitle("タスクの削除")
             .setMessage("「${task.title}」を削除しますか？")
             .setPositiveButton("削除") { _, _ ->
+                task.linkedEventId?.let { id ->
+                    TaskScheduleSyncHelper.removeTaskFromSchedule(requireContext(), id)
+                }
                 taskList.remove(task)
                 taskAdapter.notifyDataSetChanged()
                 saveTasks()

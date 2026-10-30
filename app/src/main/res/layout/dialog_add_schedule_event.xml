@@ -18,6 +18,30 @@
             android:textColor="@color/text_primary"
             android:layout_marginBottom="16dp"/>
 
+        <!-- Task Chips Area -->
+        <LinearLayout
+            android:id="@+id/layoutTaskSelection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/select_from_task"
+                android:textSize="12sp"
+                android:textColor="@color/cyber_cyan"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/taskChipGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
         <!-- Preset Chips Area -->
         <TextView
             android:layout_width="wrap_content"

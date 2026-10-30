@@ -40,6 +40,22 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/taskScheduledBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_scheduled_badge"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:text="@string/task_scheduled_badge"
+            android:textColor="@color/cyber_cyan"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintStart_toEndOf="@id/taskPriorityBadge"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
             android:id="@+id/taskTitleText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

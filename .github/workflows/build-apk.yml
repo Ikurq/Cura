@@ -49,15 +49,17 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.15
-          name: "Cura:CareYou ver2.15"
+          tag_name: ver2.16
+          name: "Cura:CareYou ver2.16"
           body: |
-            Cura:CareYou ver2.15 リリース
-            
+            Cura:CareYou ver2.16 リリース
+
             ### Added
-            - 予定のエクスポート機能（iCalendar / .ics形式）を追加
-              - カレンダー画面（SCHEDULE_MAP）ヘッダーにエクスポートボタンを配置
-              - 設定画面のカレンダー管理内に「予定をエクスポート」機能を追加
-              - ファイル保存（.ics）および他アプリへの共有（ShareSheet）に対応
+            - タスクを予定（カレンダー）として追加・連携する機能を追加
+              - タスク追加・編集ダイアログに「カレンダーの予定に追加」チェックボックスを設置
+              - タスク長押しメニューから「カレンダーの予定に追加／削除」操作に対応
+              - タスクカードに予定登録状態を示す「予定登録済」バッジを表示
+              - カレンダーの予定追加ダイアログで未完了タスクを選択して予定として登録可能
+              - タスク完了時および削除時に紐付くカレンダー予定を自動連動更新
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk

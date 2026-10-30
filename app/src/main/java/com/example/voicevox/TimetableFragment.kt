@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -399,6 +400,36 @@ class TimetableFragment : Fragment() {
             ).show()
         }
 
+        var linkedTaskId: String? = null
+
+        // 未完了タスクチップの表示設定
+        val incompleteTasks = TaskScheduleSyncHelper.getIncompleteTasks(ctx)
+        if (incompleteTasks.isNotEmpty()) {
+            dialogBinding.layoutTaskSelection.visibility = View.VISIBLE
+            incompleteTasks.forEach { task ->
+                val chip = Chip(ctx)
+                chip.text = task.title
+                chip.isCheckable = false
+                chip.setChipBackgroundColorResource(R.color.primary_container)
+                chip.setTextColor(ContextCompat.getColor(ctx, R.color.cyber_cyan))
+                chip.setOnClickListener {
+                    dialogBinding.editEventGenre.setText(task.title)
+                    dialogBinding.editEventLocation.setText("タスク")
+                    linkedTaskId = task.id
+
+                    val taskCal = Calendar.getInstance().apply { timeInMillis = task.getEffectiveDeadline() }
+                    selectedStartHour = taskCal.get(Calendar.HOUR_OF_DAY)
+                    selectedStartMinute = taskCal.get(Calendar.MINUTE)
+                    selectedEndHour = (selectedStartHour + 1).coerceAtMost(23)
+                    selectedEndMinute = selectedStartMinute
+                    dialogBinding.checkAllDay.isChecked = false
+                    updateStartTimeText()
+                    updateEndTimeText()
+                }
+                dialogBinding.taskChipGroup.addView(chip)
+            }
+        }
+
         val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val presetJson = schedulePrefs.getString("presetListJSON", null)
         if (presetJson != null) {
@@ -502,6 +533,12 @@ class TimetableFragment : Fragment() {
 
                 customEvents.addAll(eventsToAdd)
                 saveCustomEvents()
+
+                linkedTaskId?.let { taskId ->
+                    eventsToAdd.firstOrNull()?.let { firstEvent ->
+                        TaskScheduleSyncHelper.linkTaskToEvent(ctx, taskId, firstEvent.id)
+                    }
+                }
 
                 if (dialogBinding.checkSaveAsPreset.isChecked) {
                     val currentPresets = try {
@@ -760,6 +797,7 @@ class TimetableFragment : Fragment() {
                     when (which) {
                         0 -> {
                             customEvents.removeAll { it.id == item.id }
+                            TaskScheduleSyncHelper.unlinkTaskFromEvent(requireContext(), item.id)
                             saveCustomEvents()
                             Toast.makeText(requireContext(), "予定を削除しました", Toast.LENGTH_SHORT).show()
                         }
@@ -785,6 +823,7 @@ class TimetableFragment : Fragment() {
                 .setMessage("「${item.title}」を削除しますか？")
                 .setPositiveButton("削除") { _, _ ->
                     customEvents.removeAll { it.id == item.id }
+                    TaskScheduleSyncHelper.unlinkTaskFromEvent(requireContext(), item.id)
                     saveCustomEvents()
                     Toast.makeText(requireContext(), "削除しました", Toast.LENGTH_SHORT).show()
                 }

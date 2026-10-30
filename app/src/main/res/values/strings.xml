@@ -132,4 +132,16 @@
     <string name="export_success">予定をエクスポートしました</string>
     <string name="export_no_events">エクスポート対象の予定がありません</string>
     <string name="export_error">エクスポートに失敗しました</string>
+    <!-- タスクと予定の連携 -->
+    <string name="task_add_to_schedule">カレンダーの予定に追加</string>
+    <string name="task_scheduled_badge">予定登録済</string>
+    <string name="task_add_to_schedule_success">予定に追加しました</string>
+    <string name="task_remove_from_schedule_success">予定から削除しました</string>
+    <string name="task_operation_title">タスクの操作</string>
+    <string name="task_action_edit">編集</string>
+    <string name="task_action_add_schedule">カレンダーの予定に追加</string>
+    <string name="task_action_remove_schedule">カレンダーの予定から削除</string>
+    <string name="task_action_delete">削除</string>
+    <string name="select_from_task">未完了タスクから選択</string>
+    <string name="select_from_task_empty">未完了のタスクはありません</string>
 </resources>

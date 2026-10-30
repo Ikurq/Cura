@@ -24,6 +24,7 @@ class TaskAdapter(
         val priorityBadge: TextView = view.findViewById(R.id.taskPriorityBadge)
         val titleText: TextView = view.findViewById(R.id.taskTitleText)
         val deadlineText: TextView = view.findViewById(R.id.taskDeadlineText)
+        val scheduledBadge: TextView = view.findViewById(R.id.taskScheduledBadge)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -46,11 +47,13 @@ class TaskAdapter(
             holder.titleText.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.text_secondary))
             holder.priorityBadge.visibility = View.INVISIBLE
             holder.deadlineText.visibility = View.GONE
+            holder.scheduledBadge.visibility = View.GONE
         } else {
             holder.titleText.paintFlags = holder.titleText.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             holder.titleText.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.text_primary))
             holder.priorityBadge.visibility = View.VISIBLE
             holder.deadlineText.visibility = View.VISIBLE
+            holder.scheduledBadge.visibility = if (task.linkedEventId != null) View.VISIBLE else View.GONE
         }
 
         holder.titleText.text = task.title
