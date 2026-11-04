@@ -119,4 +119,11 @@
         android:text="バイブレーションを有効にする"
         android:checked="true" />
 
+    <CheckBox
+        android:id="@+id/dialogRequireQrCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/alarm_require_qr"
+        android:checked="false" />
+
 </LinearLayout>

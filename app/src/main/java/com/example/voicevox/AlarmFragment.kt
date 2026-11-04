@@ -1,4 +1,4 @@
-package com.example.voicevox
+﻿package com.example.voicevox
 
 import android.app.AlarmManager
 import android.app.AlertDialog
@@ -298,7 +298,8 @@ class AlarmFragment : Fragment() {
 
         val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         val newId = UUID.randomUUID().toString()
-        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList(), isOneShot = false)
+        val requireQrCode = dialogBinding.dialogRequireQrCheckBox.isChecked
+        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList(), isOneShot = false, requireQrCode = requireQrCode)
 
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = context ?: return@launch

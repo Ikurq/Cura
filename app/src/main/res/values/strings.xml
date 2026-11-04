@@ -144,4 +144,20 @@
     <string name="task_action_delete">削除</string>
     <string name="select_from_task">未完了タスクから選択</string>
     <string name="select_from_task_empty">未完了のタスクはありません</string>
+
+    <!-- QRコード二度寝防止 -->
+    <string name="alarm_require_qr">QRコードで停止 (二度寝防止)</string>
+    <string name="alarm_scan_qr_button">QRコードをスキャンして停止</string>
+    <string name="alarm_qr_badge">QR解除</string>
+    <string name="alarm_qr_scan_prompt">解除用QRコードをスキャンしてください</string>
+    <string name="alarm_qr_success">認証成功</string>
+    <string name="alarm_qr_mismatch">コードが一致しません</string>
+    <string name="settings_qr_title">二度寝防止QRコード設定</string>
+    <string name="settings_qr_desc">アラーム解除に使うQR/バーコードの登録と確認</string>
+    <string name="btn_register_custom_qr">任意のバーコード/QRを登録</string>
+    <string name="btn_reset_default_qr">初期値に戻す</string>
+    <string name="qr_preview_title">解除用QRコード</string>
+    <string name="qr_code_saved">解除コードを保存しました</string>
+    <string name="qr_code_reset">初期設定に戻しました</string>
+    <string name="camera_permission_required">スキャンにはカメラ権限が必要です</string>
 </resources>

@@ -1,51 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp"
     android:background="@color/background">
 
-    <TextView
-        android:id="@+id/alertTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="アラーム鳴動中"
-        android:textSize="14sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="16dp"/>
-
-    <TextView
-        android:id="@+id/alertTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="07:00"
-        android:textSize="80sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_primary"
-        android:fontFamily="sans-serif-condensed-medium"
-        android:layout_marginBottom="32dp"/>
-
-    <TextView
-        android:id="@+id/alertMessage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="時間です。起きてください。"
-        android:textSize="18sp"
-        android:textColor="@color/accent"
-        android:gravity="center"
-        android:layout_marginBottom="32dp"/>
-
-    <Button
-        android:id="@+id/stopAlarmNowButton"
-        style="@style/Widget.Material3.Button.TonalButton"
+    <!-- 通常のアラーム画面 -->
+    <LinearLayout
+        android:id="@+id/alertMainContainer"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:text="アラームを停止"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:cornerRadius="40dp" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/alertTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="アラーム鳴動中"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/alertTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="07:00"
+            android:textSize="80sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-condensed-medium"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/alertQrBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_priority_badge"
+            android:backgroundTint="@color/accent"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="@string/alarm_qr_badge"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:visibility="gone"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:id="@+id/alertMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="時間です。起きてください。"
+            android:textSize="18sp"
+            android:textColor="@color/accent"
+            android:gravity="center"
+            android:layout_marginBottom="32dp"/>
+
+        <Button
+            android:id="@+id/stopAlarmNowButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="アラームを停止"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:cornerRadius="40dp" />
+
+    </LinearLayout>
+
+    <!-- QRコードスキャン・オーバーレイ -->
+    <LinearLayout
+        android:id="@+id/qrScannerOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/black"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/qrPromptText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="20dp"
+            android:text="@string/alarm_qr_scan_prompt"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <com.journeyapps.barcodescanner.DecoratedBarcodeView
+            android:id="@+id/barcodeScannerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btnCancelQrScan"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="16dp"
+            android:text="キャンセル"
+            android:textColor="@color/white" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,4 +1,4 @@
-package com.example.voicevox
+﻿package com.example.voicevox
 
 import android.app.AlertDialog
 import android.content.Context
@@ -32,17 +32,22 @@ class SettingsPermissionsFragment : Fragment() {
     private val requestCalendarLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted) {
-            Toast.makeText(requireContext(), "カレンダー権限が許可されました", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(requireContext(), "カレンダー権限が拒否されました", Toast.LENGTH_SHORT).show()
-        }
+        val msg = if (isGranted) "繧ｫ繝ｬ繝ｳ繝繝ｼ讓ｩ髯舌′險ｱ蜿ｯ縺輔ｌ縺ｾ縺励◆" else "繧ｫ繝ｬ繝ｳ繝繝ｼ讓ｩ髯舌′諡貞凄縺輔ｌ縺ｾ縺励◆"
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private val requestCameraLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        val msg = if (isGranted) "繧ｫ繝｡繝ｩ讓ｩ髯舌′險ｱ蜿ｯ縺輔ｌ縺ｾ縺励◆" else "繧ｫ繝｡繝ｩ讓ｩ髯舌′諡貞凄縺輔ｌ縺ｾ縺励◆"
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_permissions, container, false)
         setupPermissions(view)
         setupNotifications(view)
+        setupQrConfig(view)
         return view
     }
 
@@ -60,6 +65,9 @@ class SettingsPermissionsFragment : Fragment() {
         view.findViewById<Button>(R.id.btnRequestCalendarPermission).setOnClickListener {
             requestCalendarLauncher.launch(android.Manifest.permission.READ_CALENDAR)
         }
+        view.findViewById<Button>(R.id.btnRequestCameraPermission)?.setOnClickListener {
+            requestCameraLauncher.launch(android.Manifest.permission.CAMERA)
+        }
     }
 
     private fun setupNotifications(view: View) {
@@ -75,8 +83,65 @@ class SettingsPermissionsFragment : Fragment() {
         s3.isChecked = prefs.getBoolean("event_notification", true)
         s3.setOnCheckedChangeListener { _, c -> prefs.edit { putBoolean("event_notification", c) } }
     }
-}
 
+    private fun setupQrConfig(view: View) {
+        view.findViewById<Button>(R.id.btnConfigureQr)?.setOnClickListener {
+            showQrConfigDialog()
+        }
+    }
+
+    private fun showQrConfigDialog() {
+        val ctx = requireContext()
+        val dialogView = LayoutInflater.from(ctx).inflate(R.layout.dialog_configure_qr, null)
+        val imgPreview = dialogView.findViewById<ImageView>(R.id.imgQrPreview)
+        val textValue = dialogView.findViewById<TextView>(R.id.textCurrentQrValue)
+        val btnChange = dialogView.findViewById<Button>(R.id.btnChangeQrText)
+        val btnReset = dialogView.findViewById<Button>(R.id.btnResetQr)
+
+        fun refreshView() {
+            val currentVal = QrAlarmHelper.getExpectedQrValue(ctx)
+            textValue.text = currentVal
+            val bitmap = QrAlarmHelper.generateQrBitmap(currentVal)
+            imgPreview.setImageBitmap(bitmap)
+        }
+
+        refreshView()
+
+        val dialog = AlertDialog.Builder(ctx)
+            .setView(dialogView)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+
+        btnChange.setOnClickListener {
+            val input = EditText(ctx).apply {
+                setText(QrAlarmHelper.getExpectedQrValue(ctx))
+                setSelection(text.length)
+            }
+            AlertDialog.Builder(ctx)
+                .setTitle(R.string.settings_qr_title)
+                .setMessage(R.string.settings_qr_desc)
+                .setView(input)
+                .setPositiveButton(R.string.dialog_save) { _, _ ->
+                    val newVal = input.text.toString().trim()
+                    if (newVal.isNotEmpty()) {
+                        QrAlarmHelper.setExpectedQrValue(ctx, newVal)
+                        refreshView()
+                        Toast.makeText(ctx, getString(R.string.qr_code_saved), Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        btnReset.setOnClickListener {
+            QrAlarmHelper.setExpectedQrValue(ctx, CuraConstants.DEFAULT_ALARM_DISMISS_QR)
+            refreshView()
+            Toast.makeText(ctx, getString(R.string.qr_code_reset), Toast.LENGTH_SHORT).show()
+        }
+
+        dialog.show()
+    }
+}
 // --- 2. External Calendar ---
 class SettingsCalendarFragment : Fragment() {
     

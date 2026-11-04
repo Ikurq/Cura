@@ -29,6 +29,8 @@ object CuraConstants {
 
     // Alarm Keys
     const val KEY_ALARM_LIST = "alarmListJSON"
+    const val KEY_ALARM_DISMISS_QR = "alarm_dismiss_qr"
+    const val DEFAULT_ALARM_DISMISS_QR = "CURA_DISMISS_ALARM"
     
     // Todo Keys
     const val KEY_TASK_LIST = "taskListJSON"

@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.kotlinx.serialization.json)
 
+    // 二度寝防止用QRコードスキャナ
+    implementation(libs.zxing)
+
     // VOICEVOX ローカルエンジン (ローカルプロジェクトとして読み込む)
     implementation(project(":lib"))
 }

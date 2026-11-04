@@ -17,6 +17,7 @@ class AlarmAdapter(
         val timeText: TextView = view.findViewById(R.id.cardTimeText)
         val speakerText: TextView = view.findViewById(R.id.cardSpeakerText)
         val repeatText: TextView = view.findViewById(R.id.cardRepeatText)
+        val qrBadge: TextView = view.findViewById(R.id.cardQrBadge)
         val messageText: TextView = view.findViewById(R.id.cardMessageText)
         val alarmSwitch: MaterialSwitch = view.findViewById(R.id.cardAlarmSwitch)
     }
@@ -41,6 +42,9 @@ class AlarmAdapter(
             val days = listOf("", "日", "月", "火", "水", "木", "金", "土")
             holder.repeatText.text = item.repeatDays.sorted().joinToString(" ") { days[it] }
         }
+
+        // QRコード二度寝防止バッジの表示
+        holder.qrBadge.visibility = if (item.requireQrCode) View.VISIBLE else View.GONE
 
         holder.messageText.text = "「${item.message}」"
 
