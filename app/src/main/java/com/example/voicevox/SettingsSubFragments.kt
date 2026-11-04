@@ -441,7 +441,7 @@ class SettingsDevFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_settings_dev, container, false)
         setupLevel(view)
-        setupMigration(view)
+        setupMaintenance(view)
         view.findViewById<Button>(R.id.btnExportBackup).setOnClickListener {
             exportBackupLauncher.launch("cura_backup.json")
         }
@@ -470,19 +470,7 @@ class SettingsDevFragment : Fragment() {
         })
     }
 
-    private fun setupMigration(view: View) {
-        val btnMigrate = view.findViewById<Button>(R.id.btnMigrateData)
-        btnMigrate?.setOnClickListener {
-            AlertDialog.Builder(requireContext())
-                .setTitle("データ変換の実行")
-                .setMessage("保存されている予定データを新しい形式に変換します。よろしいですか？")
-                .setPositiveButton("実行") { _, _ ->
-                    performMigration()
-                }
-                .setNegativeButton("キャンセル", null)
-                .show()
-        }
-
+    private fun setupMaintenance(view: View) {
         val btnResetAtt = view.findViewById<Button>(R.id.btnResetAttendance)
         btnResetAtt?.setOnClickListener {
             AlertDialog.Builder(requireContext())
@@ -512,36 +500,6 @@ class SettingsDevFragment : Fragment() {
         }
 
         Toast.makeText(ctx, "出席データをリセットしました。ホームに戻るとボタンが消えます。", Toast.LENGTH_LONG).show()
-    }
-
-    private fun performMigration() {
-        val ctx = context ?: return
-        val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
-        val timetablePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
-
-        var convertedCount = 0
-
-        // 1. Custom Events Migration
-        val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
-        if (customJson != null && customJson.contains("\"genre\":")) {
-            val migrated = customJson.replace("\"genre\":", "\"summary\":")
-            schedulePrefs.edit { putString(CuraConstants.KEY_EVENT_LIST, migrated) }
-            convertedCount++
-        }
-
-        // 2. ICS Cache Migration
-        val icsJson = timetablePrefs.getString(CuraConstants.KEY_ICS_CACHE, null)
-        if (icsJson != null && icsJson.contains("\"genre\":")) {
-            val migrated = icsJson.replace("\"genre\":", "\"summary\":")
-            timetablePrefs.edit { putString(CuraConstants.KEY_ICS_CACHE, migrated) }
-            convertedCount++
-        }
-
-        if (convertedCount > 0) {
-            Toast.makeText(ctx, "データの変換が完了しました。ウィジェットを確認してください。", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(ctx, "変換が必要なデータは見つかりませんでした。", Toast.LENGTH_SHORT).show()
-        }
     }
 }
 
