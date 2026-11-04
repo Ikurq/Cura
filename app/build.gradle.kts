@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.voicevox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "2.17"
+        versionCode = 20
+        versionName = "2.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

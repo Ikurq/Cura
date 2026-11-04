@@ -1,9 +1,9 @@
 name: Build and Release APK
 
 on:
-  # GitHub Actions月間実行枠保護のため、自動pushでの実行は無効化（手動実行のみ許可）
-  # push:
-  #   branches: [ master ]
+  push:
+    tags:
+      - 'ver*'
   workflow_dispatch:
 
 permissions:
@@ -50,14 +50,18 @@ jobs:
       - name: Update Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ver2.17
-          name: "Cura:CareYou ver2.17"
+          tag_name: ver2.18
+          name: "Cura:CareYou ver2.18"
           body: |
             ### Added
-            - QRコード／バーコードスキャンによるアラーム停止機能（二度寝防止）を追加
-              - アラーム作成・編集ダイアログに「QRコードで停止 (二度寝防止)」設定項目を追加
-              - アラーム一覧カードに対象設定を示す「QR解除」バッジを表示
-              - アラーム鳴動時、登録コードをカメラで読み取るまで停止・読み上げをロックするスキャナー画面を追加
-              - 設定の「システム権限と通知」内に解除用QRコードの確認および任意バーコード登録機能を追加
+            - 予定連動アラーム（必須アラーム）のQRコード／バーコードスキャン解除機能を追加
+            - 予定データの自動退避（バックアップ）および要素単位の救出サルベージ機能を追加
+
+            ### Changed
+            - 開発者設定から不要となった旧式の手動データ変換UIおよび機能を削除
+
+            ### Fixed
+            - ToDoタスク完了時に不正なキー名でカレンダー予定が記録され、その後のデシリアライズ失敗により既存予定が空リストで上書き消失する問題を修正
+            - 過去バージョン形式の予定データに対する後方互換デコードと起動時自動マイグレーションに対応
           fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk
