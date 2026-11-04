@@ -1,8 +1,9 @@
 name: Build and Release APK
 
 on:
-  push:
-    branches: [ master ]
+  # GitHub Actions月間実行枠保護のため、自動pushでの実行は無効化（手動実行のみ許可）
+  # push:
+  #   branches: [ master ]
   workflow_dispatch:
 
 permissions:
