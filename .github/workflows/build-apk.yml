@@ -58,5 +58,5 @@ jobs:
               - アラーム一覧カードに対象設定を示す「QR解除」バッジを表示
               - アラーム鳴動時、登録コードをカメラで読み取るまで停止・読み上げをロックするスキャナー画面を追加
               - 設定の「システム権限と通知」内に解除用QRコードの確認および任意バーコード登録機能を追加
-        fail_on_unmatched_files: true
-        files: app/build/outputs/apk/release/*.apk
+          fail_on_unmatched_files: true
+          files: app/build/outputs/apk/release/*.apk
