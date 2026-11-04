@@ -331,21 +331,24 @@ class TaskFragment : Fragment() {
 
     private fun recordCompletedTasksToSchedule(tasks: List<TaskItem>) {
         val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, null) ?: "[]"
-        val jsonArray = JSONArray(jsonString)
+        val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, null)
+        val currentEvents = ScheduleEventHelper.decodeEventsSafely(jsonString).toMutableList()
         val now = System.currentTimeMillis()
 
         tasks.forEach { task ->
-            jsonArray.put(JSONObject().apply {
-                put("id", "completed_task_${UUID.randomUUID()}")
-                put("genre", "[完了] ${task.title}")
-                put("startTime", now)
-                put("location", "タスク完了")
-                put("isAttendanceTracked", false)
-                put("attendanceStatus", "NONE")
-            })
+            currentEvents.add(
+                ScheduleEvent(
+                    id = "completed_task_${UUID.randomUUID()}",
+                    summary = "[完了] ${task.title}",
+                    startTime = now,
+                    endTime = now,
+                    location = "タスク完了",
+                    isAttendanceTracked = false,
+                    attendanceStatus = "NONE"
+                )
+            )
         }
-        prefs.edit().putString(CuraConstants.KEY_EVENT_LIST, jsonArray.toString()).apply()
+        ScheduleEventHelper.saveEvents(requireContext(), currentEvents)
         triggerNotificationRefresh()
     }
 

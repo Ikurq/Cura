@@ -37,6 +37,7 @@ object CuraConstants {
     
     // Schedule Keys
     const val KEY_EVENT_LIST = "eventListJSON"
+    const val KEY_EVENT_LIST_BACKUP = "eventListJSON_backup"
     
     // Timetable Keys
     const val KEY_ICS_CACHE = "icsCacheJSON"

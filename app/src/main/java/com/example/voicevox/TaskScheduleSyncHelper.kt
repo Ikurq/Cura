@@ -2,7 +2,6 @@ package com.example.voicevox
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Calendar
@@ -119,18 +118,13 @@ object TaskScheduleSyncHelper {
      */
     fun saveTaskToSchedule(context: Context, task: TaskItem): TaskItem {
         val schedulePrefs = context.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
-        val currentJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]") ?: "[]"
-        val currentEvents = try {
-            Json.decodeFromString<List<ScheduleEvent>>(currentJson)
-        } catch (e: Exception) {
-            emptyList()
-        }
+        val currentJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
+        val currentEvents = ScheduleEventHelper.decodeEventsSafely(currentJson)
 
         val (updatedEvents, updatedTask) = syncTaskToSchedule(currentEvents, task)
-        val newJson = Json.encodeToString(updatedEvents)
-        schedulePrefs.edit().putString(CuraConstants.KEY_EVENT_LIST, newJson).apply()
+        ScheduleEventHelper.saveEvents(context, updatedEvents)
 
-        // アラームや通知の再スケジュール・ウィジェット更新のトリガー
+        // アラーム・通知の再スケジュールとウィジェット更新
         triggerScheduleBroadcast(context)
 
         return updatedTask
@@ -141,16 +135,11 @@ object TaskScheduleSyncHelper {
      */
     fun removeTaskFromSchedule(context: Context, linkedEventId: String) {
         val schedulePrefs = context.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
-        val currentJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, "[]") ?: "[]"
-        val currentEvents = try {
-            Json.decodeFromString<List<ScheduleEvent>>(currentJson)
-        } catch (e: Exception) {
-            emptyList()
-        }
+        val currentJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
+        val currentEvents = ScheduleEventHelper.decodeEventsSafely(currentJson)
 
         val updatedEvents = removeTaskFromSchedule(currentEvents, linkedEventId)
-        val newJson = Json.encodeToString(updatedEvents)
-        schedulePrefs.edit().putString(CuraConstants.KEY_EVENT_LIST, newJson).apply()
+        ScheduleEventHelper.saveEvents(context, updatedEvents)
 
         triggerScheduleBroadcast(context)
     }

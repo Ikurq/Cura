@@ -275,15 +275,11 @@ class TimetableFragment : Fragment() {
         val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val jsonString = prefs.getString(CuraConstants.KEY_EVENT_LIST, null) ?: return
         customEvents.clear()
-        try {
-            customEvents.addAll(Json.decodeFromString<List<ScheduleEvent>>(jsonString))
-        } catch (e: Exception) { e.printStackTrace() }
+        customEvents.addAll(ScheduleEventHelper.decodeEventsSafely(jsonString))
     }
 
     private fun saveCustomEvents() {
-        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
-        val json = Json.encodeToString(customEvents)
-        prefs.edit().putString(CuraConstants.KEY_EVENT_LIST, json).apply()
+        ScheduleEventHelper.saveEvents(requireContext(), customEvents)
         notifyFragments()
     }
 

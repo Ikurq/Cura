@@ -96,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         runInitialLoadingAnimation()
         updatePlayerStatus()
         updateDashboardInfo()
+        ScheduleEventHelper.performAutoMigration(this)
         updateAttendanceButtonVisibility()
         updateCharacterCostume()
 

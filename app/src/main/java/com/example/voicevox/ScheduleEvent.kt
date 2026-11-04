@@ -1,13 +1,18 @@
 package com.example.voicevox
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ScheduleEvent(
-    val id: String,
-    val summary: String, // 以前は genre だったが summary に統一
-    val startTime: Long, // Epoch millis
-    val location: String,
+    val id: String = "",
+    // 過去バージョンの genre と現在の summary の両方に対応
+    @JsonNames("genre", "summary")
+    val summary: String = "",
+    val startTime: Long = 0L, // Epoch millis
+    val location: String = "",
     val isPreset: Boolean = false,
     val isAttendanceTracked: Boolean = false,
     var attendanceStatus: String = "NONE",
