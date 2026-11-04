@@ -70,4 +70,27 @@ class QrAlarmHelperTest {
         val deserialized = Json.decodeFromString<AlarmItem>(json)
         assertTrue(deserialized.requireQrCode)
     }
+
+    @Test
+    fun testMandatoryAlarm_WithQrFlag() {
+        val mandatoryItem = AlarmItem(
+            id = "mandatory_qr_1",
+            hour = 9,
+            minute = 0,
+            message = "会議まであと30分です",
+            speakerId = 3,
+            speakerName = "ずんだもん",
+            isEnabled = true,
+            readTasks = false,
+            vibrate = true,
+            repeatDays = emptyList(),
+            isOneShot = true,
+            requireQrCode = true
+        )
+
+        val json = Json.encodeToString(mandatoryItem)
+        val deserialized = Json.decodeFromString<AlarmItem>(json)
+        assertTrue(deserialized.isOneShot)
+        assertTrue(deserialized.requireQrCode)
+    }
 }

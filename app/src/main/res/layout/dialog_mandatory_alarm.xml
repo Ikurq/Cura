@@ -87,6 +87,14 @@
         android:layout_height="48dp"
         android:layout_marginBottom="16dp" />
 
+    <CheckBox
+        android:id="@+id/dialogMandatoryRequireQrCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/alarm_require_qr"
+        android:checked="false"
+        android:layout_marginBottom="16dp" />
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

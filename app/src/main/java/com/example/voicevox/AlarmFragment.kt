@@ -113,6 +113,7 @@ class AlarmFragment : Fragment() {
                     val leadTime = dialogBinding.editLeadTime.text.toString().toIntOrNull() ?: 30
                     val charName = uniqueNames[dialogBinding.spinMandatorySpeaker.selectedItemPosition]
                     
+                    val requireQrCode = dialogBinding.dialogMandatoryRequireQrCheckBox.isChecked
                     val categoryIndex = dialogBinding.spinMandatoryCategory.selectedItemPosition
                     val selectedCategoryId = if (categoryIndex > 0) categories[categoryIndex - 1].id else null
 
@@ -120,7 +121,7 @@ class AlarmFragment : Fragment() {
                     val styleId = model?.characters?.find { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: DEFAULT_STYLE_ID
 
                     checkLicenseAndRun(charName, model?.id ?: "", styleId) { m, s ->
-                        generateMandatoryAlarm(event, leadTime, m, charName, selectedCategoryId)
+                        generateMandatoryAlarm(event, leadTime, m, charName, selectedCategoryId, requireQrCode)
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -133,7 +134,7 @@ class AlarmFragment : Fragment() {
         leadTimeMinutes: Int,
         modelId: String,
         speakerName: String,
-        categoryId: String? = null
+        categoryId: String? = null, requireQrCode: Boolean = false
     ) {
         val alarmCal = Calendar.getInstance().apply {
             timeInMillis = event.startTime
@@ -150,7 +151,7 @@ class AlarmFragment : Fragment() {
             val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
             
             if (CuraVoicevox.createAudio(ctx, message, modelId, outputFile)) {
-                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList(), isOneShot = true)
+                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList(), isOneShot = true, requireQrCode = requireQrCode)
                 alarmList.add(newItem)
                 saveAlarms()
                 scheduleVoiceAlarm(newItem, outputFile.absolutePath)
