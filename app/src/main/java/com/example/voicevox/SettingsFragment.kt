@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONArray
 
 class SettingsFragment : Fragment() {
@@ -42,6 +43,13 @@ class SettingsFragment : Fragment() {
         
         menuPresets.visibility = if (hasPresets) View.VISIBLE else View.GONE
 
+        // パートナー / テーマ着せ替え
+        val currentTheme = CharacterThemeManager.getCurrentTheme(requireContext())
+        view.findViewById<TextView>(R.id.textCurrentPartner)?.text = "現在: ${currentTheme.name} (${currentTheme.archetype})"
+        view.findViewById<View>(R.id.menuCharacterTheme)?.setOnClickListener {
+            showCharacterSelectDialog()
+        }
+
         view.findViewById<View>(R.id.menuPermissions).setOnClickListener {
             navigateTo(SettingsPermissionsFragment())
         }
@@ -68,6 +76,31 @@ class SettingsFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun showCharacterSelectDialog() {
+        val presets = CharacterThemeManager.PRESETS
+        val items = presets.map {
+            val shapeName = when {
+                it.navStyle.bulgeCornerRadiusDp >= 30 -> "正円"
+                it.navStyle.bulgeCornerRadiusDp <= 6 -> "四角形"
+                else -> "角丸タブ"
+            }
+            "${it.name}\n${it.archetype} (ナビ図形: $shapeName)"
+        }.toTypedArray()
+        val currentTheme = CharacterThemeManager.getCurrentTheme(requireContext())
+        val selectedIndex = presets.indexOfFirst { it.id == currentTheme.id }.coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("パートナー / テーマを選択")
+            .setSingleChoiceItems(items, selectedIndex) { dialog, which ->
+                val chosen = presets[which]
+                CharacterThemeManager.setCurrentTheme(requireContext(), chosen.id)
+                dialog.dismiss()
+                activity?.recreate()
+            }
+            .setNegativeButton("キャンセル", null)
+            .show()
     }
 
     private fun navigateTo(fragment: Fragment) {

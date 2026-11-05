@@ -188,8 +188,9 @@ class MainActivity : AppCompatActivity() {
     private fun applyCharacterFontTheme(theme: CharacterTheme) {
         val fontConfig = theme.fontConfig
         val typeface = try {
-            if (fontConfig.customFontRes != null) {
-                androidx.core.content.res.ResourcesCompat.getFont(this, fontConfig.customFontRes)
+            val customRes = fontConfig.customFontRes
+            if (customRes != null) {
+                androidx.core.content.res.ResourcesCompat.getFont(this, customRes)
                     ?: android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
             } else {
                 android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
@@ -207,7 +208,9 @@ class MainActivity : AppCompatActivity() {
         binding.homeContent.nextSummonText.typeface = typeface
         binding.homeContent.charLevelText.typeface = typeface
 
-        binding.welcomeTitle.typeface = typeface
+                binding.welcomeTitle.typeface = typeface
+        binding.welcomeTitle.text = ":: " + theme.name
+        binding.welcomeTitle.setTextColor(android.graphics.Color.parseColor(theme.signatureColorHex))
         binding.hudFlavorText.typeface = typeface
     }
 
@@ -807,6 +810,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCharacterCostume() {
+        val currentTheme = CharacterThemeManager.getCurrentTheme(this)
+        if (currentTheme.id != "cura") {
+            binding.homeContent.characterImage.setImageResource(currentTheme.standingImageRes)
+            return
+        }
         val cal = Calendar.getInstance()
         val month = cal.get(Calendar.MONTH) + 1
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)

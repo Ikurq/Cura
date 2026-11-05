@@ -3,7 +3,7 @@ package com.example.voicevox
 import android.content.Context
 
 /**
- * 選択中キャラクターのテーマ（カラー・アセット・ボトムナビ・フォント）を一括管理するマネージャー。
+ * 選択中キャラクターのテーマ（カラー・アセット・ボトムナビ形状・フォント）を一括管理するマネージャー。
  */
 object CharacterThemeManager {
     private const val PREFS_NAME = "CharacterThemePrefs"
@@ -25,7 +25,7 @@ object CharacterThemeManager {
         CharacterTheme(
             id = "cura",
             name = "キュラ",
-            archetype = "放課後の教室 / スクールマネージャー",
+            archetype = "放課後デスク / スクールマネージャー",
             dialogueAsset = "cura_messages.json",
             standingImageRes = R.drawable.guardian_character,
             iconRes = R.drawable.cura_icon_character,
@@ -36,22 +36,22 @@ object CharacterThemeManager {
             scheduleColorHex = "#34D399",  // ミントグリーン（時間割・予定）
             cornerRadiusDp = 8,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 35,      // キュラは完全な円形
+                bulgeCornerRadiusDp = 35,      // キュラは円形リキッドインジケーター
                 navBackgroundColorHex = "#1E2638", // バーと移動円の統一色
                 activeItemColorHex = "#38BDF8",
                 inactiveItemColorHex = "#64748B"
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
-                systemFontName = "sans-serif-medium", // 読みやすく整った手帳風ゴシック
+                systemFontName = "sans-serif-medium", // 自然体で整った手帳風ゴシック
                 letterSpacing = 0.02f,
                 isBoldHeader = true
             )
         ),
         CharacterTheme(
-            id = "night_archive",
+            id = "shion",
             name = "シオン (構想サンプル)",
-            archetype = "深夜の書斎 / デジタルアーカイブ",
+            archetype = "深夜書斎 / デジタルアーカイブ",
             dialogueAsset = "cura_messages.json",
             standingImageRes = R.drawable.guardian_character_casual,
             iconRes = R.drawable.cura_icon_character,
@@ -63,7 +63,7 @@ object CharacterThemeManager {
             cornerRadiusDp = 4,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 4,       // 硬質・シャープな四角形インジケーター
-                navBackgroundColorHex = "#11221D", // バーと移動円の統一色
+                navBackgroundColorHex = "#11221D", // バーと移動四角形の統一色
                 activeItemColorHex = "#10B981",
                 inactiveItemColorHex = "#475569"
             ),
@@ -72,6 +72,32 @@ object CharacterThemeManager {
                 systemFontName = "monospace", // 冷静で理系的な等幅フォント
                 letterSpacing = 0.04f,
                 isBoldHeader = false
+            )
+        ),
+        CharacterTheme(
+            id = "yuuhi",
+            name = "ユウヒ (構想サンプル)",
+            archetype = "夕焼け部室 / アスリートマネージャー",
+            dialogueAsset = "cura_messages.json",
+            standingImageRes = R.drawable.guardian_character_summer,
+            iconRes = R.drawable.cura_icon_character,
+            gradientStartHex = "#2E1A17",
+            gradientEndHex = "#140D0C",
+            signatureColorHex = "#F97316", // ウォームオレンジ
+            taskColorHex = "#EF4444",      // レッド
+            scheduleColorHex = "#FBBF24",  // イエロー
+            cornerRadiusDp = 12,
+            navStyle = CharacterNavStyle(
+                bulgeCornerRadiusDp = 12,      // タブ・ピル型の角丸インジケーター
+                navBackgroundColorHex = "#291614", // バーとタブの統一色
+                activeItemColorHex = "#F97316",
+                inactiveItemColorHex = "#78350F"
+            ),
+            navIcons = DEFAULT_ICONS,
+            fontConfig = CharacterFontConfig(
+                systemFontName = "casual", // 親しみやすいカジュアルフォント
+                letterSpacing = 0.01f,
+                isBoldHeader = true
             )
         )
     )
