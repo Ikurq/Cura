@@ -36,8 +36,8 @@ object CharacterThemeManager {
             scheduleColorHex = "#34D399",  // ミントグリーン（時間割・予定）
             cornerRadiusDp = 8,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 14,      // 手帳のインデックスタブ風の柔らかい角丸矩形
-                bulgeBackgroundColorHex = "#283548",
+                bulgeCornerRadiusDp = 35,      // キュラは完全な円形
+                navBackgroundColorHex = "#1E2638", // バーと移動円の統一色
                 activeItemColorHex = "#38BDF8",
                 inactiveItemColorHex = "#64748B"
             ),
@@ -63,7 +63,7 @@ object CharacterThemeManager {
             cornerRadiusDp = 4,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 4,       // 硬質・シャープな四角形インジケーター
-                bulgeBackgroundColorHex = "#132E27",
+                navBackgroundColorHex = "#11221D", // バーと移動円の統一色
                 activeItemColorHex = "#10B981",
                 inactiveItemColorHex = "#475569"
             ),

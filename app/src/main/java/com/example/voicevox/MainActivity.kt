@@ -218,8 +218,9 @@ class MainActivity : AppCompatActivity() {
         // 1. インジケーター（バルジ）の角丸と背景色を変更
         binding.navBulgeCircle.radius = navStyle.bulgeCornerRadiusDp * density
         try {
-            val bulgeBgColor = android.graphics.Color.parseColor(navStyle.bulgeBackgroundColorHex)
-            binding.navBulgeCircle.setCardBackgroundColor(bulgeBgColor)
+            val navBgColor = android.graphics.Color.parseColor(navStyle.navBackgroundColorHex)
+            binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
+            binding.navBaseBar.backgroundTintList = android.content.res.ColorStateList.valueOf(navBgColor)
         } catch (e: Exception) {
             // Ignore color parse error
         }

@@ -25,13 +25,14 @@ data class CharacterNavIcons(
 )
 
 /**
- * ボトムナビゲーションの形状、インジケーター形状、カラーを定義するデータクラス
+ * ボトムナビゲーションの形状、インジケーター形状、カラーを定義するデータクラス。
+ * ナビバー本体と背後の移動図形（バルジ）は完全に同一色で統一されます。
  */
 data class CharacterNavStyle(
-    val bulgeCornerRadiusDp: Int,         // インジケーターの角丸 (35dp=円形リキッド, 14dp=手帳インデックスタブ, 4dp=硬質)
-    val bulgeBackgroundColorHex: String,   // インジケーターの背景色
-    val activeItemColorHex: String,        // 選択中アイコン・テキスト色
-    val inactiveItemColorHex: String = "#64748B" // 未選択アイコン・テキスト色
+    val bulgeCornerRadiusDp: Int = 35,             // インジケーターの角丸 (35dp=完全な円形)
+    val navBackgroundColorHex: String = "#1E2638", // ナビバーとインジケーターの統一背景色
+    val activeItemColorHex: String,                // 選択中アイコン・テキスト色
+    val inactiveItemColorHex: String = "#64748B"   // 未選択アイコン・テキスト色
 )
 
 /**
