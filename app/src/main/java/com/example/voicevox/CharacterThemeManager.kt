@@ -3,7 +3,7 @@ package com.example.voicevox
 import android.content.Context
 
 /**
- * 選択中キャラクターのテーマ（カラー・アセット・ボトムナビ形状・アイコン）を一括管理するマネージャー。
+ * 選択中キャラクターのテーマ（カラー・アセット・ボトムナビ・フォント）を一括管理するマネージャー。
  */
 object CharacterThemeManager {
     private const val PREFS_NAME = "CharacterThemePrefs"
@@ -41,7 +41,12 @@ object CharacterThemeManager {
                 activeItemColorHex = "#38BDF8",
                 inactiveItemColorHex = "#64748B"
             ),
-            navIcons = DEFAULT_ICONS
+            navIcons = DEFAULT_ICONS,
+            fontConfig = CharacterFontConfig(
+                systemFontName = "sans-serif-medium", // 読みやすく整った手帳風ゴシック
+                letterSpacing = 0.02f,
+                isBoldHeader = true
+            )
         ),
         CharacterTheme(
             id = "night_archive",
@@ -62,7 +67,12 @@ object CharacterThemeManager {
                 activeItemColorHex = "#10B981",
                 inactiveItemColorHex = "#475569"
             ),
-            navIcons = DEFAULT_ICONS
+            navIcons = DEFAULT_ICONS,
+            fontConfig = CharacterFontConfig(
+                systemFontName = "monospace", // 冷静で理系的な等幅フォント
+                letterSpacing = 0.04f,
+                isBoldHeader = false
+            )
         )
     )
 

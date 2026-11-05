@@ -1,6 +1,17 @@
 package com.example.voicevox
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.FontRes
+
+/**
+ * キャラクター固有のフォント設定を定義するデータクラス
+ */
+data class CharacterFontConfig(
+    val systemFontName: String = "sans-serif", // システムフォント ("sans-serif", "sans-serif-medium", "monospace", "serif", "casual")
+    @get:FontRes val customFontRes: Int? = null, // res/font/xxx.ttf がある場合のカスタムフォントリソース
+    val letterSpacing: Float = 0.02f,           // 文字間隔
+    val isBoldHeader: Boolean = true            // 見出し太字フラグ
+)
 
 /**
  * ナビゲーションバーの各タブアイコンをキャラクターごとに定義するデータクラス
@@ -24,8 +35,8 @@ data class CharacterNavStyle(
 )
 
 /**
- * キャラクター固有のUIテーマ、配色、形状、ビジュアルアセットを定義するデータクラス。
- * 画面の骨格を維持したまま、キャラクターごとにUIとナビゲーションを着せ替える基盤となります。
+ * キャラクター固有のUIテーマ、配色、形状、フォント、ビジュアルアセットを定義するデータクラス。
+ * 画面の骨格を維持したまま、キャラクターごとにUIとナビゲーション、フォントを着せ替える基盤となります。
  */
 data class CharacterTheme(
     val id: String,
@@ -41,5 +52,6 @@ data class CharacterTheme(
     val scheduleColorHex: String,
     val cornerRadiusDp: Int = 8,
     val navStyle: CharacterNavStyle,
-    val navIcons: CharacterNavIcons
+    val navIcons: CharacterNavIcons,
+    val fontConfig: CharacterFontConfig = CharacterFontConfig()
 )

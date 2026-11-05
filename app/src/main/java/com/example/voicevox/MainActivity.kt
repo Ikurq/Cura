@@ -185,6 +185,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyCharacterFontTheme(theme: CharacterTheme) {
+        val fontConfig = theme.fontConfig
+        val typeface = try {
+            if (fontConfig.customFontRes != null) {
+                androidx.core.content.res.ResourcesCompat.getFont(this, fontConfig.customFontRes)
+                    ?: android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
+            } else {
+                android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
+            }
+        } catch (e: Exception) {
+            android.graphics.Typeface.DEFAULT
+        }
+
+        // ホーム画面のテキスト群にフォントと字間を適用
+        binding.homeContent.dialogueText.typeface = typeface
+        binding.homeContent.dialogueText.letterSpacing = fontConfig.letterSpacing
+
+        binding.homeContent.topMissionText.typeface = typeface
+        binding.homeContent.nextQuestText.typeface = typeface
+        binding.homeContent.nextSummonText.typeface = typeface
+        binding.homeContent.charLevelText.typeface = typeface
+
+        binding.welcomeTitle.typeface = typeface
+        binding.hudFlavorText.typeface = typeface
+    }
+
     private fun applyCharacterNavTheme(theme: CharacterTheme) {
         val navStyle = theme.navStyle
         val density = resources.displayMetrics.density
@@ -227,6 +253,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupNavigation() {
         val currentTheme = CharacterThemeManager.getCurrentTheme(this)
         applyCharacterNavTheme(currentTheme)
+        applyCharacterFontTheme(currentTheme)
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             // アニメーション：背後の白い円を移動させる
             animateNavBulge(item.itemId)
