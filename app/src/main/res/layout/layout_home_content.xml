@@ -49,7 +49,7 @@
             style="@style/CyberCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#660F172A"
+            app:cardBackgroundColor="@color/cyber_surface"
             app:strokeColor="@color/cyber_pink">
 
             <LinearLayout
@@ -75,7 +75,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
-                        android:text=":: NEXT_TASK"
+                        android:text=":: TODAY_TASK"
                         android:textColor="@color/cyber_pink"
                         android:textSize="8sp" />
                 </LinearLayout>
@@ -99,7 +99,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:cardBackgroundColor="#660F172A"
+            app:cardBackgroundColor="@color/cyber_surface"
             app:strokeColor="@color/cyber_cyan">
 
             <LinearLayout
@@ -125,7 +125,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
-                        android:text=":: NEXT_SCHEDULE"
+                        android:text=":: TIMETABLE"
                         android:textColor="@color/cyber_cyan"
                         android:textSize="8sp" />
                 </LinearLayout>
@@ -149,7 +149,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:cardBackgroundColor="#660F172A"
+            app:cardBackgroundColor="@color/cyber_surface"
             app:strokeColor="@color/cyber_lime">
 
             <LinearLayout
@@ -175,7 +175,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
-                        android:text=":: NEXT_ALARM"
+                        android:text=":: WAKE_ALARM"
                         android:textColor="@color/cyber_lime"
                         android:textSize="8sp" />
                 </LinearLayout>
@@ -197,7 +197,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            app:cardBackgroundColor="#660F172A"
+            app:cardBackgroundColor="@color/cyber_surface"
             app:strokeColor="@color/cyber_cyan">
 
             <LinearLayout
@@ -253,7 +253,7 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="24dp"
         android:alpha="0.0"
-        app:cardBackgroundColor="#CC0F172A"
+        app:cardBackgroundColor="#E6182030"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:strokeColor="@color/cyber_cyan"

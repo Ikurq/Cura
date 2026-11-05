@@ -3,55 +3,55 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Cyber / Near-Future Palette -->
-    <color name="cyber_cyan">#06B6D4</color>
-    <color name="cyber_cyan_dark">#0891B2</color>
-    <color name="cyber_pink">#F472B6</color>
-    <color name="cyber_pink_dark">#DB2777</color>
-    <color name="cyber_lime">#84CC16</color>
-    <color name="cyber_lime_dark">#65A30D</color>
-    <color name="cyber_border">#1E293B</color>
-    <color name="cyber_surface">#880F172A</color> <!-- More transparent for better Glassmorphism -->
-    <color name="cyber_grid">#111E293B</color>
+    <!-- Afterschool Desk Palette (Stationery & Twilight) -->
+    <color name="cyber_cyan">#38BDF8</color> <!-- Clear Sky Blue / Cura Signature -->
+    <color name="cyber_cyan_dark">#0284C7</color>
+    <color name="cyber_pink">#FB7185</color> <!-- Soft Coral Pink / Task & Homework -->
+    <color name="cyber_pink_dark">#E11D48</color>
+    <color name="cyber_lime">#34D399</color> <!-- Mint Leaf / Timetable & Alarm -->
+    <color name="cyber_lime_dark">#059669</color>
+    <color name="cyber_border">#334155</color> <!-- Crisp Card & Notebook Border -->
+    <color name="cyber_surface">#99182030</color> <!-- Deep Desk Mat Surface with Translucency -->
+    <color name="cyber_grid">#11334155</color>
 
-    <color name="primary">#06B6D4</color> <!-- Changed to Cyber Cyan -->
+    <color name="primary">#38BDF8</color>
     <color name="primary_container">#1E293B</color>
-    <color name="secondary">#64748B</color>
-    <color name="accent">#3B82F6</color>
+    <color name="secondary">#94A3B8</color>
+    <color name="accent">#60A5FA</color>
 
     <!-- Backgrounds -->
-    <color name="background">#020617</color> <!-- Rich Deep Navy Black -->
-    <color name="surface">#0F172A</color>    <!-- Lighter Navy for cards -->
-    <color name="error">#F43F5E</color>
+    <color name="background">#111420</color> <!-- Deep Slate / Quiet Workspace -->
+    <color name="surface">#182030</color>    <!-- Card Surface -->
+    <color name="error">#FB7185</color>
 
     <!-- UI Elements -->
-    <color name="outline">#1E293B</color>
-    <color name="outline_high">#334155</color>
+    <color name="outline">#334155</color>
+    <color name="outline_high">#475569</color>
 
     <!-- Text Colors (High Legibility) -->
-    <color name="text_primary">#F8FAFC</color>   <!-- Near White -->
-    <color name="text_secondary">#94A3B8</color> <!-- Muted Slate -->
-    <color name="text_tertiary">#475569</color>
+    <color name="text_primary">#F8FAFC</color>   <!-- Crisp White -->
+    <color name="text_secondary">#94A3B8</color> <!-- Slate Gray -->
+    <color name="text_tertiary">#64748B</color>
 
     <!-- Day Selection -->
     <color name="day_unselected">#1E293B</color>
-    <color name="day_selected">#3B82F6</color>
+    <color name="day_selected">#38BDF8</color>
 
-    <color name="colorPrimary">#3B82F6</color>
+    <color name="colorPrimary">#38BDF8</color>
     <color name="colorOnPrimary">#FFFFFF</color>
 
-    <!-- Priority Colors (Vibrant on Dark) -->
-    <color name="priority_5">#F43F5E</color>
+    <!-- Priority Colors -->
+    <color name="priority_5">#FB7185</color>
     <color name="priority_4">#FBBF24</color>
-    <color name="priority_3">#3B82F6</color>
-    <color name="priority_2">#10B981</color>
-    <color name="priority_1">#475569</color>
+    <color name="priority_3">#38BDF8</color>
+    <color name="priority_2">#34D399</color>
+    <color name="priority_1">#64748B</color>
 
-    <!-- Social Game Style Colors -->
-    <color name="hp_bar">#10B981</color> <!-- Green -->
-    <color name="mp_bar">#3B82F6</color> <!-- Blue -->
-    <color name="exp_bar">#FBBF24</color> <!-- Yellow/Gold -->
-    <color name="rank_label">#F43F5E</color> <!-- Pink/Red -->
-    <color name="button_quest">#FF8C00</color> <!-- Orange -->
-    <color name="button_gacha">#9370DB</color> <!-- Purple -->
+    <!-- Status & EXP Colors -->
+    <color name="hp_bar">#34D399</color>
+    <color name="mp_bar">#38BDF8</color>
+    <color name="exp_bar">#FBBF24</color>
+    <color name="rank_label">#FB7185</color>
+    <color name="button_quest">#F59E0B</color>
+    <color name="button_gacha">#A78BFA</color>
 </resources>
