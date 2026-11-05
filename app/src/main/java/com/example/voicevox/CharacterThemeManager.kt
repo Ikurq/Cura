@@ -3,12 +3,20 @@ package com.example.voicevox
 import android.content.Context
 
 /**
- * 選択中キャラクターのテーマ（カラー・アセット）を一括管理するマネージャー。
- * 今後新キャラクターを追加する際は、PRESETS に定義を追加することで対応可能です。
+ * 選択中キャラクターのテーマ（カラー・アセット・ボトムナビ形状・アイコン）を一括管理するマネージャー。
  */
 object CharacterThemeManager {
     private const val PREFS_NAME = "CharacterThemePrefs"
     private const val KEY_SELECTED_CHARACTER_ID = "selected_character_id"
+
+    // 共通デフォルトアイコンセット
+    private val DEFAULT_ICONS = CharacterNavIcons(
+        homeIconRes = R.drawable.ic_tech_home,
+        alarmIconRes = R.drawable.ic_tech_alarm,
+        taskIconRes = R.drawable.ic_tech_task,
+        timetableIconRes = R.drawable.ic_tech_schedule,
+        attendanceIconRes = R.drawable.ic_tech_attendance
+    )
 
     /**
      * 登録済みキャラクターテーマのプリセット一覧
@@ -26,7 +34,14 @@ object CharacterThemeManager {
             signatureColorHex = "#38BDF8", // スカイブルー（キュラ固有色）
             taskColorHex = "#FB7185",      // コーラルピンク（宿題・タスク）
             scheduleColorHex = "#34D399",  // ミントグリーン（時間割・予定）
-            cornerRadiusDp = 8
+            cornerRadiusDp = 8,
+            navStyle = CharacterNavStyle(
+                bulgeCornerRadiusDp = 14,      // 手帳のインデックスタブ風の柔らかい角丸矩形
+                bulgeBackgroundColorHex = "#283548",
+                activeItemColorHex = "#38BDF8",
+                inactiveItemColorHex = "#64748B"
+            ),
+            navIcons = DEFAULT_ICONS
         ),
         CharacterTheme(
             id = "night_archive",
@@ -38,9 +53,16 @@ object CharacterThemeManager {
             gradientStartHex = "#0F172A",
             gradientEndHex = "#020617",
             signatureColorHex = "#10B981", // エメラルド（理系・分析色）
-            taskColorHex = "#F59E0B",      // アンバー（重要度別タスク）
-            scheduleColorHex = "#06B6D4",  // シアン（ログ照合）
-            cornerRadiusDp = 4
+            taskColorHex = "#F59E0B",      // アンバー
+            scheduleColorHex = "#06B6D4",  // シアン
+            cornerRadiusDp = 4,
+            navStyle = CharacterNavStyle(
+                bulgeCornerRadiusDp = 4,       // 硬質・シャープな四角形インジケーター
+                bulgeBackgroundColorHex = "#132E27",
+                activeItemColorHex = "#10B981",
+                inactiveItemColorHex = "#475569"
+            ),
+            navIcons = DEFAULT_ICONS
         )
     )
 

@@ -185,7 +185,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyCharacterNavTheme(theme: CharacterTheme) {
+        val navStyle = theme.navStyle
+        val density = resources.displayMetrics.density
+
+        // 1. インジケーター（バルジ）の角丸と背景色を変更
+        binding.navBulgeCircle.radius = navStyle.bulgeCornerRadiusDp * density
+        try {
+            val bulgeBgColor = android.graphics.Color.parseColor(navStyle.bulgeBackgroundColorHex)
+            binding.navBulgeCircle.setCardBackgroundColor(bulgeBgColor)
+        } catch (e: Exception) {
+            // Ignore color parse error
+        }
+
+        // 2. ボトムナビのアイコン・文字の選択状態カラーを変更
+        try {
+            val activeColor = android.graphics.Color.parseColor(navStyle.activeItemColorHex)
+            val inactiveColor = android.graphics.Color.parseColor(navStyle.inactiveItemColorHex)
+            val colorStates = android.content.res.ColorStateList(
+                arrayOf(
+                    intArrayOf(android.R.attr.state_checked),
+                    intArrayOf(-android.R.attr.state_checked)
+                ),
+                intArrayOf(activeColor, inactiveColor)
+            )
+            binding.bottomNavigation.itemIconTintList = colorStates
+            binding.bottomNavigation.itemTextColor = colorStates
+        } catch (e: Exception) {
+            // Ignore fallback
+        }
+
+        // 3. アイコンの適用
+        val menu = binding.bottomNavigation.menu
+        menu.findItem(R.id.nav_home)?.setIcon(theme.navIcons.homeIconRes)
+        menu.findItem(R.id.nav_alarm)?.setIcon(theme.navIcons.alarmIconRes)
+        menu.findItem(R.id.nav_tasks)?.setIcon(theme.navIcons.taskIconRes)
+        menu.findItem(R.id.nav_timetable)?.setIcon(theme.navIcons.timetableIconRes)
+        menu.findItem(R.id.nav_attendance)?.setIcon(theme.navIcons.attendanceIconRes)
+    }
+
     private fun setupNavigation() {
+        val currentTheme = CharacterThemeManager.getCurrentTheme(this)
+        applyCharacterNavTheme(currentTheme)
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             // アニメーション：背後の白い円を移動させる
             animateNavBulge(item.itemId)
