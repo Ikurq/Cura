@@ -63,7 +63,7 @@ object CharacterThemeManager {
             scheduleColorHex = "#38BDF8",   // 明るめのシアン（TIMETABLE）
             cornerRadiusDp = 10,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 12,      // 角丸タブ形状（12dp）
+                bulgeCornerRadiusDp = 35,      // 円形インジケーター
                 navBackgroundColorHex = "#231826", // プラム系サーフェス
                 activeItemColorHex = "#D6B66E", // アンティークゴールド（選択中）
                 inactiveItemColorHex = "#B09EAA" // コントラストを確保した明るいプラムグレー（非選択）
@@ -90,12 +90,10 @@ object CharacterThemeManager {
             scheduleColorHex = "#38BDF8",   // シアン
             cornerRadiusDp = 16,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 0,
+                bulgeCornerRadiusDp = 35,
                 navBackgroundColorHex = "#262327",
                 activeItemColorHex = "#F59E0B",
-                inactiveItemColorHex = "#9CA3AF",
-                bulgeShape = "triangle",       // 30度傾けた三角形
-                bulgeRotationDeg = 30f         // 30度傾き
+                inactiveItemColorHex = "#9CA3AF"
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -120,7 +118,7 @@ object CharacterThemeManager {
             scheduleColorHex = "#06B6D4",  // シアン
             cornerRadiusDp = 4,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 4,       // 硬質・シャープな四角形インジケーター
+                bulgeCornerRadiusDp = 35,
                 navBackgroundColorHex = "#11221D", // バーと移動四角形の統一色
                 activeItemColorHex = "#10B981",
                 inactiveItemColorHex = "#475569"

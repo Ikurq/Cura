@@ -81,12 +81,7 @@ class SettingsFragment : Fragment() {
     private fun showCharacterSelectDialog() {
         val presets = CharacterThemeManager.PRESETS
         val items = presets.map {
-            val shapeName = when {
-                it.navStyle.bulgeCornerRadiusDp >= 30 -> "正円"
-                it.navStyle.bulgeCornerRadiusDp <= 6 -> "四角形"
-                else -> "角丸タブ"
-            }
-            "${it.name}\n${it.archetype} (ナビ図形: $shapeName)"
+            "${it.name}\n${it.archetype}"
         }.toTypedArray()
         val currentTheme = CharacterThemeManager.getCurrentTheme(requireContext())
         val selectedIndex = presets.indexOfFirst { it.id == currentTheme.id }.coerceAtLeast(0)

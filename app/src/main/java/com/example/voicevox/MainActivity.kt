@@ -282,21 +282,12 @@ class MainActivity : AppCompatActivity() {
         val navStyle = theme.navStyle
         val density = resources.displayMetrics.density
 
-        // 1. インジケーター（バルジ）の形状、回転、背景色を変更
+        // 1. インジケーター（バルジ）とナビバーの背景色・正円形状を適用
         try {
             val navBgColor = android.graphics.Color.parseColor(navStyle.navBackgroundColorHex)
-            if (navStyle.bulgeShape == "triangle") {
-                binding.navBulgeCircle.radius = 0f
-                binding.navBulgeCircle.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
-                binding.navBulgeCustomShape.visibility = android.view.View.VISIBLE
-                binding.navBulgeCustomShape.setImageResource(R.drawable.ic_nav_bulge_triangle)
-                binding.navBulgeCustomShape.imageTintList = null // ベクター自身の塗り色とアンバー輪郭線を鮮明に描画
-                binding.navBulgeCustomShape.rotation = navStyle.bulgeRotationDeg
-            } else {
-                binding.navBulgeCustomShape.visibility = android.view.View.GONE
-                binding.navBulgeCircle.radius = navStyle.bulgeCornerRadiusDp * density
-                binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
-            }
+            binding.navBulgeCustomShape.visibility = android.view.View.GONE
+            binding.navBulgeCircle.radius = 35f * density // 常に美しい正円固定
+            binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
             binding.navBaseBar.backgroundTintList = android.content.res.ColorStateList.valueOf(navBgColor)
         } catch (e: Exception) {
             // Ignore color parse error
