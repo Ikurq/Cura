@@ -37,9 +37,11 @@ object CharacterThemeManager {
             cornerRadiusDp = 8,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 35,      // キュラは円形リキッドインジケーター
-                navBackgroundColorHex = "#1E2638", // バーと移動円の統一色
+                navBackgroundColorHex = "#26354D", // 背景から浮き上がるスレートネイビー
                 activeItemColorHex = "#38BDF8",
-                inactiveItemColorHex = "#64748B"
+                inactiveItemColorHex = "#7E90A8",
+                strokeColorHex = "#38BDF8",
+                strokeWidthDp = 1.5f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -64,9 +66,11 @@ object CharacterThemeManager {
             cornerRadiusDp = 10,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 35,      // 円形インジケーター
-                navBackgroundColorHex = "#231826", // プラム系サーフェス
+                navBackgroundColorHex = "#38263E", // 背景（#19121C）から浮き上がるロイヤルプラム
                 activeItemColorHex = "#D6B66E", // アンティークゴールド（選択中）
-                inactiveItemColorHex = "#B09EAA" // コントラストを確保した明るいプラムグレー（非選択）
+                inactiveItemColorHex = "#BCAAB8", // 明るいプラムグレー（非選択）
+                strokeColorHex = "#D6B66E",
+                strokeWidthDp = 1.5f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -91,9 +95,11 @@ object CharacterThemeManager {
             cornerRadiusDp = 16,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 35,
-                navBackgroundColorHex = "#262327",
+                navBackgroundColorHex = "#3A353C", // 背景（#1C1A1D）から浮き上がるチャコール
                 activeItemColorHex = "#F59E0B",
-                inactiveItemColorHex = "#9CA3AF"
+                inactiveItemColorHex = "#A8ACB5",
+                strokeColorHex = "#F59E0B",
+                strokeWidthDp = 1.5f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -119,9 +125,11 @@ object CharacterThemeManager {
             cornerRadiusDp = 4,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 35,
-                navBackgroundColorHex = "#11221D", // バーと移動四角形の統一色
+                navBackgroundColorHex = "#1D3B32", // 背景（#020617）から浮き上がるエメラルド
                 activeItemColorHex = "#10B981",
-                inactiveItemColorHex = "#475569"
+                inactiveItemColorHex = "#64748B",
+                strokeColorHex = "#10B981",
+                strokeWidthDp = 1.5f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(

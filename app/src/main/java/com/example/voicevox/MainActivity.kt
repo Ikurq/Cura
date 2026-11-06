@@ -282,13 +282,29 @@ class MainActivity : AppCompatActivity() {
         val navStyle = theme.navStyle
         val density = resources.displayMetrics.density
 
-        // 1. インジケーター（バルジ）とナビバーの背景色・正円形状を適用
+        // 1. インジケーター（バルジ）とナビバーの背景色・正円形状・境界線・シャドウを適用
         try {
             val navBgColor = android.graphics.Color.parseColor(navStyle.navBackgroundColorHex)
+            val strokeColor = android.graphics.Color.parseColor(navStyle.strokeColorHex ?: navStyle.activeItemColorHex)
+            val strokeWidthPx = (navStyle.strokeWidthDp * density).toInt()
+
             binding.navBulgeCustomShape.visibility = android.view.View.GONE
             binding.navBulgeCircle.radius = 35f * density // 常に美しい正円固定
             binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
+            binding.navBulgeCircle.strokeColor = strokeColor
+            binding.navBulgeCircle.strokeWidth = strokeWidthPx
+            binding.navBulgeCircle.cardElevation = 6f * density
+
+            // Android P (API 28) 以上のカラーシャドウ対応（アクセントカラーのほのかなグロー光彩）
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                binding.navBulgeCircle.outlineSpotShadowColor = strokeColor
+                binding.navBulgeCircle.outlineAmbientShadowColor = strokeColor
+                binding.navBaseBar.outlineSpotShadowColor = strokeColor
+                binding.navBaseBar.outlineAmbientShadowColor = strokeColor
+            }
+
             binding.navBaseBar.backgroundTintList = android.content.res.ColorStateList.valueOf(navBgColor)
+            binding.navBaseBar.elevation = 8f * density
         } catch (e: Exception) {
             // Ignore color parse error
         }

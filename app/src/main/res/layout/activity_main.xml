@@ -142,9 +142,9 @@
                 android:layout_marginBottom="65dp"
                 app:cardBackgroundColor="@color/primary_container"
                 app:cardCornerRadius="35dp"
-                app:cardElevation="0dp"
-                android:elevation="0dp"
-                app:strokeWidth="0dp">
+                app:cardElevation="6dp"
+                android:elevation="6dp"
+                app:strokeWidth="1.5dp">
 
                 <ImageView
                     android:id="@+id/navBulgeCustomShape"
@@ -162,7 +162,7 @@
                 android:layout_gravity="bottom"
                 android:layout_marginBottom="30dp"
                 android:background="@drawable/bg_nav_primary_base"
-                android:elevation="0dp" />
+                android:elevation="8dp" />
 
             <!-- Layer 3 (Top): Invisible Navigation Logic / Icons -->
             <!-- Balanced padding to prevent both top and bottom clipping -->

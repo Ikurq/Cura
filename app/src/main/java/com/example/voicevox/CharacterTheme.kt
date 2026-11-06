@@ -28,12 +28,15 @@ data class CharacterNavIcons(
 /**
  * ボトムナビゲーションのカラーおよびスタイルを定義するデータクラス。
  * 移動図形（バルジ）は全キャラクター共通で美しい正円（サークル）に固定されます。
+ * ダークUIでの視認性向上のため、ストローク（輪郭線）および発光シャドウをサポートします。
  */
 data class CharacterNavStyle(
-    val navBackgroundColorHex: String = "#1E2638", // ナビバーと移動円の統一背景色
+    val navBackgroundColorHex: String = "#2A364F", // ナビバーと移動円のサーフェス色
     val activeItemColorHex: String,                // 選択中アイコン・テキスト色
     val inactiveItemColorHex: String = "#64748B",  // 未選択アイコン・テキスト色
-    val bulgeCornerRadiusDp: Int = 35              // インジケーターの角丸（正円: 35dp）
+    val bulgeCornerRadiusDp: Int = 35,             // インジケーターの角丸（正円: 35dp）
+    val strokeColorHex: String? = null,            // 移動円の境界線色（未指定時は activeItemColorHex を使用）
+    val strokeWidthDp: Float = 1.5f                // 移動円の境界線幅
 )
 
 /**
