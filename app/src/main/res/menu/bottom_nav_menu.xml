@@ -3,21 +3,21 @@
     <item
         android:id="@+id/nav_home"
         android:icon="@drawable/ic_tech_home"
-        android:title="ホーム" />
+        android:title="HOME" />
     <item
         android:id="@+id/nav_alarm"
         android:icon="@drawable/ic_tech_alarm"
-        android:title="アラーム" />
+        android:title="ALARM" />
     <item
         android:id="@+id/nav_tasks"
         android:icon="@drawable/ic_tech_task"
-        android:title="タスク" />
+        android:title="TASK" />
     <item
         android:id="@+id/nav_timetable"
         android:icon="@drawable/ic_tech_schedule"
-        android:title="予定" />
+        android:title="SCHEDULE" />
     <item
         android:id="@+id/nav_attendance"
         android:icon="@drawable/ic_tech_attendance"
-        android:title="出欠" />
+        android:title="ATTEND" />
 </menu>

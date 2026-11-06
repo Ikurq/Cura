@@ -107,9 +107,9 @@
     <string name="title_task_core">TASK_CORE</string>
     <string name="title_schedule_map">SCHEDULE_MAP</string>
     <string name="title_attendance_link">ATTENDANCE_LINK</string>
-    <string name="dashboard_no_schedule">本日の予定は終了しました</string>
-    <string name="dashboard_all_tasks_done">すべてのタスクをクリア</string>
-    <string name="dashboard_not_set">未設定</string>
+    <string name="dashboard_no_schedule">NO UPCOMING SCHEDULE</string>
+    <string name="dashboard_all_tasks_done">ALL MISSIONS CLEARED</string>
+    <string name="dashboard_not_set">STANDBY</string>
     <string name="generating_audio">音声を生成中...</string>
     <string name="generating_alarm_audio">アラーム音声を生成中...</string>
     <string name="all_day_event">終日</string>

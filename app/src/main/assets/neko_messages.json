@@ -1,15 +1,15 @@
-﻿{
+{
   "system_logs": [
     "NEKO: SLEEPING... OK.",
-    "ねこがキーボードの上を通り過ぎた。",
-    "ねこは窓の外の鳥を見ている。",
-    "ねこがあくびをした。ふぁーあ。",
-    "ねこが机の端で丸くなっている。",
-    "ねこがしっぽをパタパタ振っている。",
-    "ねこは毛づくろいに忙しい。",
-    "ねこがじっとこちらを見ている。",
-    "にゃーん",
-    "STATUS: ねこは自由に行動している。"
+    "Neko walked casually across the mechanical keyboard.",
+    "Neko is staring at the birds outside the window.",
+    "Neko gave a big yawn. *yaaaawn*",
+    "Neko is curled up peacefully at the edge of the desk.",
+    "Neko is swishing its tail back and forth lazily.",
+    "Neko is busy grooming its soft paws.",
+    "Neko is gazing intently in your direction.",
+    "MEOW. (Awaiting nothing in particular)",
+    "STATUS: Free-spirited feline behavior detected."
   ],
   "boot_logs": [
     "NEKO SYSTEM...",

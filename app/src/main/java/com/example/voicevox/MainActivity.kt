@@ -250,8 +250,8 @@ class MainActivity : AppCompatActivity() {
             val cornerRadius = theme.cornerRadiusDp * density
 
             binding.welcomeTitle.setTextColor(signatureColor)
-            binding.welcomeTitle.text = ":: " + theme.name
-            binding.homeContent.dialogueSpeakerLabel.text = ":: " + theme.name.uppercase()
+            binding.welcomeTitle.text = "${theme.id.uppercase()}_SYSTEM: ACTIVE"
+            binding.homeContent.dialogueSpeakerLabel.text = ":: ${theme.id.uppercase()}"
             binding.homeContent.dialogueSpeakerLabel.setTextColor(signatureColor)
 
             // TODAY TASK: 明るめのローズピンク
@@ -482,7 +482,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         val (lv, current, required) = calculateLevelInfo(charTotalExp)
-        binding.homeContent.charLevelText.text = "CURA Lv.$lv"
+        val theme = CharacterThemeManager.getCurrentTheme(this)
+        binding.homeContent.charLevelText.text = "${theme.id.uppercase()} Lv.$lv"
         binding.homeContent.charExpProgressBar.max = required.toInt()
         
         if (animate) {
@@ -746,7 +747,9 @@ class MainActivity : AppCompatActivity() {
             "NEW LOG ENTRY DETECTED"
         )
         
-        val randomLine = flavorLines.random()
+        val charLogs = CuraMessageManager.getSystemLogs(this).filter { it.isNotBlank() }
+        val pool = if (charLogs.isNotEmpty()) charLogs else flavorLines
+        val randomLine = pool.random()
         val hudText = binding.hudFlavorText
         
         // コルーチンでグリッチ演出を実行
@@ -777,14 +780,14 @@ class MainActivity : AppCompatActivity() {
         binding.homeContent.nextQuestText.text = nextEvent?.let {
             val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it.startTime))
             "$time ${it.summary}"
-        } ?: "本日の予定は終了しました"
+        } ?: getString(R.string.dashboard_no_schedule)
 
         val tasks = ScheduleLoader.loadTasksForToday(this)
-        binding.homeContent.topMissionText.text = if (tasks.isNotEmpty()) tasks[0] else "すべてのタスクをクリア！"
+        binding.homeContent.topMissionText.text = if (tasks.isNotEmpty()) tasks[0] else getString(R.string.dashboard_all_tasks_done)
 
         val alarmPrefs = getSharedPreferences(CuraConstants.PREFS_ALARM, MODE_PRIVATE)
         val alarmJson = alarmPrefs.getString(CuraConstants.KEY_ALARM_LIST, null)
-        var nextAlarmStr = "未設定です"
+        var nextAlarmStr = getString(R.string.dashboard_not_set)
         if (alarmJson != null) {
             try {
                 val activeAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson).filter { it.isEnabled }
