@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         updateDashboardInfo()
         ScheduleEventHelper.performAutoMigration(this)
         updateAttendanceButtonVisibility()
-        updateCharacterCostume()
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
 
         // アニメーション適用
         setupCyberAnimations()
@@ -187,31 +187,83 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyCharacterFontTheme(theme: CharacterTheme) {
         val fontConfig = theme.fontConfig
-        val typeface = try {
+        val headerTypeface = try {
             val customRes = fontConfig.customFontRes
             if (customRes != null) {
                 androidx.core.content.res.ResourcesCompat.getFont(this, customRes)
-                    ?: android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
+                    ?: android.graphics.Typeface.create(fontConfig.headerFontName, if (fontConfig.isBoldHeader) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             } else {
-                android.graphics.Typeface.create(fontConfig.systemFontName, android.graphics.Typeface.NORMAL)
+                android.graphics.Typeface.create(fontConfig.headerFontName, if (fontConfig.isBoldHeader) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             }
+        } catch (e: Exception) {
+            android.graphics.Typeface.DEFAULT_BOLD
+        }
+
+        val bodyTypeface = try {
+            android.graphics.Typeface.create(fontConfig.bodyFontName, android.graphics.Typeface.NORMAL)
         } catch (e: Exception) {
             android.graphics.Typeface.DEFAULT
         }
 
-        // ホーム画面のテキスト群にフォントと字間を適用
-        binding.homeContent.dialogueText.typeface = typeface
+        // キャラクター名・見出し・セリフ等にヘッダー書体を適用
+        binding.welcomeTitle.typeface = headerTypeface
+        binding.hudFlavorText.typeface = headerTypeface
+        binding.homeContent.dialogueText.typeface = headerTypeface
         binding.homeContent.dialogueText.letterSpacing = fontConfig.letterSpacing
 
-        binding.homeContent.topMissionText.typeface = typeface
-        binding.homeContent.nextQuestText.typeface = typeface
-        binding.homeContent.nextSummonText.typeface = typeface
-        binding.homeContent.charLevelText.typeface = typeface
+        // 基本UI・カード内テキスト等にボディ書体を適用
+        binding.homeContent.topMissionText.typeface = bodyTypeface
+        binding.homeContent.nextQuestText.typeface = bodyTypeface
+        binding.homeContent.nextSummonText.typeface = bodyTypeface
+        binding.homeContent.charLevelText.typeface = bodyTypeface
+        binding.homeContent.charExpText.typeface = bodyTypeface
+    }
 
-                binding.welcomeTitle.typeface = typeface
-        binding.welcomeTitle.text = ":: " + theme.name
-        binding.welcomeTitle.setTextColor(android.graphics.Color.parseColor(theme.signatureColorHex))
-        binding.hudFlavorText.typeface = typeface
+    private fun applyCharacterVisualTheme(theme: CharacterTheme) {
+        val density = resources.displayMetrics.density
+
+        // 1. 全体背景グラデーションの適用
+        try {
+            val startColor = android.graphics.Color.parseColor(theme.gradientStartHex)
+            val endColor = android.graphics.Color.parseColor(theme.gradientEndHex)
+            val gradientDrawable = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(startColor, endColor)
+            )
+            binding.mainRootLayout.background = gradientDrawable
+        } catch (e: Exception) {
+            // Ignore color parse error
+        }
+
+        // 2. カードの枠線カラーと角丸の適用
+        try {
+            val signatureColor = android.graphics.Color.parseColor(theme.signatureColorHex)
+            val taskColor = android.graphics.Color.parseColor(theme.taskColorHex)
+            val scheduleColor = android.graphics.Color.parseColor(theme.scheduleColorHex)
+            val cornerRadius = theme.cornerRadiusDp * density
+
+            binding.welcomeTitle.setTextColor(signatureColor)
+            binding.welcomeTitle.text = ":: " + theme.name
+            binding.homeContent.dialogueSpeakerLabel.text = ":: " + theme.name.uppercase()
+            binding.homeContent.dialogueSpeakerLabel.setTextColor(signatureColor)
+
+            binding.homeContent.panelTasks.strokeColor = taskColor
+            binding.homeContent.panelTasks.radius = cornerRadius
+
+            binding.homeContent.panelSchedule.strokeColor = scheduleColor
+            binding.homeContent.panelSchedule.radius = cornerRadius
+
+            binding.homeContent.panelAlarm.strokeColor = scheduleColor
+            binding.homeContent.panelAlarm.radius = cornerRadius
+
+            binding.homeContent.charGrowthLayout.strokeColor = signatureColor
+            binding.homeContent.charGrowthLayout.radius = cornerRadius
+
+            binding.homeContent.dialogueBubble.strokeColor = signatureColor
+            binding.homeContent.dialogueBubble.radius = cornerRadius
+        } catch (e: Exception) {
+            // Ignore color parse error
+        }
     }
 
     private fun applyCharacterNavTheme(theme: CharacterTheme) {
@@ -254,10 +306,16 @@ class MainActivity : AppCompatActivity() {
         menu.findItem(R.id.nav_attendance)?.setIcon(theme.navIcons.attendanceIconRes)
     }
 
+    private fun applyCharacterTheme(theme: CharacterTheme) {
+        applyCharacterNavTheme(theme)
+        applyCharacterFontTheme(theme)
+        applyCharacterVisualTheme(theme)
+        updateCharacterCostume()
+    }
+
     private fun setupNavigation() {
         val currentTheme = CharacterThemeManager.getCurrentTheme(this)
-        applyCharacterNavTheme(currentTheme)
-        applyCharacterFontTheme(currentTheme)
+        applyCharacterTheme(currentTheme)
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             // アニメーション：背後の白い円を移動させる
             animateNavBulge(item.itemId)
@@ -738,6 +796,7 @@ class MainActivity : AppCompatActivity() {
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
         checkPendingExp() // ホームに戻った瞬間にもチェック
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) supportFragmentManager.beginTransaction().remove(fragment).commit()
@@ -759,7 +818,7 @@ class MainActivity : AppCompatActivity() {
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
-        updateCharacterCostume()
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
         
         // ホーム画面が表示されている場合のみ、未読の褒め言葉や挨拶をチェック
         if (binding.launcherLayout.isVisible) {

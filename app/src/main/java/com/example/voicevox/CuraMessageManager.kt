@@ -5,16 +5,27 @@ import org.json.JSONObject
 import java.util.Calendar
 
 /**
- * キュラのセリフやシステムメッセージ、定数（マジックナンバー）を一括管理するクラス
+ * 選択中キャラクターのセリフやシステムメッセージ、定数を動的に一括管理するクラス
  */
 object CuraMessageManager {
     private var data: JSONObject? = null
+    private var currentLoadedAsset: String? = null
 
     private fun loadData(context: Context): JSONObject {
-        data?.let { return it }
-        val jsonString = context.assets.open("cura_messages.json").bufferedReader().use { it.readText() }
+        val currentAsset = try {
+            CharacterThemeManager.getCurrentTheme(context).dialogueAsset
+        } catch (e: Exception) {
+            "cura_messages.json"
+        }
+
+        if (data != null && currentLoadedAsset == currentAsset) {
+            return data!!
+        }
+
+        val jsonString = context.assets.open(currentAsset).bufferedReader().use { it.readText() }
         val json = JSONObject(jsonString)
         data = json
+        currentLoadedAsset = currentAsset
         return json
     }
 
@@ -77,7 +88,7 @@ object CuraMessageManager {
                 return lines.getString((0 until lines.length()).random())
             }
         }
-        return "システム稼働中。本日もよろしくお願いします。"
+        return "本日もよろしくお願いいたします。"
     }
 
     fun getRandomDayOfWeekLine(context: Context): String? {
@@ -100,16 +111,29 @@ object CuraMessageManager {
     // --- 状況別セリフ ---
     fun getSituationalLine(context: Context, key: String): String {
         val situational = loadData(context).getJSONObject("situational_lines")
-        val obj = situational.get(key)
-        return if (obj is org.json.JSONArray) {
-            obj.getString((0 until obj.length()).random())
+        val value = situational.get(key)
+        return if (value is org.json.JSONArray) {
+            (0 until value.length()).map { value.getString(it) }.random()
         } else {
-            obj.toString()
+            value.toString()
         }
+    }
+
+    fun getNextEventReminder(context: Context, startTime: String, title: String): String {
+        val format = loadData(context).getJSONObject("situational_lines").getString("next_event_reminder")
+        return String.format(format, startTime, title)
     }
 
     // --- マジックナンバー ---
     fun getIntConstant(context: Context, key: String, defaultValue: Int): Int {
         return loadData(context).getJSONObject("magic_numbers").optInt(key, defaultValue)
+    }
+
+    fun getExpPerLevel(context: Context): Int {
+        return loadData(context).getJSONObject("magic_numbers").getInt("exp_per_level")
+    }
+
+    fun getMemoryUnlockTapCount(context: Context): Long {
+        return loadData(context).getJSONObject("magic_numbers").getLong("memory_unlock_tap_count")
     }
 }

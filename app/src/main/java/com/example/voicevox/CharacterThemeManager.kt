@@ -43,8 +43,36 @@ object CharacterThemeManager {
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
-                systemFontName = "sans-serif-medium", // 自然体で整った手帳風ゴシック
+                bodyFontName = "sans-serif",
+                headerFontName = "sans-serif-medium",
                 letterSpacing = 0.02f,
+                isBoldHeader = true
+            )
+        ),
+        CharacterTheme(
+            id = "charlotte",
+            name = "シャルロット",
+            archetype = "ヴェルティエの書庫 / アンティークデスク",
+            dialogueAsset = "charlotte_messages.json",
+            standingImageRes = R.drawable.character_charlotte,
+            iconRes = R.drawable.icon_charlotte,
+            gradientStartHex = "#1C0F13",   // 上部: 深いワインブラック
+            gradientEndHex = "#0D0608",     // 下部: ナイトブラック
+            signatureColorHex = "#641F38",  // ボルドー（シャルロットシンボル色）
+            taskColorHex = "#A84A62",       // 落ち着いたローズ（タスク）
+            scheduleColorHex = "#D6B66E",   // アンティークゴールド（時間割・予定）
+            cornerRadiusDp = 10,
+            navStyle = CharacterNavStyle(
+                bulgeCornerRadiusDp = 12,      // 角丸タブ形状（12dp）
+                navBackgroundColorHex = "#1E1015", // ボルドー系のシックな統一サーフェス
+                activeItemColorHex = "#D6B66E", // アンティークゴールド
+                inactiveItemColorHex = "#7A4A58"
+            ),
+            navIcons = DEFAULT_ICONS,
+            fontConfig = CharacterFontConfig(
+                bodyFontName = "sans-serif", // 基本UI: ゴシック
+                headerFontName = "serif",    // 名前・見出し・セリフ: 明朝体（serif）
+                letterSpacing = 0.03f,
                 isBoldHeader = true
             )
         ),
@@ -69,35 +97,10 @@ object CharacterThemeManager {
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
-                systemFontName = "monospace", // 冷静で理系的な等幅フォント
+                bodyFontName = "monospace",
+                headerFontName = "monospace",
                 letterSpacing = 0.04f,
                 isBoldHeader = false
-            )
-        ),
-        CharacterTheme(
-            id = "yuuhi",
-            name = "ユウヒ (構想サンプル)",
-            archetype = "夕焼け部室 / アスリートマネージャー",
-            dialogueAsset = "cura_messages.json",
-            standingImageRes = R.drawable.guardian_character_summer,
-            iconRes = R.drawable.cura_icon_character,
-            gradientStartHex = "#2E1A17",
-            gradientEndHex = "#140D0C",
-            signatureColorHex = "#F97316", // ウォームオレンジ
-            taskColorHex = "#EF4444",      // レッド
-            scheduleColorHex = "#FBBF24",  // イエロー
-            cornerRadiusDp = 12,
-            navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 12,      // タブ・ピル型の角丸インジケーター
-                navBackgroundColorHex = "#291614", // バーとタブの統一色
-                activeItemColorHex = "#F97316",
-                inactiveItemColorHex = "#78350F"
-            ),
-            navIcons = DEFAULT_ICONS,
-            fontConfig = CharacterFontConfig(
-                systemFontName = "casual", // 親しみやすいカジュアルフォント
-                letterSpacing = 0.01f,
-                isBoldHeader = true
             )
         )
     )

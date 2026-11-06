@@ -266,6 +266,7 @@
             android:padding="10dp">
 
             <TextView
+                android:id="@+id/dialogueSpeakerLabel"
                 style="@style/CyberTypography.Label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
