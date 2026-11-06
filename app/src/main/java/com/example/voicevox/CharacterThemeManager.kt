@@ -112,9 +112,9 @@ object CharacterThemeManager {
         ),
         CharacterTheme(
             id = "shion",
-            name = "シオン (構想サンプル)",
+            name = "シオン",
             archetype = "深夜書斎 / デジタルアーカイブ",
-            dialogueAsset = "cura_messages.json",
+            dialogueAsset = "shion_messages.json",
             standingImageRes = R.drawable.guardian_character_casual,
             iconRes = R.drawable.cura_icon_character,
             gradientStartHex = "#0F172A",
