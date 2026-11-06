@@ -122,6 +122,16 @@
                 android:layout_height="match_parent"
                 android:visibility="gone" />
 
+            <!-- Micro Fade Gradient: Softens the scroll edge without covering action buttons (14dp < button margin 16dp) -->
+            <View
+                android:id="@+id/contentBottomFadeView"
+                android:layout_width="match_parent"
+                android:layout_height="14dp"
+                android:layout_gravity="bottom"
+                android:elevation="2dp"
+                android:clickable="false"
+                android:focusable="false" />
+
         </FrameLayout>
 
         <!-- Custom Multi-Layer Navigation Section: Unified Single Outline Liquid Nav -->

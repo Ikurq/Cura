@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyCharacterVisualTheme(theme: CharacterTheme) {
         val density = resources.displayMetrics.density
 
-        // 1. 全体背景グラデーションの適用
+        // 1. 全体背景グラデーションおよびボタンを邪魔しないマイクロフェードの適用
         try {
             val startColor = android.graphics.Color.parseColor(theme.gradientStartHex)
             val endColor = android.graphics.Color.parseColor(theme.gradientEndHex)
@@ -237,6 +237,14 @@ class MainActivity : AppCompatActivity() {
                 intArrayOf(startColor, endColor)
             )
             binding.mainRootLayout.background = gradientDrawable
+
+            // ボタン（マージン16dp）に届かない極薄フェード（14dp）でエッジの急激な切断感を和らげる
+            val transparentColor = android.graphics.Color.TRANSPARENT
+            val microFade = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(transparentColor, endColor)
+            )
+            binding.contentBottomFadeView.background = microFade
         } catch (e: Exception) {
             // Ignore color parse error
         }
