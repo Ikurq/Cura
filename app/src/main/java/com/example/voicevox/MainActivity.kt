@@ -200,7 +200,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val bodyTypeface = try {
-            android.graphics.Typeface.create(fontConfig.bodyFontName, android.graphics.Typeface.NORMAL)
+            val customRes = fontConfig.customFontRes
+            if (customRes != null) {
+                androidx.core.content.res.ResourcesCompat.getFont(this, customRes)
+                    ?: android.graphics.Typeface.create(fontConfig.bodyFontName, android.graphics.Typeface.NORMAL)
+            } else {
+                android.graphics.Typeface.create(fontConfig.bodyFontName, android.graphics.Typeface.NORMAL)
+            }
         } catch (e: Exception) {
             android.graphics.Typeface.DEFAULT
         }

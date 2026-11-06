@@ -1,0 +1,106 @@
+﻿{
+  "system_logs": [
+    "NEKO_DESK: GOROGORO... OK.",
+    "Neko is taking a nap on your keyboard.",
+    "Neko is chasing a mysterious dust particle.",
+    "Neko is yawning widely. Fuwaaa...",
+    "Neko is staring blankly out the window.",
+    "ALERT: Neko found a warm sunny spot.",
+    "Neko gently stepped on your task list.",
+    "Neko is grooming its ears. Peko peko.",
+    "Neko is wondering when dinner time is.",
+    "Neko curled up into a complete circle.",
+    "Neko is purring at 40Hz. Very healing.",
+    "STATUS: Neko energy level is: 12% (Sleepy)."
+  ],
+  "boot_logs": [
+    "WAKING UP NEKO...",
+    "STRETCHING FRONT PAWS...",
+    "CHECKING SUNNY SPOTS...",
+    "LOADING GOROGORO ENGINE...",
+    "NEKO IS READY TO SLACK OFF.",
+    "NYA."
+  ],
+  "rapid_tap_reactions": [
+    "にゃっ！？ つつきすぎだにゃ！",
+    "ふみふみ...つめといじゃうぞ！",
+    "なになに？ ちゅ〜るくれるの？",
+    "ごろごろ...くすぐったいにゃ...",
+    "そんなに急かしてもネコは動かないにゃ〜"
+  ],
+  "idle_lines": [
+    "ねむい...タスクなんて寝て待てばいいにゃ...",
+    "ひなたぼっこは最高だにゃ〜",
+    "カリカリまだかにゃ？ おなかすいたにゃ",
+    "じーっ...ちゃんと見てるにゃ。サボってないか監視中だにゃ",
+    "ふぁ〜...きょうも生きてるだけでえらいにゃ"
+  ],
+  "milestone_messages": {
+    "30": "30回もタップしたにゃ？ おまえ、ネコ好きだにゃ？",
+    "60": "60回だにゃ。もうネコのしもべ認定だにゃ。",
+    "90": "90回達成にゃ！ ごほうびに肉球を触らせてやるにゃ。",
+    "150": "150回！ ずっと一緒でうれしいにゃ。ごろごろ...",
+    "300": "300回！ おまえ、ネコマスターの称号をやろうにゃ。"
+  },
+  "greeting_lines": {
+    "early_morning": [
+      "ふぁ〜...朝早いのはネコでもねむいにゃ...二度寝する？",
+      "おはようにゃ。朝ごはんくれるの？"
+    ],
+    "morning": [
+      "おはようにゃ！ 今日も適当にのんびり生きようにゃ〜",
+      "朝だにゃ！ まずは伸びをしてから始めるにゃ！"
+    ],
+    "noon": [
+      "お昼にゃ！ ごはん食べて昼寝する時間にゃ！",
+      "おひる休みにゃ〜。頑張りすぎはネコが許さないにゃ。"
+    ],
+    "evening": [
+      "夕方にゃ。今日もおつかれさまにゃ〜",
+      "日が暮れてきたにゃ。そろそろ店じまいの時間にゃ？"
+    ],
+    "night": [
+      "夜だにゃ！ のんびりゴロゴロタイムにゃ〜",
+      "今日もおつかれにゃ。よくがんばったにゃ！"
+    ],
+    "late_night": [
+      "夜更かしはネコ肌に悪いにゃ...早く寝ようにゃ？",
+      "こんな時間まで起きててえらいにゃ...でも寝ようにゃ？"
+    ]
+  },
+  "day_of_week_lines": {
+    "2": ["月曜日にゃ...布団から出られただけで100点満点にゃ。"],
+    "3": ["火曜日にゃ。マイペースでいこうにゃ。"],
+    "4": ["水曜日にゃ！ 週の半分まできたにゃ！"],
+    "5": ["木曜日にゃ。もうひと踏ん張りだにゃ〜"],
+    "6": ["金曜日にゃー！ 今夜はパーティーだにゃ！"],
+    "7": ["土曜日にゃ！ 一日中寝てても誰も怒らないにゃ！"],
+    "1": ["日曜日にゃ〜。明日のことは明日考えるにゃ。"]
+  },
+  "seasonal_lines": {
+    "0-1": ["あけおめにゃ！ 今年もネコをよろしくにゃ〜"],
+    "1-14": ["チョコはネコ食べられないから、ちゅ〜るにしてにゃ！"],
+    "11-24": ["メリークリスマスにゃ！ プレゼントは高級カリカリがいいにゃ！"],
+    "11-31": ["大晦日にゃ！ こたつで丸くなるにゃ〜"]
+  },
+  "magic_numbers": {
+    "exp_per_level": 100,
+    "idle_check_interval_ms": 30000,
+    "idle_threshold_ms": 60000,
+    "log_update_interval_ms": 3000,
+    "memory_unlock_tap_count": 300
+  },
+  "situational_lines": {
+    "battery_low": "スマホのお腹が空いてるにゃ！ ごはん（充電器）あげてにゃ！",
+    "urgent_tasks": [
+      "ヤバい締め切りのタスクがあるらしいにゃ！ さっさと片付けて寝るにゃ！",
+      "やり残しがあるにゃ！ ネコが応援してやるから片付けるにゃ！"
+    ],
+    "next_event_reminder": "そろそろ %s から【%s】の時間だにゃ！ 忘れてないにゃ？",
+    "task_completed_praise": "タスク終わったにゃ！？ えらすぎるにゃ！ ごほうびにちゅ〜る...じゃなくておやつ食べるにゃ！",
+    "task_uncompleted_comfort": "終わらなかったの？ 大丈夫にゃ、明日の自分がきっと何とかしてくれるにゃ〜",
+    "welcome_back": "おかえりにゃ！ 待ってたにゃ〜（すりすり）",
+    "alarm_wakeup_praise": "ちゃんとアラームで起きてえらいにゃ！ 二度寝の誘惑に勝ったにゃ！",
+    "no_tasks_left": "やること全部終わったにゃ！？ 自由だー！ 一緒にお昼寝するにゃ！"
+  }
+}
