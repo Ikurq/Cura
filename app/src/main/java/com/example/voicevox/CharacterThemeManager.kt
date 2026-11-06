@@ -56,17 +56,17 @@ object CharacterThemeManager {
             dialogueAsset = "charlotte_messages.json",
             standingImageRes = R.drawable.character_charlotte,
             iconRes = R.drawable.icon_charlotte,
-            gradientStartHex = "#1C0F13",   // 上部: 深いワインブラック
-            gradientEndHex = "#0D0608",     // 下部: ナイトブラック
-            signatureColorHex = "#641F38",  // ボルドー（シャルロットシンボル色）
-            taskColorHex = "#A84A62",       // 落ち着いたローズ（タスク）
-            scheduleColorHex = "#D6B66E",   // アンティークゴールド（時間割・予定）
+            gradientStartHex = "#261C2C",   // 上部: 紫みを含んだダークプラム
+            gradientEndHex = "#19121C",     // 下部: 推奨候補ダークプラム（黒衣装と同化しない）
+            signatureColorHex = "#D6B66E",  // アンティークゴールド（シンボル＆見出しアクセント）
+            taskColorHex = "#F472B6",       // 明るめのローズピンク（TODAY_TASK）
+            scheduleColorHex = "#38BDF8",   // 明るめのシアン（TIMETABLE）
             cornerRadiusDp = 10,
             navStyle = CharacterNavStyle(
                 bulgeCornerRadiusDp = 12,      // 角丸タブ形状（12dp）
-                navBackgroundColorHex = "#1E1015", // ボルドー系のシックな統一サーフェス
-                activeItemColorHex = "#D6B66E", // アンティークゴールド
-                inactiveItemColorHex = "#7A4A58"
+                navBackgroundColorHex = "#231826", // プラム系サーフェス
+                activeItemColorHex = "#D6B66E", // アンティークゴールド（選択中）
+                inactiveItemColorHex = "#B09EAA" // コントラストを確保した明るいプラムグレー（非選択）
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(

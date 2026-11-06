@@ -235,11 +235,12 @@ class MainActivity : AppCompatActivity() {
             // Ignore color parse error
         }
 
-        // 2. カードの枠線カラーと角丸の適用
+        // 2. カードの枠線カラーと角丸の適用（視認性向上アクセントカラー）
         try {
             val signatureColor = android.graphics.Color.parseColor(theme.signatureColorHex)
-            val taskColor = android.graphics.Color.parseColor(theme.taskColorHex)
-            val scheduleColor = android.graphics.Color.parseColor(theme.scheduleColorHex)
+            val rosePink = androidx.core.content.ContextCompat.getColor(this, R.color.cyber_pink)
+            val cyan = androidx.core.content.ContextCompat.getColor(this, R.color.cyber_cyan)
+            val mintGreen = androidx.core.content.ContextCompat.getColor(this, R.color.cyber_lime)
             val cornerRadius = theme.cornerRadiusDp * density
 
             binding.welcomeTitle.setTextColor(signatureColor)
@@ -247,18 +248,23 @@ class MainActivity : AppCompatActivity() {
             binding.homeContent.dialogueSpeakerLabel.text = ":: " + theme.name.uppercase()
             binding.homeContent.dialogueSpeakerLabel.setTextColor(signatureColor)
 
-            binding.homeContent.panelTasks.strokeColor = taskColor
+            // TODAY TASK: 明るめのローズピンク
+            binding.homeContent.panelTasks.strokeColor = rosePink
             binding.homeContent.panelTasks.radius = cornerRadius
 
-            binding.homeContent.panelSchedule.strokeColor = scheduleColor
+            // TIMETABLE: 明るめのシアン
+            binding.homeContent.panelSchedule.strokeColor = cyan
             binding.homeContent.panelSchedule.radius = cornerRadius
 
-            binding.homeContent.panelAlarm.strokeColor = scheduleColor
+            // WAKE_ALARM: 明るめのミントグリーン
+            binding.homeContent.panelAlarm.strokeColor = mintGreen
             binding.homeContent.panelAlarm.radius = cornerRadius
 
-            binding.homeContent.charGrowthLayout.strokeColor = signatureColor
+            // CURA LEVEL: 明るめのシアン
+            binding.homeContent.charGrowthLayout.strokeColor = cyan
             binding.homeContent.charGrowthLayout.radius = cornerRadius
 
+            // DIALOGUE BUBBLE: キャラクターシンボル色（アンティークゴールド）
             binding.homeContent.dialogueBubble.strokeColor = signatureColor
             binding.homeContent.dialogueBubble.radius = cornerRadius
         } catch (e: Exception) {

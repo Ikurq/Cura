@@ -6,7 +6,7 @@
     <!-- Afterschool Desk Palette (Stationery & Twilight) -->
     <color name="cyber_cyan">#38BDF8</color> <!-- Clear Sky Blue / Cura Signature -->
     <color name="cyber_cyan_dark">#0284C7</color>
-    <color name="cyber_pink">#FB7185</color> <!-- Soft Coral Pink / Task & Homework -->
+    <color name="cyber_pink">#F472B6</color> <!-- Bright Rose Pink / Task & Homework -->
     <color name="cyber_pink_dark">#E11D48</color>
     <color name="cyber_lime">#34D399</color> <!-- Mint Leaf / Timetable & Alarm -->
     <color name="cyber_lime_dark">#059669</color>
@@ -30,8 +30,8 @@
 
     <!-- Text Colors (High Legibility) -->
     <color name="text_primary">#F8FAFC</color>   <!-- Crisp White -->
-    <color name="text_secondary">#94A3B8</color> <!-- Slate Gray -->
-    <color name="text_tertiary">#64748B</color>
+    <color name="text_secondary">#CBD5E1</color> <!-- Light Slate Gray (High Legibility) -->
+    <color name="text_tertiary">#94A3B8</color>
 
     <!-- Day Selection -->
     <color name="day_unselected">#1E293B</color>
