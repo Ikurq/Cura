@@ -78,22 +78,24 @@ object CharacterThemeManager {
         ),
         CharacterTheme(
             id = "neko",
-            name = "ねこ (手描き)",
-            archetype = "脱力系手描きマスコット / ゆる自習室",
+            name = "ねこ",
+            archetype = "謎の猫 / ぶっきらぼうな相棒",
             dialogueAsset = "neko_messages.json",
             standingImageRes = R.drawable.character_neko,
             iconRes = R.drawable.icon_neko,
-            gradientStartHex = "#231F20",   // 上部: ぬくもりのあるダークチャコール
-            gradientEndHex = "#181516",     // 下部: 手描き白黒が映えるディープスレート
-            signatureColorHex = "#FBBF24",  // あたたかいアンバーイエロー
-            taskColorHex = "#F472B6",       // 明るめローズピンク
-            scheduleColorHex = "#38BDF8",   // 明るめシアン
+            gradientStartHex = "#282528",   // 上部: 落ち着いたダークチャコール
+            gradientEndHex = "#1C1A1D",     // 下部: 手描き白黒が映えるディープチャコール
+            signatureColorHex = "#F59E0B",  // 琥珀アンバー（ぶっきらぼうな温もり）
+            taskColorHex = "#F472B6",       // ローズピンク
+            scheduleColorHex = "#38BDF8",   // シアン
             cornerRadiusDp = 16,
             navStyle = CharacterNavStyle(
-                bulgeCornerRadiusDp = 20,      // コロンとした丸型タブ
-                navBackgroundColorHex = "#262223",
-                activeItemColorHex = "#FBBF24",
-                inactiveItemColorHex = "#9CA3AF"
+                bulgeCornerRadiusDp = 0,
+                navBackgroundColorHex = "#262327",
+                activeItemColorHex = "#F59E0B",
+                inactiveItemColorHex = "#9CA3AF",
+                bulgeShape = "triangle",       // 30度傾けた三角形
+                bulgeRotationDeg = 30f         // 30度傾き
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(

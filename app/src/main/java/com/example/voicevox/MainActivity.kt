@@ -282,11 +282,21 @@ class MainActivity : AppCompatActivity() {
         val navStyle = theme.navStyle
         val density = resources.displayMetrics.density
 
-        // 1. インジケーター（バルジ）の角丸と背景色を変更
-        binding.navBulgeCircle.radius = navStyle.bulgeCornerRadiusDp * density
+        // 1. インジケーター（バルジ）の形状、回転、背景色を変更
         try {
             val navBgColor = android.graphics.Color.parseColor(navStyle.navBackgroundColorHex)
-            binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
+            if (navStyle.bulgeShape == "triangle") {
+                binding.navBulgeCircle.radius = 0f
+                binding.navBulgeCircle.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
+                binding.navBulgeCustomShape.visibility = android.view.View.VISIBLE
+                binding.navBulgeCustomShape.setImageResource(R.drawable.ic_nav_bulge_triangle)
+                binding.navBulgeCustomShape.imageTintList = android.content.res.ColorStateList.valueOf(navBgColor)
+                binding.navBulgeCustomShape.rotation = navStyle.bulgeRotationDeg
+            } else {
+                binding.navBulgeCustomShape.visibility = android.view.View.GONE
+                binding.navBulgeCircle.radius = navStyle.bulgeCornerRadiusDp * density
+                binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
+            }
             binding.navBaseBar.backgroundTintList = android.content.res.ColorStateList.valueOf(navBgColor)
         } catch (e: Exception) {
             // Ignore color parse error
