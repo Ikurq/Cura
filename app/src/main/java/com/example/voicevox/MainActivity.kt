@@ -99,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         updateDashboardInfo()
         ScheduleEventHelper.performAutoMigration(this)
         updateAttendanceButtonVisibility()
-        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this), updateBulge = false)
 
         // アニメーション適用
         setupCyberAnimations()
@@ -318,13 +318,13 @@ class MainActivity : AppCompatActivity() {
         menu.findItem(R.id.nav_attendance)?.setIcon(theme.navIcons.attendanceIconRes)
     }
 
-    private fun applyCharacterTheme(theme: CharacterTheme, updateBulge: Boolean = true) {
+    private fun applyCharacterTheme(theme: CharacterTheme, updateBulge: Boolean = false) {
         applyCharacterNavTheme(theme)
         applyCharacterFontTheme(theme)
         applyCharacterVisualTheme(theme)
         updateCharacterCostume()
         if (updateBulge) {
-            animateNavBulge(binding.bottomNavigation.selectedItemId, animated = true)
+            animateNavBulge(binding.bottomNavigation.selectedItemId, animated = false)
         }
     }
 
@@ -374,21 +374,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun animateNavBulge(itemId: Int, animated: Boolean = true) {
         val nav = binding.bottomNavigation
-        
-        // 実際に表示されているメニューアイテムを取得
-        val visibleItems = mutableListOf<Int>()
-        for (i in 0 until nav.menu.size()) {
-            val item = nav.menu.getItem(i)
-            if (item.isVisible) {
-                visibleItems.add(item.itemId)
-            }
-        }
-        
-        val visibleCount = visibleItems.size
-        if (visibleCount == 0) return
-
-        // 選択されたアイテムが可視アイテムの中で何番目かを取得
-        val index = visibleItems.indexOf(itemId).coerceAtLeast(0)
 
         val updateLayout = {
             val menuView = nav.getChildAt(0) as? android.view.ViewGroup
@@ -396,34 +381,36 @@ class MainActivity : AppCompatActivity() {
                 menuView.clipChildren = false
                 menuView.clipToPadding = false
 
-                // 可視アイテムビューのリストを構築
-                val visibleViews = mutableListOf<android.view.View>()
-                for (i in 0 until menuView.childCount) {
-                    val itemView = menuView.getChildAt(i)
-                    if (itemView.visibility == android.view.View.VISIBLE) {
-                        visibleViews.add(itemView)
-                    }
-                }
-
-                // 実際のItemViewの物理中心座標を取得（レイアウト誤差やピクセル丸めによるズレをゼロにする）
-                val targetView = if (index in 0 until visibleViews.size) visibleViews[index] else null
-                val targetCenterX = if (targetView != null && targetView.width > 0) {
+                // ターゲットアイテムのViewをIDで直接特定
+                val targetView = menuView.findViewById<android.view.View>(itemId)
+                val targetCenterX = if (targetView != null && targetView.width > 0 && targetView.left >= 0) {
                     targetView.left + (targetView.width / 2f)
                 } else {
-                    val itemWidth = nav.width.toFloat() / visibleCount.coerceAtLeast(1)
+                    // フォールバック計算
+                    val visibleItems = mutableListOf<Int>()
+                    for (k in 0 until nav.menu.size()) {
+                        val item = nav.menu.getItem(k)
+                        if (item.isVisible) visibleItems.add(item.itemId)
+                    }
+                    val index = visibleItems.indexOf(itemId).coerceAtLeast(0)
+                    val count = visibleItems.size.coerceAtLeast(1)
+                    val itemWidth = nav.width.toFloat() / count
                     (itemWidth * index) + (itemWidth / 2f)
                 }
-                
+
                 // 一体化ナビ背景の突起（バルジ）を移動
                 binding.liquidNavBackground.setBulgeCenterX(targetCenterX, animated = animated)
 
-                // アイコン自体の持ち上げ
+                // 各アイコンと文字の位置制御
                 val density = resources.displayMetrics.density
                 val liftY = -28f * density
-                for (i in 0 until visibleViews.size) {
-                    val itemView = visibleViews[i] as? android.view.ViewGroup ?: continue
+
+                for (i in 0 until menuView.childCount) {
+                    val itemView = menuView.getChildAt(i) as? android.view.ViewGroup ?: continue
                     itemView.clipChildren = false
                     itemView.clipToPadding = false
+
+                    val isSelected = itemView.id == itemId
 
                     if (itemView.childCount > 0) {
                         val icon = itemView.getChildAt(0)
@@ -432,11 +419,14 @@ class MainActivity : AppCompatActivity() {
                             icon.clipToPadding = false
                         }
 
-                        val targetLift = if (i == index) liftY else 0f
+                        val targetLift = if (isSelected) liftY else 0f
+                        icon.animate().cancel()
                         if (animated) {
-                            icon.animate().translationY(targetLift).setDuration(if (i == index) 300 else 250).start()
+                            icon.animate()
+                                .translationY(targetLift)
+                                .setDuration(if (isSelected) 300 else 250)
+                                .start()
                         } else {
-                            icon.animate().cancel()
                             icon.translationY = targetLift
                         }
 
@@ -451,7 +441,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (nav.isLaidOut) {
+        if (nav.isLaidOut && nav.width > 0) {
             updateLayout()
         } else {
             nav.doOnLayout { updateLayout() }
@@ -825,7 +815,7 @@ class MainActivity : AppCompatActivity() {
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
-        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this), updateBulge = false)
         checkPendingExp() // ホームに戻った瞬間にもチェック
         val fragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
         if (fragment != null) supportFragmentManager.beginTransaction().remove(fragment).commit()
@@ -847,7 +837,7 @@ class MainActivity : AppCompatActivity() {
         updatePlayerStatus()
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
-        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this))
+        applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this), updateBulge = false)
         
         // ホーム画面が表示されている場合のみ、未読の褒め言葉や挨拶をチェック
         if (binding.launcherLayout.isVisible) {
@@ -893,7 +883,7 @@ class MainActivity : AppCompatActivity() {
         
         // 可視性が変わった場合のみ、盛り上がりの位置を再調整する
         if (wasVisible != hasTracked) {
-            animateNavBulge(binding.bottomNavigation.selectedItemId)
+            animateNavBulge(binding.bottomNavigation.selectedItemId, animated = false)
         }
     }
 

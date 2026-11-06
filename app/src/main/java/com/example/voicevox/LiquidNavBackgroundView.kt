@@ -90,10 +90,6 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        if (bulgeCenterX < 0f && w > 0) {
-            // 初期位置: 5分割の1番目の中心（HOMEアイコン付近）
-            bulgeCenterX = w / 10f
-        }
         updatePath()
     }
 
@@ -110,8 +106,6 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
         val barTop = h - barH
         val barBottom = h
 
-        val cX = if (bulgeCenterX > 0f) bulgeCenterX else (w / 10f)
-
         // 1. バー本体の角丸長方形パス（4隅の角丸を厳密に定義）
         val barPath = Path().apply {
             val radii = floatArrayOf(
@@ -123,20 +117,24 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
             addRoundRect(RectF(0f, barTop, w, barBottom), radii, Path.Direction.CW)
         }
 
-        // 2. 突起サークルのパス（中心: cX, barTop）
-        val circlePath = Path().apply {
-            addCircle(cX, barTop, r, Path.Direction.CW)
-        }
-
-        // 3. ブーリアン結合（UNION）
-        // 端（HOMEやATTEND）で円が角丸と重なっても、Skia幾何学エンジンが正確な外周のみを自動抽出。
-        // 内側の境界線は完全消滅し、外周全体が1本のシームレスなパスになります。
         path.reset()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            path.op(barPath, circlePath, Path.Op.UNION)
+        if (bulgeCenterX > 0f) {
+            // 2. 突起サークルのパス（中心: bulgeCenterX, barTop）
+            val circlePath = Path().apply {
+                addCircle(bulgeCenterX, barTop, r, Path.Direction.CW)
+            }
+
+            // 3. ブーリアン結合（UNION）
+            // 端（HOMEやATTEND）で円が角丸と重なっても、Skia幾何学エンジンが正確な外周のみを自動抽出。
+            // 内側の境界線は完全消滅し、外周全体が1本のシームレスなパスになります。
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                path.op(barPath, circlePath, Path.Op.UNION)
+            } else {
+                path.addPath(barPath)
+                path.addPath(circlePath)
+            }
         } else {
             path.addPath(barPath)
-            path.addPath(circlePath)
         }
     }
 
