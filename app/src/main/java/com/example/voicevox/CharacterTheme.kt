@@ -36,7 +36,7 @@ data class CharacterNavStyle(
     val inactiveItemColorHex: String = "#64748B",  // 未選択アイコン・テキスト色
     val bulgeCornerRadiusDp: Int = 35,             // インジケーターの角丸（正円: 35dp）
     val strokeColorHex: String? = null,            // 移動円の境界線色（未指定時は activeItemColorHex を使用）
-    val strokeWidthDp: Float = 1.5f                // 移動円の境界線幅
+    val strokeWidthDp: Float = 0.8f                // 移動円の境界線幅（極細ヘアライン: 0.8dp）
 )
 
 /**

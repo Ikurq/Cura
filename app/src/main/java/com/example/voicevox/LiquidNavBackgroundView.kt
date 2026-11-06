@@ -4,23 +4,20 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
-import android.view.ViewOutlineProvider
 import android.view.animation.DecelerateInterpolator
 
 /**
  * ボトムナビゲーションのバーと選択中インジケーター（バルジ）を
  * 単一の連続したベクターパスとして一体描画するカスタムビュー。
  *
- * 円（バルジ）とバーが分離せず、外周全体がひとつの美しいストローク（縁取り）で包まれます。
- * 端（HOME/ATTEND等）でも Path.op(UNION) により角丸と円が幾何学的に完全結合し、
- * 歪みや交差（ヒゲ・逆戻り）が一切発生しません。
+ * 円（バルジ）とバーが分離せず、外周全体が極細のストローク（0.8dp）で美しく包まれます。
+ * 淡いカラーシャドウ・グロー光彩は排除し、ソリッドで高品位なUIを実現します。
  */
 class LiquidNavBackgroundView @JvmOverloads constructor(
     context: Context,
@@ -35,7 +32,7 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
     }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 1.5f * resources.displayMetrics.density
+        strokeWidth = 0.8f * resources.displayMetrics.density
         color = Color.parseColor("#D6B66E")
     }
 
@@ -49,25 +46,13 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
 
     init {
         setWillNotDraw(false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            outlineProvider = object : ViewOutlineProvider() {
-                override fun getOutline(view: View, outline: Outline) {
-                    val barTop = (height - barHeightDp * density).toInt().coerceAtLeast(0)
-                    outline.setRoundRect(0, barTop, width, height, cornerRadiusDp * density)
-                }
-            }
-        }
+        elevation = 0f
     }
 
-    fun setThemeColors(bgColor: Int, strokeColor: Int) {
+    fun setThemeColors(bgColor: Int, strokeColor: Int, strokeWidthDp: Float = 0.8f) {
         fillPaint.color = bgColor
         strokePaint.color = strokeColor
-        strokePaint.strokeWidth = 1.5f * density
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            outlineSpotShadowColor = strokeColor
-            outlineAmbientShadowColor = strokeColor
-        }
+        strokePaint.strokeWidth = strokeWidthDp * density
         invalidate()
     }
 
@@ -153,10 +138,6 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
             path.addPath(barPath)
             path.addPath(circlePath)
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            invalidateOutline()
-        }
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -166,7 +147,7 @@ class LiquidNavBackgroundView @JvmOverloads constructor(
         }
         // 一体化した塗りつぶし（バーと円の間に線は一切出ない）
         canvas.drawPath(path, fillPaint)
-        // 外周全体を同一カラーで縁取り（端でも歪まない単一の一筆書きストローク）
+        // 外周全体を同一カラーで縁取り（極細0.8dpのシャープなストローク）
         canvas.drawPath(path, strokePaint)
     }
 }

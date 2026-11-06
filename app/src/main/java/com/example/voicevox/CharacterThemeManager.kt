@@ -41,7 +41,7 @@ object CharacterThemeManager {
                 activeItemColorHex = "#38BDF8",
                 inactiveItemColorHex = "#7E90A8",
                 strokeColorHex = "#38BDF8",
-                strokeWidthDp = 1.5f
+                strokeWidthDp = 0.8f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -70,7 +70,7 @@ object CharacterThemeManager {
                 activeItemColorHex = "#D6B66E", // アンティークゴールド（選択中）
                 inactiveItemColorHex = "#BCAAB8", // 明るいプラムグレー（非選択）
                 strokeColorHex = "#D6B66E",
-                strokeWidthDp = 1.5f
+                strokeWidthDp = 0.8f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -99,7 +99,7 @@ object CharacterThemeManager {
                 activeItemColorHex = "#F59E0B",
                 inactiveItemColorHex = "#A8ACB5",
                 strokeColorHex = "#F59E0B",
-                strokeWidthDp = 1.5f
+                strokeWidthDp = 0.8f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
@@ -129,7 +129,7 @@ object CharacterThemeManager {
                 activeItemColorHex = "#10B981",
                 inactiveItemColorHex = "#64748B",
                 strokeColorHex = "#10B981",
-                strokeWidthDp = 1.5f
+                strokeWidthDp = 0.8f
             ),
             navIcons = DEFAULT_ICONS,
             fontConfig = CharacterFontConfig(
