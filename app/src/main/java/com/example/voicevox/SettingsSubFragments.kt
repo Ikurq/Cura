@@ -452,19 +452,24 @@ class SettingsDevFragment : Fragment() {
     }
 
     private fun setupLevel(view: View) {
-        val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_CHARACTER, Context.MODE_PRIVATE)
+        val ctx = requireContext()
+        val currentTheme = CharacterThemeManager.getCurrentTheme(ctx)
+        val charId = currentTheme.id
         val txtLv = view.findViewById<TextView>(R.id.txtDevLevelDisplay)
         val seek = view.findViewById<SeekBar>(R.id.seekDevLevel)
         val btn = view.findViewById<Button>(R.id.btnDevSetLevel)
-        val curLv = (prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L) / 100L).toInt() + 1
-        seek.progress = curLv; txtLv.text = "現在のLv: $curLv"
+        val curExp = CharacterLevelManager.getTotalExp(ctx, charId)
+        val curLv = CharacterLevelManager.calculateLevel(curExp)
+        seek.progress = curLv
+        txtLv.text = "現在のLv (${charId.uppercase()}): $curLv"
         btn.setOnClickListener {
-            prefs.edit { putLong(CuraConstants.KEY_TOTAL_EXP, (seek.progress - 1) * 100L) }
-            txtLv.text = "現在のLv: ${seek.progress}"
+            val newExp = (seek.progress - 1) * 100L
+            CharacterLevelManager.setTotalExp(ctx, newExp, charId)
+            txtLv.text = "現在のLv (${charId.uppercase()}): ${seek.progress}"
             Toast.makeText(context, "設定完了", Toast.LENGTH_SHORT).show()
         }
         seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { txtLv.text = "現在のLv: $p" }
+            override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) { txtLv.text = "現在のLv (${charId.uppercase()}): $p" }
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })

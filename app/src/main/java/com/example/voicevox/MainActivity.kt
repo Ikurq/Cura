@@ -465,18 +465,13 @@ class MainActivity : AppCompatActivity() {
         val taskCount = playerPrefs.getInt(CuraConstants.KEY_COMPLETED_TASK_COUNT, 0)
         val alarmCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
 
-        val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
-        val charTotalExp = charPrefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
-        val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
-
-        fun calculateLevelInfo(exp: Long): Triple<Int, Long, Long> {
-            val lv = (exp / expPerLevel).toInt() + 1
-            val currentLevelExp = (lv - 1) * expPerLevel
-            return Triple(lv, exp - currentLevelExp, expPerLevel)
-        }
-
-        val (lv, current, required) = calculateLevelInfo(charTotalExp)
         val theme = CharacterThemeManager.getCurrentTheme(this)
+        val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
+        val charTotalExp = CharacterLevelManager.getTotalExp(this, theme.id)
+        val levelInfo = CharacterLevelManager.calculateLevelInfo(charTotalExp, expPerLevel)
+        val lv = levelInfo.level
+        val current = levelInfo.currentExpInLevel
+        val required = levelInfo.requiredExpForNextLevel
         binding.homeContent.charLevelText.text = "${theme.id.uppercase()} Lv.$lv"
         binding.homeContent.charExpProgressBar.max = required.toInt()
         
@@ -503,21 +498,21 @@ class MainActivity : AppCompatActivity() {
         val showCharLv = appPrefs.getBoolean("show_char_level", true)
         binding.homeContent.charGrowthLayout.visibility = if (showCharLv) View.VISIBLE else View.GONE
 
-        checkAndTriggerStory(lv)
+        checkAndTriggerStory(lv, theme.id)
     }
 
-    private fun checkAndTriggerStory(currentLv: Int) {
+    private fun checkAndTriggerStory(currentLv: Int, characterId: String) {
         val charPrefs = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE)
         if (!charPrefs.getBoolean(CuraConstants.KEY_MEMORY_UNLOCKED, false)) return
 
-        val lastSeenLv = charPrefs.getInt("last_seen_story_lv", 0)
+        val lastSeenLv = CharacterLevelManager.getLastSeenStoryLevel(this, characterId)
         val milestones = listOf(5, 10, 15, 20, 30)
         val nextMilestone = milestones.firstOrNull { it > lastSeenLv && currentLv >= it }
         
         if (nextMilestone != null) {
             CuraMessageManager.getLevelStory(this, nextMilestone)?.let { story ->
                 showDialogueTextBubble(story, isSkippable = false)
-                charPrefs.edit { putInt("last_seen_story_lv", nextMilestone) }
+                CharacterLevelManager.setLastSeenStoryLevel(this, nextMilestone, characterId)
             }
         }
     }
@@ -703,10 +698,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSessionExp(amount: Int) {
-        getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).edit {
-            val current = getSharedPreferences(CuraConstants.PREFS_CHARACTER, MODE_PRIVATE).getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
-            putLong(CuraConstants.KEY_TOTAL_EXP, current + amount)
-        }
+        val theme = CharacterThemeManager.getCurrentTheme(this)
+        CharacterLevelManager.addTotalExp(this, amount.toLong(), theme.id)
         showExpFeedback(amount)
         updatePlayerStatus(animate = true)
     }

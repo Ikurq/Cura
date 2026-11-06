@@ -418,13 +418,10 @@ class AlarmAlertActivity : AppCompatActivity() {
             return
         }
 
-        val totalExp = prefs.getLong(CuraConstants.KEY_TOTAL_EXP, 0L)
+        val currentTheme = CharacterThemeManager.getCurrentTheme(this)
+        val totalExp = CharacterLevelManager.getTotalExp(this, currentTheme.id)
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
-
-        var currentLv = 1
-        while (totalExp >= currentLv * expPerLevel) {
-            currentLv++
-        }
+        val currentLv = CharacterLevelManager.calculateLevel(totalExp, expPerLevel)
 
         // 次のレベルまでの経験値をストックに
         val gain = expPerLevel 
