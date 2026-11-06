@@ -122,6 +122,17 @@
                 android:layout_height="match_parent"
                 android:visibility="gone" />
 
+            <!-- Bottom Content Fade Gradient: Prevents abrupt horizontal clipping behind bottom navigation -->
+            <View
+                android:id="@+id/contentBottomFadeView"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_nav_top_fade_gradient"
+                android:elevation="4dp"
+                android:clickable="false"
+                android:focusable="false" />
+
         </FrameLayout>
 
         <!-- Custom Multi-Layer Navigation Section -->

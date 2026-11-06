@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyCharacterVisualTheme(theme: CharacterTheme) {
         val density = resources.displayMetrics.density
 
-        // 1. 全体背景グラデーションの適用
+        // 1. 全体背景グラデーションおよびボトムナビ背面フェードグラデーションの適用
         try {
             val startColor = android.graphics.Color.parseColor(theme.gradientStartHex)
             val endColor = android.graphics.Color.parseColor(theme.gradientEndHex)
@@ -237,6 +237,14 @@ class MainActivity : AppCompatActivity() {
                 intArrayOf(startColor, endColor)
             )
             binding.mainRootLayout.background = gradientDrawable
+
+            // ボトムナビ背後の鋭利な水平切断を防ぐフェードグラデーション（透明から画面下部背景色へ自然に溶け込ませる）
+            val transparentColor = android.graphics.Color.TRANSPARENT
+            val fadeGradient = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(transparentColor, endColor)
+            )
+            binding.contentBottomFadeView.background = fadeGradient
         } catch (e: Exception) {
             // Ignore color parse error
         }
