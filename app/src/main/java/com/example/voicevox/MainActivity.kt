@@ -290,7 +290,7 @@ class MainActivity : AppCompatActivity() {
                 binding.navBulgeCircle.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
                 binding.navBulgeCustomShape.visibility = android.view.View.VISIBLE
                 binding.navBulgeCustomShape.setImageResource(R.drawable.ic_nav_bulge_triangle)
-                binding.navBulgeCustomShape.imageTintList = android.content.res.ColorStateList.valueOf(navBgColor)
+                binding.navBulgeCustomShape.imageTintList = null // ベクター自身の塗り色とアンバー輪郭線を鮮明に描画
                 binding.navBulgeCustomShape.rotation = navStyle.bulgeRotationDeg
             } else {
                 binding.navBulgeCustomShape.visibility = android.view.View.GONE
@@ -333,6 +333,9 @@ class MainActivity : AppCompatActivity() {
         applyCharacterFontTheme(theme)
         applyCharacterVisualTheme(theme)
         updateCharacterCostume()
+        binding.bottomNavigation.post {
+            animateNavBulge(binding.bottomNavigation.selectedItemId)
+        }
     }
 
     private fun setupNavigation() {
@@ -369,7 +372,9 @@ class MainActivity : AppCompatActivity() {
 
         // デフォルト選択
         binding.bottomNavigation.selectedItemId = R.id.nav_home
-        // animateNavBulgeは上の行でリスナーがトリガーされるため、ここでは不要
+        binding.bottomNavigation.post {
+            animateNavBulge(binding.bottomNavigation.selectedItemId)
+        }
 
 
         // クイック設定
@@ -398,34 +403,42 @@ class MainActivity : AppCompatActivity() {
         val index = visibleItems.indexOf(itemId).coerceAtLeast(0)
 
         nav.post {
-            val totalWidth = nav.width
-            val itemWidth = totalWidth / visibleCount
-            val targetX = (itemWidth * index) + (itemWidth / 2) - (bulge.width / 2)
-            
-            // 円のスライド移動
-            bulge.animate()
-                .translationX(targetX.toFloat())
-                .setDuration(300)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
-            
-            // アイコン自体の持ち上げ（BottomNavigationViewの各子ビューに対して）
             val menuView = nav.getChildAt(0) as? android.view.ViewGroup ?: return@post
             menuView.clipChildren = false
             menuView.clipToPadding = false
-            
-            // BottomNavigationViewの内部構造では、非表示のアイテムは除外されているかGONEになっている
-            // 子ビューのインデックスと可視アイテムのインデックスを対応させる
-            var visibleViewIndex = 0
+
+            // 可視アイテムビューのリストを構築
+            val visibleViews = mutableListOf<android.view.View>()
             for (i in 0 until menuView.childCount) {
-                val itemView = menuView.getChildAt(i) as? android.view.ViewGroup ?: continue
+                val itemView = menuView.getChildAt(i)
+                if (itemView.visibility == android.view.View.VISIBLE) {
+                    visibleViews.add(itemView)
+                }
+            }
+
+            // 実際のItemViewの物理中心座標を取得（レイアウト誤差やピクセル丸めによるズレをゼロにする）
+            val targetView = if (index in 0 until visibleViews.size) visibleViews[index] else null
+            val targetCenterX = if (targetView != null && targetView.width > 0) {
+                targetView.left + (targetView.width / 2f)
+            } else {
+                val itemWidth = nav.width.toFloat() / visibleCount.coerceAtLeast(1)
+                (itemWidth * index) + (itemWidth / 2f)
+            }
+            val targetX = targetCenterX - (bulge.width / 2f)
+            
+            // 図形のスライド移動
+            bulge.animate()
+                .translationX(targetX)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+
+            // アイコン自体の持ち上げ（BottomNavigationViewの各子ビューに対して）
+            for (i in 0 until visibleViews.size) {
+                val itemView = visibleViews[i] as? android.view.ViewGroup ?: continue
                 itemView.clipChildren = false
                 itemView.clipToPadding = false
 
-                if (itemView.visibility != View.VISIBLE) continue
-                
-                // アイコンの持ち上げアニメーション
-                // itemViewの最初の子要素（通常はアイコン）を取得し、安全にアニメーションを適用
                 if (itemView.childCount > 0) {
                     val icon = itemView.getChildAt(0)
                     if (icon is android.view.ViewGroup) {
@@ -433,7 +446,7 @@ class MainActivity : AppCompatActivity() {
                         icon.clipToPadding = false
                     }
 
-                    if (visibleViewIndex == index) {
+                    if (i == index) {
                         icon.animate().translationY(-64f).setDuration(300).start()
                         // 文字（通常は2番目の子要素）を取得して上に移動
                         if (itemView.childCount > 1) {
@@ -449,7 +462,6 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-                visibleViewIndex++
             }
         }
     }
