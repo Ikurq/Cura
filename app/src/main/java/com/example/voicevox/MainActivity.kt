@@ -15,6 +15,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.view.isVisible
+import androidx.core.view.doOnLayout
 import androidx.lifecycle.lifecycleScope
 import com.example.voicevox.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
@@ -317,22 +318,22 @@ class MainActivity : AppCompatActivity() {
         menu.findItem(R.id.nav_attendance)?.setIcon(theme.navIcons.attendanceIconRes)
     }
 
-    private fun applyCharacterTheme(theme: CharacterTheme) {
+    private fun applyCharacterTheme(theme: CharacterTheme, updateBulge: Boolean = true) {
         applyCharacterNavTheme(theme)
         applyCharacterFontTheme(theme)
         applyCharacterVisualTheme(theme)
         updateCharacterCostume()
-        binding.bottomNavigation.post {
-            animateNavBulge(binding.bottomNavigation.selectedItemId)
+        if (updateBulge) {
+            animateNavBulge(binding.bottomNavigation.selectedItemId, animated = true)
         }
     }
 
     private fun setupNavigation() {
         val currentTheme = CharacterThemeManager.getCurrentTheme(this)
-        applyCharacterTheme(currentTheme)
+        applyCharacterTheme(currentTheme, updateBulge = false)
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             // アニメーション：背後の白い円を移動させる
-            animateNavBulge(item.itemId)
+            animateNavBulge(item.itemId, animated = true)
 
             when (item.itemId) {
                 R.id.nav_home -> { 
@@ -359,12 +360,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // デフォルト選択
+        // デフォルト選択: 初回起動時はレイアウト完了後にアニメーションなし(animated = false)で定位置へ即時配置
         binding.bottomNavigation.selectedItemId = R.id.nav_home
-        binding.bottomNavigation.post {
-            animateNavBulge(binding.bottomNavigation.selectedItemId)
+        binding.bottomNavigation.doOnLayout {
+            animateNavBulge(binding.bottomNavigation.selectedItemId, animated = false)
         }
-
 
         // クイック設定
         binding.btnQuickSettings.setOnClickListener { 
@@ -372,7 +372,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun animateNavBulge(itemId: Int) {
+    private fun animateNavBulge(itemId: Int, animated: Boolean = true) {
         val nav = binding.bottomNavigation
         
         // 実際に表示されているメニューアイテムを取得
@@ -390,64 +390,71 @@ class MainActivity : AppCompatActivity() {
         // 選択されたアイテムが可視アイテムの中で何番目かを取得
         val index = visibleItems.indexOf(itemId).coerceAtLeast(0)
 
-        nav.post {
-            val menuView = nav.getChildAt(0) as? android.view.ViewGroup ?: return@post
-            menuView.clipChildren = false
-            menuView.clipToPadding = false
+        val updateLayout = {
+            val menuView = nav.getChildAt(0) as? android.view.ViewGroup
+            if (menuView != null) {
+                menuView.clipChildren = false
+                menuView.clipToPadding = false
 
-            // 可視アイテムビューのリストを構築
-            val visibleViews = mutableListOf<android.view.View>()
-            for (i in 0 until menuView.childCount) {
-                val itemView = menuView.getChildAt(i)
-                if (itemView.visibility == android.view.View.VISIBLE) {
-                    visibleViews.add(itemView)
-                }
-            }
-
-            // 実際のItemViewの物理中心座標を取得（レイアウト誤差やピクセル丸めによるズレをゼロにする）
-            val targetView = if (index in 0 until visibleViews.size) visibleViews[index] else null
-            val targetCenterX = if (targetView != null && targetView.width > 0) {
-                targetView.left + (targetView.width / 2f)
-            } else {
-                val itemWidth = nav.width.toFloat() / visibleCount.coerceAtLeast(1)
-                (itemWidth * index) + (itemWidth / 2f)
-            }
-            
-            // 一体化ナビ背景の突起（バルジ）をスライド移動（外周の一筆書きストロークを維持）
-            binding.liquidNavBackground.setBulgeCenterX(targetCenterX, animated = true)
-
-            // アイコン自体の持ち上げ（BottomNavigationViewの各子ビューに対して）
-            val density = resources.displayMetrics.density
-            val liftY = -28f * density
-            for (i in 0 until visibleViews.size) {
-                val itemView = visibleViews[i] as? android.view.ViewGroup ?: continue
-                itemView.clipChildren = false
-                itemView.clipToPadding = false
-
-                if (itemView.childCount > 0) {
-                    val icon = itemView.getChildAt(0)
-                    if (icon is android.view.ViewGroup) {
-                        icon.clipChildren = false
-                        icon.clipToPadding = false
-                    }
-
-                    if (i == index) {
-                        icon.animate().translationY(liftY).setDuration(300).start()
-                        // 文字（通常は2番目の子要素）を取得して上に移動
-                        if (itemView.childCount > 1) {
-                            val label = itemView.getChildAt(1)
-                            label.animate().translationY(0f).setDuration(250).start()
-                        }
-                    } else {
-                        icon.animate().translationY(0f).setDuration(250).start()
-                        // 文字を元の位置に戻す
-                        if (itemView.childCount > 1) {
-                            val label = itemView.getChildAt(1)
-                            label.animate().translationY(0f).setDuration(250).start()
-                        }
+                // 可視アイテムビューのリストを構築
+                val visibleViews = mutableListOf<android.view.View>()
+                for (i in 0 until menuView.childCount) {
+                    val itemView = menuView.getChildAt(i)
+                    if (itemView.visibility == android.view.View.VISIBLE) {
+                        visibleViews.add(itemView)
                     }
                 }
+
+                // 実際のItemViewの物理中心座標を取得（レイアウト誤差やピクセル丸めによるズレをゼロにする）
+                val targetView = if (index in 0 until visibleViews.size) visibleViews[index] else null
+                val targetCenterX = if (targetView != null && targetView.width > 0) {
+                    targetView.left + (targetView.width / 2f)
+                } else {
+                    val itemWidth = nav.width.toFloat() / visibleCount.coerceAtLeast(1)
+                    (itemWidth * index) + (itemWidth / 2f)
+                }
+                
+                // 一体化ナビ背景の突起（バルジ）を移動
+                binding.liquidNavBackground.setBulgeCenterX(targetCenterX, animated = animated)
+
+                // アイコン自体の持ち上げ
+                val density = resources.displayMetrics.density
+                val liftY = -28f * density
+                for (i in 0 until visibleViews.size) {
+                    val itemView = visibleViews[i] as? android.view.ViewGroup ?: continue
+                    itemView.clipChildren = false
+                    itemView.clipToPadding = false
+
+                    if (itemView.childCount > 0) {
+                        val icon = itemView.getChildAt(0)
+                        if (icon is android.view.ViewGroup) {
+                            icon.clipChildren = false
+                            icon.clipToPadding = false
+                        }
+
+                        val targetLift = if (i == index) liftY else 0f
+                        if (animated) {
+                            icon.animate().translationY(targetLift).setDuration(if (i == index) 300 else 250).start()
+                        } else {
+                            icon.animate().cancel()
+                            icon.translationY = targetLift
+                        }
+
+                        // 文字のベースラインを確実に0fに固定（初回起動時の文字ズレを根本防止）
+                        if (itemView.childCount > 1) {
+                            val label = itemView.getChildAt(1)
+                            label.animate().cancel()
+                            label.translationY = 0f
+                        }
+                    }
+                }
             }
+        }
+
+        if (nav.isLaidOut) {
+            updateLayout()
+        } else {
+            nav.doOnLayout { updateLayout() }
         }
     }
 
