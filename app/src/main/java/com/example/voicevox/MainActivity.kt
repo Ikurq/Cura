@@ -434,6 +434,8 @@ class MainActivity : AppCompatActivity() {
                 .start()
 
             // アイコン自体の持ち上げ（BottomNavigationViewの各子ビューに対して）
+            val density = resources.displayMetrics.density
+            val liftY = -28f * density
             for (i in 0 until visibleViews.size) {
                 val itemView = visibleViews[i] as? android.view.ViewGroup ?: continue
                 itemView.clipChildren = false
@@ -447,11 +449,11 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     if (i == index) {
-                        icon.animate().translationY(-64f).setDuration(300).start()
+                        icon.animate().translationY(liftY).setDuration(300).start()
                         // 文字（通常は2番目の子要素）を取得して上に移動
                         if (itemView.childCount > 1) {
                             val label = itemView.getChildAt(1)
-                            label.animate().translationY(-12f).setDuration(300).start()
+                            label.animate().translationY(0f).setDuration(250).start()
                         }
                     } else {
                         icon.animate().translationY(0f).setDuration(250).start()
