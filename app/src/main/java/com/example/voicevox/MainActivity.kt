@@ -228,7 +228,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyCharacterVisualTheme(theme: CharacterTheme) {
         val density = resources.displayMetrics.density
 
-        // 1. 全体背景グラデーションおよびボトムナビ背面フェードグラデーションの適用
+        // 1. 全体背景グラデーションの適用
         try {
             val startColor = android.graphics.Color.parseColor(theme.gradientStartHex)
             val endColor = android.graphics.Color.parseColor(theme.gradientEndHex)
@@ -237,14 +237,6 @@ class MainActivity : AppCompatActivity() {
                 intArrayOf(startColor, endColor)
             )
             binding.mainRootLayout.background = gradientDrawable
-
-            // ボトムナビ背後の鋭利な水平切断を防ぐフェードグラデーション（透明から画面下部背景色へ自然に溶け込ませる）
-            val transparentColor = android.graphics.Color.TRANSPARENT
-            val fadeGradient = android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(transparentColor, endColor)
-            )
-            binding.contentBottomFadeView.background = fadeGradient
         } catch (e: Exception) {
             // Ignore color parse error
         }
@@ -290,29 +282,11 @@ class MainActivity : AppCompatActivity() {
         val navStyle = theme.navStyle
         val density = resources.displayMetrics.density
 
-        // 1. インジケーター（バルジ）とナビバーの背景色・正円形状・境界線・シャドウを適用
+        // 1. 一体型ナビゲーション背景（バルジ＋バー）の一体縁取り・背景色・シャドウを適用
         try {
             val navBgColor = android.graphics.Color.parseColor(navStyle.navBackgroundColorHex)
             val strokeColor = android.graphics.Color.parseColor(navStyle.strokeColorHex ?: navStyle.activeItemColorHex)
-            val strokeWidthPx = (navStyle.strokeWidthDp * density).toInt()
-
-            binding.navBulgeCustomShape.visibility = android.view.View.GONE
-            binding.navBulgeCircle.radius = 35f * density // 常に美しい正円固定
-            binding.navBulgeCircle.setCardBackgroundColor(navBgColor)
-            binding.navBulgeCircle.strokeColor = strokeColor
-            binding.navBulgeCircle.strokeWidth = strokeWidthPx
-            binding.navBulgeCircle.cardElevation = 6f * density
-
-            // Android P (API 28) 以上のカラーシャドウ対応（アクセントカラーのほのかなグロー光彩）
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                binding.navBulgeCircle.outlineSpotShadowColor = strokeColor
-                binding.navBulgeCircle.outlineAmbientShadowColor = strokeColor
-                binding.navBaseBar.outlineSpotShadowColor = strokeColor
-                binding.navBaseBar.outlineAmbientShadowColor = strokeColor
-            }
-
-            binding.navBaseBar.backgroundTintList = android.content.res.ColorStateList.valueOf(navBgColor)
-            binding.navBaseBar.elevation = 8f * density
+            binding.liquidNavBackground.setThemeColors(navBgColor, strokeColor)
         } catch (e: Exception) {
             // Ignore color parse error
         }
@@ -400,7 +374,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun animateNavBulge(itemId: Int) {
         val nav = binding.bottomNavigation
-        val bulge = binding.navBulgeCircle
         
         // 実際に表示されているメニューアイテムを取得
         val visibleItems = mutableListOf<Int>()
@@ -439,14 +412,9 @@ class MainActivity : AppCompatActivity() {
                 val itemWidth = nav.width.toFloat() / visibleCount.coerceAtLeast(1)
                 (itemWidth * index) + (itemWidth / 2f)
             }
-            val targetX = targetCenterX - (bulge.width / 2f)
             
-            // 図形のスライド移動
-            bulge.animate()
-                .translationX(targetX)
-                .setDuration(300)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
+            // 一体化ナビ背景の突起（バルジ）をスライド移動（外周の一筆書きストロークを維持）
+            binding.liquidNavBackground.setBulgeCenterX(targetCenterX, animated = true)
 
             // アイコン自体の持ち上げ（BottomNavigationViewの各子ビューに対して）
             val density = resources.displayMetrics.density
