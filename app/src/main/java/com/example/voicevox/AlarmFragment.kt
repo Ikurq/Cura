@@ -1,4 +1,4 @@
-﻿package com.example.voicevox
+package com.example.voicevox
 
 import android.app.AlarmManager
 import android.app.AlertDialog
@@ -327,6 +327,7 @@ class AlarmFragment : Fragment() {
             }
             previewPlayer = MediaPlayer().apply {
                 setDataSource(file.absolutePath)
+                setVolume(1.0f, 1.0f)
                 setOnPreparedListener { it.start() }
                 setOnCompletionListener { previewBtn.isEnabled = true }
                 setOnErrorListener { _, _, _ ->

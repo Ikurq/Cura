@@ -58,7 +58,7 @@ object CuraVoicevox {
         styleId: String,
         outputFile: File,
         speedScale: Float = 1.15f,
-        volumeScale: Float = 1.4f
+        volumeScale: Float = 1.6f
     ): Boolean = withContext(Dispatchers.Default) {
         // 連打対策：実行中のJobがあればキャンセル
         val currentJob = Job()
@@ -119,7 +119,7 @@ object CuraVoicevox {
         return "$text|$styleId|$speed|$volume"
     }
 
-    internal fun getCacheFile(context: Context, text: String, styleId: String, speed: Float, volume: Float = 1.4f): File {
+    internal fun getCacheFile(context: Context, text: String, styleId: String, speed: Float, volume: Float = 1.6f): File {
         val hash = md5(getCacheKey(text, styleId, speed, volume))
         return File(File(context.filesDir, "voice_cache"), "cache_$hash.wav")
     }

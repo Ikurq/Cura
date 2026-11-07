@@ -50,6 +50,8 @@ class AlarmService : Service() {
         }
 
         requestAggressiveFocus()
+        // 端末の音量設定に左右されず確実にアラームが聞こえるよう最大音量にブースト
+        AlarmVolumeManager.acquireAlarmVolume(this)
         sendBroadcast(Intent(CuraConstants.ACTION_ALARM_STARTED))
         createNotificationChannel()
 
@@ -142,6 +144,8 @@ class AlarmService : Service() {
         super.onDestroy()
         currentAlarmId = null
         sendBroadcast(Intent(CuraConstants.ACTION_ALARM_DISMISSED))
+        // アラーム音量の解放（AlarmAlertActivityが起動中の場合は音量を維持、完全終了時に元音量へ復帰）
+        AlarmVolumeManager.releaseAlarmVolume(this)
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null

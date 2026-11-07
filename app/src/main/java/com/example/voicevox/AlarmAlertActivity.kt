@@ -93,10 +93,14 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
         mediaPlayer?.release()
         mediaPlayer = null
+        // モーニング読み上げを含むアラームセッション終了時に元の音量へ復帰
+        AlarmVolumeManager.releaseAlarmVolume(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // アラーム画面表示中およびモーニング読み上げ中の音量を高音量で維持
+        AlarmVolumeManager.acquireAlarmVolume(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -285,7 +289,13 @@ class AlarmAlertActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.alertTime).text = "予定を読み上げ中"
 
                 val success = withContext(Dispatchers.IO) {
-                    CuraVoicevox.createAudio(this@AlarmAlertActivity, message, styleId.toString(), outputFile)
+                    CuraVoicevox.createAudio(
+                        this@AlarmAlertActivity,
+                        message,
+                        styleId.toString(),
+                        outputFile,
+                        volumeScale = 1.6f
+                    )
                 }
 
                 if (success && outputFile.exists() && outputFile.length() > 0) {

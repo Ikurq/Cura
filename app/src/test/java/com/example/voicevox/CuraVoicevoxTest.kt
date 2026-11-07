@@ -9,18 +9,18 @@ class CuraVoicevoxTest {
     @Test
     fun testCacheKeyIncludesVolumeScale() {
         val keyStandardVolume = CuraVoicevox.getCacheKey("起きてください", "3", 1.15f, 1.0f)
-        val keyBoostedVolume = CuraVoicevox.getCacheKey("起きてください", "3", 1.15f, 1.4f)
+        val keyBoostedVolume = CuraVoicevox.getCacheKey("起きてください", "3", 1.15f, 1.6f)
 
         // 音量倍率が異なればキャッシュキーが異なること（過去の低音量キャッシュと混ざらない）
         assertNotEquals(keyStandardVolume, keyBoostedVolume)
         assertEquals("起きてください|3|1.15|1.0", keyStandardVolume)
-        assertEquals("起きてください|3|1.15|1.4", keyBoostedVolume)
+        assertEquals("起きてください|3|1.15|1.6", keyBoostedVolume)
     }
 
     @Test
     fun testCacheKeyConsistency() {
-        val key1 = CuraVoicevox.getCacheKey("おはよう", "1", 1.0f, 1.4f)
-        val key2 = CuraVoicevox.getCacheKey("おはよう", "1", 1.0f, 1.4f)
+        val key1 = CuraVoicevox.getCacheKey("おはよう", "1", 1.0f, 1.6f)
+        val key2 = CuraVoicevox.getCacheKey("おはよう", "1", 1.0f, 1.6f)
 
         assertEquals(key1, key2)
     }
