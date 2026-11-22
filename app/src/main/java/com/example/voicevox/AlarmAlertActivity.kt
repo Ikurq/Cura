@@ -1,9 +1,10 @@
 package com.example.voicevox
 
 import android.Manifest
-import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -27,10 +28,9 @@ import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -40,9 +40,16 @@ class AlarmAlertActivity : AppCompatActivity() {
     companion object {
         private const val DEFAULT_STYLE_ID = 3
         private const val REQUEST_CAMERA_CODE = 1001
+
+        @Volatile
+        var isActiveInSession: Boolean = false
+
+        @Volatile
+        var isCurrentlyVisible: Boolean = false
     }
 
     private lateinit var alertTimeText: TextView
+    private lateinit var alertMessageText: TextView
     private lateinit var stopAlarmNowButton: Button
     private lateinit var alertQrBadge: TextView
     private lateinit var qrScannerOverlay: LinearLayout
@@ -51,8 +58,11 @@ class AlarmAlertActivity : AppCompatActivity() {
     private lateinit var btnCancelQrScan: Button
 
     private var mediaPlayer: MediaPlayer? = null
+    private var readingJob: Job? = null
     private var isReading: Boolean = false
     private var isScanning: Boolean = false
+    private var hasAcquiredVolume: Boolean = false
+    private var isDismissReceiverRegistered: Boolean = false
     private var currentAlarmItem: AlarmItem? = null
 
     private val timeHandler = Handler(Looper.getMainLooper())
@@ -63,22 +73,45 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
+    private val alarmDismissedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == CuraConstants.ACTION_ALARM_DISMISSED && !isReading && !isFinishing) {
+                finish()
+            }
+        }
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+        dismissAlarmOverlay()
+
+        // モーニング読み上げ中に別アラームが鳴り始めた場合は、前の読み上げを中断して新アラーム画面に切り替える
+        if (isReading) {
+            readingJob?.cancel()
+            readingJob = null
+            stopAndReleaseMediaPlayer()
+            isReading = false
+            stopAlarmNowButton.isEnabled = true
+        }
+        updateCurrentTime()
+        applyAlarmToUi(intent)
     }
 
     override fun onResume() {
         super.onResume()
+        isCurrentlyVisible = true
+        dismissAlarmOverlay()
         if (isScanning) {
             barcodeScannerView.resume()
         }
-        if (!isReading && !isServiceRunning(this, AlarmService::class.java)) {
+        if (!isReading && !AlarmService.isRunning && !isServiceRunning(this, AlarmService::class.java)) {
             finish()
         }
     }
 
     override fun onPause() {
+        isCurrentlyVisible = false
         super.onPause()
         if (isScanning) {
             barcodeScannerView.pause()
@@ -86,44 +119,70 @@ class AlarmAlertActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        isCurrentlyVisible = false
+        isActiveInSession = false
+        readingJob?.cancel()
+        readingJob = null
+
+        if (isDismissReceiverRegistered) {
+            try {
+                unregisterReceiver(alarmDismissedReceiver)
+            } catch (_: Exception) {}
+            isDismissReceiverRegistered = false
+        }
+
         super.onDestroy()
         timeHandler.removeCallbacks(timeRunnable)
         if (isScanning) {
             barcodeScannerView.pause()
         }
-        mediaPlayer?.release()
-        mediaPlayer = null
-        // モーニング読み上げを含むアラームセッション終了時に元の音量へ復帰
-        AlarmVolumeManager.releaseAlarmVolume(this)
+        stopAndReleaseMediaPlayer()
+
+        if (hasAcquiredVolume) {
+            AlarmVolumeManager.releaseAlarmVolume(this)
+            hasAcquiredVolume = false
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // アラーム画面表示中およびモーニング読み上げ中の音量を高音量で維持
-        AlarmVolumeManager.acquireAlarmVolume(this)
+        isActiveInSession = true
+
+        if (!hasAcquiredVolume) {
+            AlarmVolumeManager.acquireAlarmVolume(this)
+            hasAcquiredVolume = true
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            // ロック画面上に直接全画面表示させる（無条件のrequestDismissKeyguardはPIN入力画面が割り込むため呼ばない）
             setShowWhenLocked(true)
             setTurnScreenOn(true)
-            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-            keyguardManager.requestDismissKeyguard(this, null)
         } else {
             @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-                        WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
             )
         }
-        
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_alarm_alert)
         sendBroadcast(Intent(CuraConstants.ACTION_ALARM_STARTED))
+        dismissAlarmOverlay()
+
+        ContextCompat.registerReceiver(
+            this,
+            alarmDismissedReceiver,
+            IntentFilter(CuraConstants.ACTION_ALARM_DISMISSED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        isDismissReceiverRegistered = true
 
         alertTimeText = findViewById(R.id.alertTime)
+        alertMessageText = findViewById(R.id.alertMessage)
         stopAlarmNowButton = findViewById(R.id.stopAlarmNowButton)
         alertQrBadge = findViewById(R.id.alertQrBadge)
         qrScannerOverlay = findViewById(R.id.qrScannerOverlay)
@@ -134,22 +193,12 @@ class AlarmAlertActivity : AppCompatActivity() {
         updateCurrentTime()
         timeHandler.post(timeRunnable)
 
-        val resolvedAlarmId = intent.getStringExtra("ALARM_ID") ?: AlarmService.currentAlarmId
-        currentAlarmItem = resolveAlarmItem(resolvedAlarmId)
-
-        val isQrRequired = currentAlarmItem?.requireQrCode == true
-        if (isQrRequired) {
-            alertQrBadge.visibility = View.VISIBLE
-            stopAlarmNowButton.text = getString(R.string.alarm_scan_qr_button)
-        } else {
-            alertQrBadge.visibility = View.GONE
-            stopAlarmNowButton.text = "アラームを停止"
-        }
+        applyAlarmToUi(intent)
 
         stopAlarmNowButton.setOnClickListener {
             if (isReading) return@setOnClickListener
 
-            if (isQrRequired) {
+            if (currentAlarmItem?.requireQrCode == true) {
                 checkCameraAndStartScan()
             } else {
                 executeAlarmDismiss()
@@ -159,6 +208,28 @@ class AlarmAlertActivity : AppCompatActivity() {
         btnCancelQrScan.setOnClickListener {
             stopQrScan()
         }
+    }
+
+    private fun applyAlarmToUi(targetIntent: Intent?) {
+        val resolvedAlarmId = targetIntent?.getStringExtra(AlarmScheduler.EXTRA_ALARM_ID)
+            ?: AlarmService.currentAlarmId
+        currentAlarmItem = AlarmScheduler.findAlarmItem(this, resolvedAlarmId)
+
+        alertMessageText.text = currentAlarmItem?.message?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.alarm_alert_default_message)
+
+        val isQrRequired = currentAlarmItem?.requireQrCode == true
+        if (isQrRequired) {
+            alertQrBadge.visibility = View.VISIBLE
+            stopAlarmNowButton.text = getString(R.string.alarm_scan_qr_button)
+        } else {
+            alertQrBadge.visibility = View.GONE
+            stopAlarmNowButton.text = getString(R.string.alarm_stop_button)
+        }
+    }
+
+    private fun dismissAlarmOverlay() {
+        sendBroadcast(Intent(AlarmService.ACTION_DISMISS_OVERLAY).setPackage(packageName))
     }
 
     private fun checkCameraAndStartScan() {
@@ -214,53 +285,27 @@ class AlarmAlertActivity : AppCompatActivity() {
         isReading = true
 
         stopAlarmNowButton.isEnabled = false
-        stopAlarmNowButton.text = "予定を確認中..."
-        alertTimeText.text = "アラーム停止"
+        stopAlarmNowButton.text = getString(R.string.alarm_checking_schedule)
+        alertTimeText.text = getString(R.string.alarm_stopped_title)
+
+        val resolvedAlarmId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_ID) ?: AlarmService.currentAlarmId
+        val styleId = currentAlarmItem?.speakerId ?: DEFAULT_STYLE_ID
 
         val serviceIntent = Intent(this, AlarmService::class.java)
         stopService(serviceIntent)
-        
+
         // 起床統計とキャラクター経験値を付与
         updateWakeUpStatistics()
         addCharExp()
 
-        val resolvedAlarmId = intent.getStringExtra("ALARM_ID") ?: AlarmService.currentAlarmId
-        val styleId = currentAlarmItem?.speakerId ?: resolveSpeakerId(resolvedAlarmId)
-        
-        if (resolvedAlarmId != null) {
-            rescheduleNextAlarm(resolvedAlarmId)
-        }
+        AlarmScheduler.handleAlarmDismissed(this, resolvedAlarmId)
         startMorningReading(styleId)
-    }
-
-    private fun resolveAlarmItem(alarmId: String?): AlarmItem? {
-        if (alarmId == null) return null
-        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return null
-        return try {
-            val alarmList = Json.decodeFromString<List<AlarmItem>>(jsonString)
-            alarmList.find { it.id == alarmId }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun resolveSpeakerId(alarmId: String?): Int {
-        if (alarmId == null) return DEFAULT_STYLE_ID
-        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return DEFAULT_STYLE_ID
-        return try {
-            val alarmList = Json.decodeFromString<List<AlarmItem>>(jsonString)
-            alarmList.find { it.id == alarmId }?.speakerId ?: DEFAULT_STYLE_ID
-        } catch (e: Exception) {
-            DEFAULT_STYLE_ID
-        }
     }
 
     private fun updateWakeUpStatistics() {
         val playerPrefs = getSharedPreferences(CuraConstants.PREFS_PLAYER, Context.MODE_PRIVATE)
         val currentCount = playerPrefs.getInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, 0)
-        
+
         playerPrefs.edit {
             putInt(CuraConstants.KEY_ALARM_WAKEUP_COUNT, currentCount + 1)
             putBoolean(CuraConstants.KEY_PENDING_ALARM_PRAISE, true)
@@ -268,7 +313,8 @@ class AlarmAlertActivity : AppCompatActivity() {
     }
 
     private fun startMorningReading(styleId: Int) {
-        lifecycleScope.launch {
+        readingJob?.cancel()
+        readingJob = lifecycleScope.launch {
             try {
                 val events = ScheduleLoader.loadAllEventsForToday(this@AlarmAlertActivity, Calendar.getInstance())
                 val tasks = ScheduleLoader.loadTasksForToday(this@AlarmAlertActivity)
@@ -281,12 +327,12 @@ class AlarmAlertActivity : AppCompatActivity() {
                 )
 
                 val outputFile = File(cacheDir, "morning_reading.wav")
-                
-                findViewById<Button>(R.id.stopAlarmNowButton).apply {
+
+                stopAlarmNowButton.apply {
                     isEnabled = false
-                    text = "読み上げ中..."
+                    text = getString(R.string.alarm_reading_button)
                 }
-                findViewById<TextView>(R.id.alertTime).text = "予定を読み上げ中"
+                alertTimeText.text = getString(R.string.alarm_reading_title)
 
                 val success = withContext(Dispatchers.IO) {
                     CuraVoicevox.createAudio(
@@ -298,21 +344,24 @@ class AlarmAlertActivity : AppCompatActivity() {
                     )
                 }
 
+                if (!isReading) return@launch
                 if (success && outputFile.exists() && outputFile.length() > 0) {
                     playAudio(outputFile)
                 } else {
                     finish()
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("AlarmAlertActivity", "Error during morning reading", e)
-                finish()
+                if (isReading) finish()
             }
         }
     }
 
     private fun playAudio(file: File) {
         try {
-            mediaPlayer?.release()
+            stopAndReleaseMediaPlayer()
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -322,14 +371,16 @@ class AlarmAlertActivity : AppCompatActivity() {
                 )
                 setDataSource(applicationContext, Uri.fromFile(file))
                 setVolume(1.0f, 1.0f)
-                setOnCompletionListener { 
-                    finish() 
+                setOnCompletionListener {
+                    if (isReading) finish()
                 }
                 setOnErrorListener { _, _, _ ->
-                    finish()
+                    if (isReading) finish()
                     true
                 }
-                setOnPreparedListener { it.start() }
+                setOnPreparedListener {
+                    if (isReading) it.start()
+                }
                 prepareAsync()
             }
         } catch (e: Exception) {
@@ -338,74 +389,23 @@ class AlarmAlertActivity : AppCompatActivity() {
         }
     }
 
+    private fun stopAndReleaseMediaPlayer() {
+        val player = mediaPlayer ?: return
+        mediaPlayer = null
+        try {
+            if (player.isPlaying) {
+                player.stop()
+            }
+        } catch (_: Exception) {}
+        try {
+            player.release()
+        } catch (_: Exception) {}
+    }
+
     private fun updateCurrentTime() {
+        if (isReading) return
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
         alertTimeText.text = sdf.format(Date())
-    }
-
-    private fun rescheduleNextAlarm(alarmId: String) {
-        val prefs = getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
-        val jsonString = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return
-        try {
-            val alarmList = Json.decodeFromString<List<AlarmItem>>(jsonString).toMutableList()
-            val index = alarmList.indexOfFirst { it.id == alarmId }
-            if (index != -1) {
-                val item = alarmList[index]
-                if (item.isOneShot) {
-                    alarmList.removeAt(index)
-                    prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString(alarmList)).apply()
-                } else if (item.repeatDays.isNotEmpty()) {
-                    scheduleNextRepeat(item)
-                } else {
-                    item.isEnabled = false
-                    prefs.edit().putString(CuraConstants.KEY_ALARM_LIST, Json.encodeToString(alarmList)).apply()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun scheduleNextRepeat(item: AlarmItem) {
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-        val intent = Intent(this, AlarmReceiver::class.java).apply {
-            putExtra("ALARM_ID", item.id)
-            val file = File(filesDir, "${item.id}_alarm.wav")
-            putExtra("AUDIO_PATH", file.absolutePath)
-        }
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        } else {
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        val pendingIntent = android.app.PendingIntent.getBroadcast(this, item.id.hashCode(), intent, flags)
-
-        val calendar = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, item.hour)
-            set(java.util.Calendar.MINUTE, item.minute)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }
-
-        val now = System.currentTimeMillis()
-        var minDiff = Long.MAX_VALUE
-        var targetCalendar: java.util.Calendar? = null
-        
-        for (day in item.repeatDays) {
-            val tempCal = calendar.clone() as java.util.Calendar
-            tempCal.set(java.util.Calendar.DAY_OF_WEEK, day)
-            if (tempCal.timeInMillis <= now) {
-                tempCal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-            }
-            val diff = tempCal.timeInMillis - now
-            if (diff < minDiff) {
-                minDiff = diff
-                targetCalendar = tempCal
-            }
-        }
-        targetCalendar?.let { calendar.timeInMillis = it.timeInMillis }
-
-        alarmManager.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
     }
 
     private fun addCharExp() {
@@ -418,34 +418,30 @@ class AlarmAlertActivity : AppCompatActivity() {
         val calLast = Calendar.getInstance().apply { timeInMillis = lastRewardTime }
 
         val isSameAmPm = calNow.get(Calendar.YEAR) == calLast.get(Calendar.YEAR) &&
-                calNow.get(Calendar.DAY_OF_YEAR) == calLast.get(Calendar.DAY_OF_YEAR) &&
-                (calNow.get(Calendar.HOUR_OF_DAY) < 12) == (calLast.get(Calendar.HOUR_OF_DAY) < 12)
+            calNow.get(Calendar.DAY_OF_YEAR) == calLast.get(Calendar.DAY_OF_YEAR) &&
+            (calNow.get(Calendar.HOUR_OF_DAY) < 12) == (calLast.get(Calendar.HOUR_OF_DAY) < 12)
 
         if (isSameAmPm) {
             val bonusExp = 10L
             prefs.edit().putLong(CuraConstants.KEY_PENDING_EXP, currentPending + bonusExp).apply()
-            Toast.makeText(this, "おはようございます！起床成功です！", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.alarm_wakeup_praise_short), Toast.LENGTH_SHORT).show()
             return
         }
 
-        val currentTheme = CharacterThemeManager.getCurrentTheme(this)
-        val totalExp = CharacterLevelManager.getTotalExp(this, currentTheme.id)
         val expPerLevel = CuraMessageManager.getIntConstant(this, "exp_per_level", 100).toLong()
-        val currentLv = CharacterLevelManager.calculateLevel(totalExp, expPerLevel)
-
-        // 次のレベルまでの経験値をストックに
-        val gain = expPerLevel 
+        val gain = expPerLevel
 
         prefs.edit()
             .putLong(CuraConstants.KEY_PENDING_EXP, currentPending + gain)
             .putLong("last_alarm_reward_millis", now)
             .apply()
 
-        Toast.makeText(this, "起床成功！ホーム画面で報酬を受け取ってください", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.alarm_wakeup_praise_reward), Toast.LENGTH_LONG).show()
     }
 
     private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
         for (service in activityManager.getRunningServices(Integer.MAX_VALUE)) {
             if (serviceClass.name == service.service.className) {
                 return true

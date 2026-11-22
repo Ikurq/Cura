@@ -47,8 +47,13 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             // Regular Alarm Logic
-            val audioFilePath = intent.getStringExtra("AUDIO_FILE_PATH")
-            val alarmId = intent.getStringExtra("ALARM_ID")
+            val alarmId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_ID)
+            val audioFilePath = AlarmScheduler.resolveAudioFilePath(intent)
+                ?: alarmId?.let { id ->
+                    val fallbackFile = java.io.File(context.filesDir, "${id}_alarm.wav")
+                    if (fallbackFile.exists()) fallbackFile.absolutePath else null
+                }
+            // alarmId is resolved above via AlarmScheduler.EXTRA_ALARM_ID
             val vibrate = intent.getBooleanExtra("VIBRATE", true)
 
             if (audioFilePath != null) {
@@ -58,9 +63,9 @@ class AlarmReceiver : BroadcastReceiver() {
                     putExtra("VIBRATE", vibrate)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
+                    startAlarmServiceWithWakeLock(context, serviceIntent)
                 } else {
-                    context.startService(serviceIntent)
+                    startAlarmServiceWithWakeLock(context, serviceIntent)
                 }
                 return
             }
@@ -68,6 +73,45 @@ class AlarmReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             android.util.Log.e("AlarmReceiver", "Error in onReceive: ${e.message}")
             e.printStackTrace()
+        }
+    }
+
+    private fun startAlarmServiceWithWakeLock(context: Context, serviceIntent: Intent) {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        val transitionLock = pm?.newWakeLock(
+            android.os.PowerManager.PARTIAL_WAKE_LOCK,
+            "Cura:AlarmReceiverTransition"
+        )?.apply {
+            setReferenceCounted(false)
+        }
+        // Service起動完了までの隙間スリープを防ぐためタイムアウト付きで短時間だけ保持する
+        try {
+            transitionLock?.acquire(5_000L)
+        } catch (_: Exception) {}
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AlarmReceiver", "Failed to start AlarmService in foreground, issuing FSI notification fallback", e)
+            val alarmId = serviceIntent.getStringExtra(AlarmScheduler.EXTRA_ALARM_ID)
+            val alarmItem = AlarmScheduler.findAlarmItem(context, alarmId)
+            AlarmDisplayHelper.ensureAlarmNotificationChannel(context)
+            val fullScreenPi = AlarmDisplayHelper.buildFullScreenPendingIntent(context, alarmId)
+            val stopIntent = Intent(context, AlarmService::class.java).apply { action = AlarmService.ACTION_STOP }
+            val stopPi = PendingIntent.getService(context, 0, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val notification = AlarmDisplayHelper.buildAlarmNotification(
+                context,
+                fullScreenPi,
+                stopPi,
+                allowNotificationStop = alarmItem?.requireQrCode != true
+            )
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            nm?.notify(AlarmDisplayHelper.ALARM_NOTIFICATION_ID, notification)
+            AlarmDisplayHelper.tryLaunchAlertActivity(context, alarmId, fullScreenPi)
         }
     }
 
@@ -220,7 +264,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra("MESSAGE", message)
         }
         val pi = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        am.setExactAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, time, pi)
+        AlarmScheduler.scheduleExactWithFallback(am, time, pi)
     }
 
     private fun showSystemNotification(context: Context, title: String, message: String) {

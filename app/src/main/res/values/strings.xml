@@ -160,4 +160,37 @@
     <string name="qr_code_saved">解除コードを保存しました</string>
     <string name="qr_code_reset">初期設定に戻しました</string>
     <string name="camera_permission_required">スキャンにはカメラ権限が必要です</string>
+    <!-- Alarm Occupancy & Permissions -->
+    <string name="notification_permission_title">通知の許可</string>
+    <string name="notification_permission_desc">アラーム通知および全画面アラーム起動に必須です</string>
+    <string name="exact_alarm_title">正確なアラームの予約</string>
+    <string name="exact_alarm_desc">指定時刻どおりにアラームを鳴動させるために必要です</string>
+    <string name="alarm_notification_channel_name">アラーム鳴動</string>
+    <string name="alarm_notification_channel_desc">アラーム鳴動時の全画面表示と停止操作</string>
+    <string name="alarm_notification_title">アラーム鳴動中</string>
+    <string name="alarm_notification_text">タップして停止画面を開く、または下のボタンで強制停止</string>
+    <string name="alarm_notification_stop">強制停止</string>
+    <string name="alarm_alert_title">アラーム鳴動中</string>
+    <string name="alarm_alert_default_message">時間です。起きてください。</string>
+    <string name="alarm_stop_button">アラームを停止</string>
+    <string name="alarm_checking_schedule">予定を確認中...</string>
+    <string name="alarm_stopped_title">アラーム停止</string>
+    <string name="alarm_reading_button">読み上げ中...</string>
+    <string name="alarm_reading_title">予定を読み上げ中</string>
+    <string name="alarm_overlay_open_screen">停止画面を開く</string>
+    <string name="alarm_permission_dialog_title">アラーム画面の表示許可</string>
+    <string name="alarm_permission_dialog_msg_fsi">ロック画面等でアラームを全画面表示するには「全画面通知の許可」が必要です。設定を開きますか？</string>
+    <string name="alarm_permission_dialog_msg_notification">アラーム通知および画面占有を行うには「通知の許可」が必要です。設定を開きますか？</string>
+    <string name="alarm_permission_dialog_msg_overlay">他アプリ使用中でもアラーム画面を最前面に表示するには「他のアプリの上に重ねて表示」の許可が推奨されます。設定を開きますか？</string>
+    <string name="alarm_permission_open_settings">設定を開く</string>
+    <string name="alarm_permission_later">後で</string>
+    <string name="calendar_permission_granted">カレンダー権限が許可されました</string>
+    <string name="calendar_permission_denied">カレンダー権限が拒否されました</string>
+    <string name="camera_permission_granted">カメラ権限が許可されました</string>
+    <string name="camera_permission_denied">カメラ権限が拒否されました</string>
+    <string name="notification_permission_granted">通知権限が許可されました</string>
+    <string name="notification_permission_denied">通知権限が拒否されました。アラームが全画面表示されない場合があります</string>
+    <string name="alarm_permission_dialog_msg_exact">指定時刻どおりにアラームを鳴動させるには「アラームとリマインダー」の許可が必要です。設定を開きますか？</string>
+    <string name="alarm_wakeup_praise_short">おはようございます！起床成功です！</string>
+    <string name="alarm_wakeup_praise_reward">起床成功！ホーム画面で報酬を受け取ってください</string>
 </resources>

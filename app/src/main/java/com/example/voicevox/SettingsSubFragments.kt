@@ -1,4 +1,4 @@
-﻿package com.example.voicevox
+package com.example.voicevox
 
 import android.app.AlertDialog
 import android.content.Context
@@ -29,6 +29,14 @@ import java.util.*
 // --- 1. Permissions & Notifications ---
 class SettingsPermissionsFragment : Fragment() {
     
+    private val requestNotificationLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        val msg = getString(if (isGranted) R.string.notification_permission_granted else R.string.notification_permission_denied)
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        view?.let { updatePermissionButtonStates(it) }
+    }
+
     private val requestCalendarLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -39,7 +47,7 @@ class SettingsPermissionsFragment : Fragment() {
     private val requestCameraLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        val msg = if (isGranted) "繧ｫ繝｡繝ｩ讓ｩ髯舌′險ｱ蜿ｯ縺輔ｌ縺ｾ縺励◆" else "繧ｫ繝｡繝ｩ讓ｩ髯舌′諡貞凄縺輔ｌ縺ｾ縺励◆"
+        val msg = getString(if (isGranted) R.string.camera_permission_granted else R.string.camera_permission_denied)
         Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
     }
 
@@ -48,22 +56,69 @@ class SettingsPermissionsFragment : Fragment() {
         setupPermissions(view)
         setupNotifications(view)
         setupQrConfig(view)
+        updatePermissionButtonStates(view)
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        view?.let { updatePermissionButtonStates(it) }
+    }
+
+    private fun updatePermissionButtonStates(view: View) {
+        val ctx = context ?: return
+        val status = AlarmDisplayHelper.evaluatePermissions(ctx)
+        view.findViewById<Button>(R.id.btnRequestOverlayPermission)?.text =
+            getString(if (status.canDrawOverlays) R.string.permitted else R.string.setting)
+        view.findViewById<Button>(R.id.btnRequestBatteryPermission)?.text =
+            getString(if (status.isIgnoringBatteryOptimizations) R.string.permitted else R.string.setting)
+        view.findViewById<Button>(R.id.btnRequestFullScreenPermission)?.text =
+            getString(if (status.canUseFullScreenIntent) R.string.permitted else R.string.setting)
+        view.findViewById<Button>(R.id.btnRequestNotificationPermission)?.text =
+            getString(if (status.hasPostNotifications) R.string.permitted else R.string.setting)
+        view.findViewById<Button>(R.id.btnRequestExactAlarmPermission)?.text =
+            getString(if (status.canScheduleExactAlarms) R.string.permitted else R.string.setting)
+        val hasCalendar = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.READ_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED
+        view.findViewById<Button>(R.id.btnRequestCalendarPermission)?.text =
+            getString(if (hasCalendar) R.string.permitted else R.string.setting)
+        val hasCamera = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        view.findViewById<Button>(R.id.btnRequestCameraPermission)?.text =
+            getString(if (hasCamera) R.string.permitted else R.string.setting)
     }
 
     private fun setupPermissions(view: View) {
         view.findViewById<Button>(R.id.btnRequestOverlayPermission).setOnClickListener {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${requireContext().packageName}".toUri())
-            startActivity(intent)
+            AlarmDisplayHelper.openOverlaySettings(requireContext())
+
         }
         view.findViewById<Button>(R.id.btnRequestBatteryPermission).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            AlarmDisplayHelper.openBatteryOptimizationSettings(requireContext())
         }
         view.findViewById<Button>(R.id.btnRequestFullScreenPermission).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${requireContext().packageName}".toUri()))
+            AlarmDisplayHelper.openFullScreenIntentSettings(requireContext())
         }
         view.findViewById<Button>(R.id.btnRequestCalendarPermission).setOnClickListener {
             requestCalendarLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+        }
+        view.findViewById<Button>(R.id.btnRequestNotificationPermission)?.setOnClickListener {
+            val ctx = requireContext()
+            val status = AlarmDisplayHelper.evaluatePermissions(ctx)
+            val appPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
+            val alreadyPrompted = appPrefs.getBoolean("notification_permission_prompted", false)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                !status.hasPostNotifications &&
+                (!alreadyPrompted || shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS))
+            ) {
+                appPrefs.edit { putBoolean("notification_permission_prompted", true) }
+                requestNotificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                AlarmDisplayHelper.openNotificationSettings(ctx)
+            }
+        }
+        view.findViewById<Button>(R.id.btnRequestExactAlarmPermission)?.setOnClickListener {
+            AlarmDisplayHelper.openExactAlarmSettings(requireContext())
         }
         view.findViewById<Button>(R.id.btnRequestCameraPermission)?.setOnClickListener {
             requestCameraLauncher.launch(android.Manifest.permission.CAMERA)

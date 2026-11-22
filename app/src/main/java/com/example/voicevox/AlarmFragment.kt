@@ -1,16 +1,18 @@
 package com.example.voicevox
 
-import android.app.AlarmManager
+import android.Manifest
 import android.app.AlertDialog
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,6 +31,7 @@ class AlarmFragment : Fragment() {
 
     companion object {
         private const val DEFAULT_STYLE_ID = 3
+        private const val KEY_OVERLAY_PROMPT_SHOWN = "alarm_overlay_prompt_shown"
     }
 
     private var _binding: FragmentAlarmBinding? = null
@@ -42,6 +45,18 @@ class AlarmFragment : Fragment() {
 
     private var currentPickedHour: Int = 7
     private var currentPickedMinute: Int = 0
+
+    private val requestNotificationLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        val ctx = context ?: return@registerForActivityResult
+        if (isGranted) {
+            Toast.makeText(ctx, getString(R.string.notification_permission_granted), Toast.LENGTH_SHORT).show()
+            checkAndPromptAlarmPermissions(skipNotificationRequest = true)
+        } else {
+            Toast.makeText(ctx, getString(R.string.notification_permission_denied), Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,16 +93,16 @@ class AlarmFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = context ?: return@launch
             loadedModels = CuraVoicevox.getModels(ctx)
-            
+
             val dialogBinding = DialogMandatoryAlarmBinding.inflate(LayoutInflater.from(ctx))
-            
+
             val events = ScheduleLoader.loadAllEventsForToday(ctx, Calendar.getInstance())
             val calendarTomorrow = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
             val eventsTomorrow = ScheduleLoader.loadAllEventsForToday(ctx, calendarTomorrow)
-            
+
             val combinedEvents = (events.map { it to false } + eventsTomorrow.map { it to true })
             val titles = combinedEvents.map { (event, isTomorrow) -> formatEventTitle(event, isTomorrow) }
-            
+
             dialogBinding.spinMandatoryEvent.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_item, titles).apply {
                 setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
@@ -108,11 +123,11 @@ class AlarmFragment : Fragment() {
                 .setPositiveButton(getString(R.string.dialog_generate)) { _, _ ->
                     val selectedIndex = dialogBinding.spinMandatoryEvent.selectedItemPosition
                     if (selectedIndex == -1) return@setPositiveButton
-                    
+
                     val (event, _) = combinedEvents[selectedIndex]
                     val leadTime = dialogBinding.editLeadTime.text.toString().toIntOrNull() ?: 30
                     val charName = uniqueNames[dialogBinding.spinMandatorySpeaker.selectedItemPosition]
-                    
+
                     val requireQrCode = dialogBinding.dialogMandatoryRequireQrCheckBox.isChecked
                     val categoryIndex = dialogBinding.spinMandatoryCategory.selectedItemPosition
                     val selectedCategoryId = if (categoryIndex > 0) categories[categoryIndex - 1].id else null
@@ -134,7 +149,8 @@ class AlarmFragment : Fragment() {
         leadTimeMinutes: Int,
         modelId: String,
         speakerName: String,
-        categoryId: String? = null, requireQrCode: Boolean = false
+        categoryId: String? = null,
+        requireQrCode: Boolean = false
     ) {
         val alarmCal = Calendar.getInstance().apply {
             timeInMillis = event.startTime
@@ -142,14 +158,14 @@ class AlarmFragment : Fragment() {
         }
         val hour = alarmCal.get(Calendar.HOUR_OF_DAY)
         val minute = alarmCal.get(Calendar.MINUTE)
-        
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             val ctx = context ?: return@launch
             val template = AlarmTemplateManager.getRandomMandatoryTemplate(ctx, categoryId)
             val message = AlarmTemplateManager.formatMandatoryAlarmMessage(template, hour, minute, event.summary, leadTimeMinutes)
             val newId = UUID.randomUUID().toString()
             val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
-            
+
             if (CuraVoicevox.createAudio(ctx, message, modelId, outputFile)) {
                 val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList(), isOneShot = true, requireQrCode = requireQrCode)
                 alarmList.add(newItem)
@@ -191,10 +207,10 @@ class AlarmFragment : Fragment() {
 
             dialogBinding.btnPreviewVoice.setOnClickListener {
                 val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
-                if(pos >= 0) {
+                if (pos >= 0) {
                     val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
-                    checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> 
-                        startPreviewGeneration(dialogBinding, m, s) 
+                    checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s ->
+                        startPreviewGeneration(dialogBinding, m, s)
                     }
                 }
             }
@@ -202,10 +218,10 @@ class AlarmFragment : Fragment() {
             AlertDialog.Builder(ctx).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogBinding.root)
                 .setPositiveButton(getString(R.string.dialog_save)) { _, _ ->
                     val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
-                    if(pos >= 0) {
+                    if (pos >= 0) {
                         val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
-                        checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s -> 
-                            startAlarmGeneration(dialogBinding, m, s) 
+                        checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s ->
+                            startAlarmGeneration(dialogBinding, m, s)
                         }
                     }
                 }.setNegativeButton(android.R.string.cancel, null).show()
@@ -266,10 +282,10 @@ class AlarmFragment : Fragment() {
     private fun startPreviewGeneration(dialogBinding: DialogAddAlarmBinding, modelId: String, styleId: Int) {
         val message = dialogBinding.dialogMessageInput.text.toString().ifEmpty { "時間です。" }
         val previewBtn = dialogBinding.btnPreviewVoice
-        
+
         val progressDialog = showLoadingDialog(getString(R.string.generating_audio))
         previewBtn.isEnabled = false
-        
+
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = context ?: return@launch
             try {
@@ -293,7 +309,7 @@ class AlarmFragment : Fragment() {
         val message = dialogBinding.dialogMessageInput.text.toString().ifEmpty { "時間です。" }
         val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
         val styleName = dialogBinding.dialogStyleSpinner.selectedItem.toString()
-        
+
         val readTasks = dialogBinding.dialogReadTasksCheckBox.isChecked
         val vibrate = dialogBinding.dialogVibrateCheckBox.isChecked
 
@@ -356,7 +372,7 @@ class AlarmFragment : Fragment() {
         val json = Json.encodeToString(alarmList)
         requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
             .edit().putString(CuraConstants.KEY_ALARM_LIST, json).apply()
-        
+
         // ウィジェットを更新
         AlarmWidgetProvider.triggerUpdate(requireContext())
     }
@@ -376,26 +392,72 @@ class AlarmFragment : Fragment() {
     }
 
     private fun scheduleVoiceAlarm(item: AlarmItem, audioPath: String) {
-        val am = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(requireContext(), AlarmReceiver::class.java).apply { 
-            putExtra("ALARM_ID", item.id)
-            putExtra("AUDIO_FILE_PATH", audioPath) 
-            putExtra("VIBRATE", item.vibrate) 
-        }
-        val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val cal = Calendar.getInstance().apply { 
-            set(Calendar.HOUR_OF_DAY, item.hour)
-            set(Calendar.MINUTE, item.minute)
-            set(Calendar.SECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
-        }
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.timeInMillis, pi)
+        val ctx = context ?: return
+        AlarmScheduler.scheduleAlarm(ctx, item, audioPath)
+        checkAndPromptAlarmPermissions()
     }
 
     private fun cancelVoiceAlarm(item: AlarmItem) {
-        val am = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pi = PendingIntent.getBroadcast(requireContext(), item.id.hashCode(), Intent(requireContext(), AlarmReceiver::class.java), PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-        if (pi != null) am.cancel(pi)
+        val ctx = context ?: return
+        AlarmScheduler.cancelAlarm(ctx, item.id)
+    }
+
+    /**
+     * アラーム鳴動時に全画面占有表示を行うための権限を確認し、不足があれば設定へ誘導する。
+     */
+    private fun checkAndPromptAlarmPermissions(skipNotificationRequest: Boolean = false) {
+        val ctx = context ?: return
+        if (!isAdded) return
+        val status = AlarmDisplayHelper.evaluatePermissions(ctx)
+
+        if (!status.hasPostNotifications && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!skipNotificationRequest) {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                    showPermissionGuidanceDialog(R.string.alarm_permission_dialog_msg_notification) {
+                        AlarmDisplayHelper.openNotificationSettings(ctx)
+                    }
+                } else {
+                    requestNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                return
+            }
+        }
+
+        if (!status.canUseFullScreenIntent) {
+            showPermissionGuidanceDialog(R.string.alarm_permission_dialog_msg_fsi) {
+                AlarmDisplayHelper.openFullScreenIntentSettings(ctx)
+            }
+            return
+        }
+
+        if (!status.canScheduleExactAlarms) {
+            showPermissionGuidanceDialog(R.string.alarm_permission_dialog_msg_exact) {
+                AlarmDisplayHelper.openExactAlarmSettings(ctx)
+            }
+            return
+        }
+
+        if (!status.canDrawOverlays) {
+            val appPrefs = ctx.getSharedPreferences(CuraConstants.PREFS_APP, Context.MODE_PRIVATE)
+            if (!appPrefs.getBoolean(KEY_OVERLAY_PROMPT_SHOWN, false)) {
+                appPrefs.edit { putBoolean(KEY_OVERLAY_PROMPT_SHOWN, true) }
+                showPermissionGuidanceDialog(R.string.alarm_permission_dialog_msg_overlay) {
+                    AlarmDisplayHelper.openOverlaySettings(ctx)
+                }
+            }
+        }
+    }
+
+    private fun showPermissionGuidanceDialog(messageResId: Int, onOpenSettings: () -> Unit) {
+        val ctx = context ?: return
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.alarm_permission_dialog_title)
+            .setMessage(messageResId)
+            .setPositiveButton(R.string.alarm_permission_open_settings) { _, _ ->
+                onOpenSettings()
+            }
+            .setNegativeButton(R.string.alarm_permission_later, null)
+            .show()
     }
 
     private fun toggleAlarm(item: AlarmItem, isEnabled: Boolean) {

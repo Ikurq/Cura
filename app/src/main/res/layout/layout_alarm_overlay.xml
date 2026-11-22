@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5111420"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- ServiceコンテキストでinflateするためMaterialテーマ依存属性は使用しない -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/alarm_alert_title"
+            android:textColor="#CBD5E1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/overlayTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="sans-serif-condensed-medium"
+            tools:text="07:00"
+            android:textColor="#F8FAFC"
+            android:textSize="76sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/overlayQrBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="#60A5FA"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="@string/alarm_qr_badge"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/overlayMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            android:gravity="center"
+            android:text="@string/alarm_alert_default_message"
+            android:textColor="#60A5FA"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/btnOverlayOpenAlert"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="#38BDF8"
+            android:text="@string/alarm_overlay_open_screen"
+            android:textColor="#020617"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnOverlayStopAlarm"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:backgroundTint="#1E293B"
+            android:text="@string/alarm_stop_button"
+            android:textColor="#F8FAFC"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>

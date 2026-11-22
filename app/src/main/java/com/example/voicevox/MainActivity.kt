@@ -50,6 +50,14 @@ class MainActivity : AppCompatActivity() {
     private var isDialogueSkippable: Boolean = true
 
     private var devUnlockTapCount = 0
+
+    private val requestNotificationLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(this, getString(R.string.notification_permission_denied), Toast.LENGTH_LONG).show()
+        }
+    }
     private var breathingAnimator: android.animation.AnimatorSet? = null
 
     private val powerConnectionReceiver = object : android.content.BroadcastReceiver() {
@@ -92,6 +100,7 @@ class MainActivity : AppCompatActivity() {
         checkBatteryOptimization()
         checkExactAlarmPermission()
         checkNotificationPermission()
+        AlarmScheduler.rescheduleAllEnabledAlarms(this)
 
         // 初期アニメーションとデータ読み込み
         runInitialLoadingAnimation()
@@ -818,9 +827,9 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         
         // アラーム鳴動チェック：サービスが動いていたら停止画面へ強制遷移（救済ロジック）
-        if (isServiceRunning(this, AlarmService::class.java)) {
+        if (AlarmService.isRunning || isServiceRunning(this, AlarmService::class.java)) {
             val intent = Intent(this, AlarmAlertActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 AlarmService.currentAlarmId?.let { putExtra("ALARM_ID", it) }
             }
             startActivity(intent)
@@ -959,7 +968,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkOverlayPermission() { if (!Settings.canDrawOverlays(this)) { } }
     private fun checkBatteryOptimization() { if (!(getSystemService(POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)) { } }
-    private fun checkNotificationPermission() { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { } }
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                val appPrefs = getSharedPreferences(CuraConstants.PREFS_APP, MODE_PRIVATE)
+                if (!appPrefs.getBoolean("notification_permission_prompted", false)) {
+                    appPrefs.edit { putBoolean("notification_permission_prompted", true) }
+                    requestNotificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+    }
 
     private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
