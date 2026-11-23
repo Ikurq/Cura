@@ -17,12 +17,20 @@ class ParticleBackgroundView @JvmOverloads constructor(
         isAntiAlias = true
     }
     private val random = Random()
+    private var baseColor: Int = Color.parseColor("#06B6D4")
+
+    fun setParticleColor(color: Int) {
+        baseColor = color
+        invalidate()
+    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         particles.clear()
-        repeat(30) {
-            particles.add(createParticle(w, h))
+        if (w > 0 && h > 0) {
+            repeat(30) {
+                particles.add(createParticle(w, h))
+            }
         }
     }
 
@@ -39,9 +47,10 @@ class ParticleBackgroundView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        
+        if (!isShown || windowVisibility != VISIBLE) return
+
+        paint.color = baseColor
         particles.forEach { p ->
-            paint.color = Color.parseColor("#06B6D4") // Cyber Cyan
             paint.alpha = p.alpha
             canvas.drawCircle(p.x, p.y, p.radius, paint)
 
@@ -54,7 +63,7 @@ class ParticleBackgroundView @JvmOverloads constructor(
             if (p.y < 0 || p.y > height) p.vy *= -1
         }
 
-        invalidate() // Keep animating
+        postInvalidateOnAnimation()
     }
 
     private data class Particle(

@@ -128,6 +128,7 @@ object ScheduleEventHelper {
             editor.putString(CuraConstants.KEY_EVENT_LIST_BACKUP, oldJson)
         }
         editor.putString(CuraConstants.KEY_EVENT_LIST, newJson).apply()
+        ScheduleWidgetProvider.triggerUpdate(context)
     }
 
     /**

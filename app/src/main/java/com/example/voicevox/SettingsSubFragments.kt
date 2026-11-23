@@ -40,15 +40,16 @@ class SettingsPermissionsFragment : Fragment() {
     private val requestCalendarLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        val msg = if (isGranted) "繧ｫ繝ｬ繝ｳ繝繝ｼ讓ｩ髯舌′險ｱ蜿ｯ縺輔ｌ縺ｾ縺励◆" else "繧ｫ繝ｬ繝ｳ繝繝ｼ讓ｩ髯舌′諡貞凄縺輔ｌ縺ｾ縺励◆"
+        val msg = getString(if (isGranted) R.string.calendar_permission_granted else R.string.calendar_permission_denied)
         Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        view?.let { updatePermissionButtonStates(it) }
     }
-
     private val requestCameraLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         val msg = getString(if (isGranted) R.string.camera_permission_granted else R.string.camera_permission_denied)
         Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        view?.let { updatePermissionButtonStates(it) }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -376,17 +377,28 @@ class SettingsVoiceFragment : Fragment() {
     private fun setupStorage(view: View) {
         val txtSize = view.findViewById<TextView>(R.id.textCacheSize)
         val btnClear = view.findViewById<Button>(R.id.btnClearVoiceCache)
+        fun getActiveAlarmFileNames(): Set<String> {
+            val prefs = requireContext().getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
+            val jsonStr = prefs.getString(CuraConstants.KEY_ALARM_LIST, null) ?: return emptySet()
+            return try {
+                Json.decodeFromString<List<AlarmItem>>(jsonStr).map { "${it.id}_alarm.wav" }.toSet()
+            } catch (_: Exception) {
+                emptySet()
+            }
+        }
         fun update() {
             var size = 0L
-            File(requireContext().filesDir, "voice_cache").let { if(it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
-            requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { size += it.length() }
+            val activeFiles = getActiveAlarmFileNames()
+            File(requireContext().filesDir, "voice_cache").let { if (it.exists()) it.listFiles()?.forEach { f -> size += f.length() } }
+            requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") && it.name !in activeFiles }?.forEach { size += it.length() }
             txtSize.text = String.format(Locale.getDefault(), "使用量: %.2f MB", size / (1024.0 * 1024.0))
         }
         btnClear.setOnClickListener {
-            AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("全音声を削除？")
+            AlertDialog.Builder(requireContext()).setTitle("削除").setMessage("音声キャッシュを削除しますか？（登録済みアラームの音声は保持されます）")
                 .setPositiveButton("はい") { _, _ ->
+                    val activeFiles = getActiveAlarmFileNames()
                     File(requireContext().filesDir, "voice_cache").deleteRecursively()
-                    requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
+                    requireContext().filesDir.listFiles()?.filter { it.name.endsWith(".wav") && it.name !in activeFiles }?.forEach { it.delete() }
                     update(); Toast.makeText(context, "完了", Toast.LENGTH_SHORT).show()
                 }.setNegativeButton("いいえ", null).show()
         }
@@ -409,7 +421,8 @@ class SettingsDevFragment : Fragment() {
                 CuraConstants.PREFS_TODO,
                 CuraConstants.PREFS_SCHEDULE,
                 CuraConstants.PREFS_TIMETABLE,
-                CuraConstants.PREFS_ATTENDANCE
+                CuraConstants.PREFS_ATTENDANCE,
+                "CharacterThemePrefs"
             )
             val ctx = requireContext()
             prefNames.forEach { name ->
@@ -458,7 +471,14 @@ class SettingsDevFragment : Fragment() {
                 CuraConstants.PREFS_TODO,
                 CuraConstants.PREFS_SCHEDULE,
                 CuraConstants.PREFS_TIMETABLE,
-                CuraConstants.PREFS_ATTENDANCE
+                CuraConstants.PREFS_ATTENDANCE,
+                "CharacterThemePrefs"
+            )
+            val longKeyPatterns = setOf(
+                CuraConstants.KEY_TOTAL_EXP,
+                CuraConstants.KEY_PENDING_EXP,
+                CuraConstants.KEY_CUMULATIVE_INTERACTION,
+                "last_alarm_reward_millis"
             )
 
             prefNames.forEach { name ->
@@ -469,13 +489,15 @@ class SettingsDevFragment : Fragment() {
                         clear()
                         prefObj.keys().forEach { key ->
                             val value = prefObj.get(key)
-                            when (value) {
-                                is Boolean -> putBoolean(key, value)
-                                is Int -> putInt(key, value)
-                                is Long -> putLong(key, value)
-                                is Double -> putFloat(key, value.toFloat())
-                                is String -> putString(key, value)
-                                is JSONArray -> {
+                            val isLongKey = key in longKeyPatterns || key.startsWith("${CuraConstants.KEY_TOTAL_EXP}_")
+                            when {
+                                value is Boolean -> putBoolean(key, value)
+                                isLongKey && value is Number -> putLong(key, value.toLong())
+                                value is Long -> putLong(key, value)
+                                value is Int -> putInt(key, value)
+                                value is Double -> putFloat(key, value.toFloat())
+                                value is String -> putString(key, value)
+                                value is JSONArray -> {
                                     val set = mutableSetOf<String>()
                                     for (i in 0 until value.length()) {
                                         set.add(value.getString(i))

@@ -356,6 +356,8 @@ class TaskFragment : Fragment() {
         val json = Json.encodeToString(taskList)
         requireContext().getSharedPreferences(CuraConstants.PREFS_TODO, Context.MODE_PRIVATE)
             .edit().putString(CuraConstants.KEY_TASK_LIST, json).apply()
+        TaskWidgetProvider.triggerUpdate(requireContext())
+        ScheduleWidgetProvider.triggerUpdate(requireContext())
         triggerNotificationRefresh()
     }
 

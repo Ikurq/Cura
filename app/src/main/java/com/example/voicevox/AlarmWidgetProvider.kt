@@ -33,7 +33,7 @@ class AlarmWidgetProvider : AppWidgetProvider() {
         private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_alarm)
             
-            // 1. 次回のアラーム情報を取得
+            // 1. 次回のアラーム情報を取得（繰り返し曜日を考慮）
             val prefs = context.getSharedPreferences(CuraConstants.PREFS_ALARM, Context.MODE_PRIVATE)
             val alarmJson = prefs.getString(CuraConstants.KEY_ALARM_LIST, null)
             
@@ -42,18 +42,9 @@ class AlarmWidgetProvider : AppWidgetProvider() {
             
             if (alarmJson != null) {
                 try {
-                    val activeAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson).filter { it.isEnabled }
-                    if (activeAlarms.isNotEmpty()) {
-                        val cal = Calendar.getInstance()
-                        val ch = cal.get(Calendar.HOUR_OF_DAY)
-                        val cm = cal.get(Calendar.MINUTE)
-                        
-                        val next = activeAlarms.map { item ->
-                            var diff = (item.hour * 60 + item.minute) - (ch * 60 + cm)
-                            if (diff <= 0) diff += 24 * 60
-                            diff to item
-                        }.minBy { it.first }.second
-                        
+                    val allAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson)
+                    val next = AlarmScheduler.findNextActiveAlarm(allAlarms)
+                    if (next != null) {
                         nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.hour, next.minute)
                         speakerStr = "[${next.speakerName}]"
                     }

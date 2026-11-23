@@ -317,7 +317,12 @@ class AlarmAlertActivity : AppCompatActivity() {
         readingJob = lifecycleScope.launch {
             try {
                 val events = ScheduleLoader.loadAllEventsForToday(this@AlarmAlertActivity, Calendar.getInstance())
-                val tasks = ScheduleLoader.loadTasksForToday(this@AlarmAlertActivity)
+                val shouldReadTasks = currentAlarmItem?.readTasks ?: true
+                val tasks = if (shouldReadTasks) {
+                    ScheduleLoader.loadTasksForToday(this@AlarmAlertActivity)
+                } else {
+                    emptyList()
+                }
 
                 val message = AlarmTemplateManager.buildMorningReadingMessage(
                     context = this@AlarmAlertActivity,

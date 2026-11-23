@@ -73,6 +73,21 @@ object AlarmScheduler {
         return earliestMillis
     }
 
+    /**
+     * 有効なアラーム一覧から、現在時刻以降にもっとも早く発火するアラームを特定する。
+     */
+    fun findNextActiveAlarm(
+        alarmList: List<AlarmItem>,
+        nowMillis: Long = System.currentTimeMillis(),
+        timeZone: TimeZone = TimeZone.getDefault()
+    ): AlarmItem? {
+        return alarmList
+            .filter { it.isEnabled }
+            .minByOrNull { item ->
+                calculateNextTriggerMillis(item.hour, item.minute, item.repeatDays, nowMillis, timeZone)
+            }
+    }
+
     fun resolveAudioFilePath(primaryPath: String?, legacyPath: String?): String? {
         if (!primaryPath.isNullOrEmpty()) return primaryPath
         if (!legacyPath.isNullOrEmpty()) return legacyPath

@@ -5,6 +5,8 @@ import jp.voicevox.android.Voicevox
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
@@ -14,7 +16,9 @@ import java.util.concurrent.atomic.AtomicReference
  * VOICEVOX エンジンを制御する統合クライアント
  */
 object CuraVoicevox {
+    @Volatile
     private var engine: Voicevox? = null
+    private val engineMutex = Mutex()
     private val synthesisJob = AtomicReference<Job?>(null)
 
     // キャッシュ判定用（メモリ）
@@ -24,29 +28,16 @@ object CuraVoicevox {
     private var lastVolumeScale: Float? = null
 
     /**
-     * エンジンの初期化
+     * エンジンの初期化（スレッドセーフ）
      */
     suspend fun getEngine(context: Context): Voicevox = withContext(Dispatchers.IO) {
-        val current = engine
-        if (current != null) return@withContext current
-
-        // 辞書データの準備
-        val dictDir = File(context.filesDir, "voicevox/open_jtalk_dic")
-        if (!File(dictDir, "char.bin").exists()) {
-            dictDir.mkdirs()
-            val assets = context.assets
-            assets.list("open_jtalk_dic")?.forEach { fileName ->
-                assets.open("open_jtalk_dic/$fileName").use { input ->
-                    File(dictDir, fileName).outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            }
+        engine?.let { return@withContext it }
+        engineMutex.withLock {
+            engine?.let { return@withLock it }
+            val instance = Voicevox.create(context.applicationContext)
+            engine = instance
+            instance
         }
-
-        val instance = Voicevox.create(context)
-        engine = instance
-        instance
     }
 
     /**
@@ -83,13 +74,18 @@ object CuraVoicevox {
 
             val vvx = getEngine(context)
             val models = vvx.listModels()
-            val targetModelId = models.find { m -> 
+            val targetModel = models.find { m ->
                 m.characters.any { c -> c.talkStyles.any { s -> s.id.toString() == styleId } }
-            }?.id ?: return@withContext false
+            } ?: return@withContext false
 
-            if (!vvx.isLicenseAccepted(targetModelId)) return@withContext false
+            if (!vvx.isLicenseAccepted(targetModel.id)) return@withContext false
 
-            val wavBytes = vvx.synthesis(text, targetModelId, styleId.toInt(), speedScale, volumeScale)
+            // モデルがローカルに未ダウンロードの場合は事前にダウンロードを実行
+            if (!targetModel.isDownloaded) {
+                vvx.downloadModel(targetModel.id)
+            }
+
+            val wavBytes = vvx.synthesis(text, targetModel.id, styleId.toInt(), speedScale, volumeScale)
             outputFile.writeBytes(wavBytes)
             
             // 永続キャッシュに保存

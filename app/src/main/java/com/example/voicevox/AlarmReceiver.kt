@@ -53,20 +53,15 @@ class AlarmReceiver : BroadcastReceiver() {
                     val fallbackFile = java.io.File(context.filesDir, "${id}_alarm.wav")
                     if (fallbackFile.exists()) fallbackFile.absolutePath else null
                 }
-            // alarmId is resolved above via AlarmScheduler.EXTRA_ALARM_ID
             val vibrate = intent.getBooleanExtra("VIBRATE", true)
 
-            if (audioFilePath != null) {
+            if (alarmId != null || audioFilePath != null) {
                 val serviceIntent = Intent(context, AlarmService::class.java).apply {
-                    putExtra("AUDIO_FILE_PATH", audioFilePath)
-                    putExtra("ALARM_ID", alarmId)
+                    audioFilePath?.let { putExtra("AUDIO_FILE_PATH", it) }
+                    alarmId?.let { putExtra("ALARM_ID", it) }
                     putExtra("VIBRATE", vibrate)
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startAlarmServiceWithWakeLock(context, serviceIntent)
-                } else {
-                    startAlarmServiceWithWakeLock(context, serviceIntent)
-                }
+                startAlarmServiceWithWakeLock(context, serviceIntent)
                 return
             }
             
@@ -297,6 +292,7 @@ class AlarmReceiver : BroadcastReceiver() {
     private fun refreshCalendars(context: Context) {
         val prefs = context.getSharedPreferences(CuraConstants.PREFS_TIMETABLE, Context.MODE_PRIVATE)
         val sourcesJson = prefs.getString("calendarSourcesJSON", null) ?: return
+        val pendingResult = try { goAsync() } catch (_: Exception) { null }
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -307,8 +303,11 @@ class AlarmReceiver : BroadcastReceiver() {
                     val obj = sourcesArray.getJSONObject(i)
                     val urlStr = obj.getString("url")
                     try {
-                        val url = URL(urlStr)
-                        val lines = url.openConnection().getInputStream().use { stream ->
+                        val conn = URL(urlStr).openConnection().apply {
+                            connectTimeout = 10_000
+                            readTimeout = 10_000
+                        }
+                        val lines = conn.getInputStream().use { stream ->
                             BufferedReader(InputStreamReader(stream)).readLines()
                         }
                         allEvents.addAll(IcsParser().parse(lines))
@@ -316,7 +315,12 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
                 
                 prefs.edit().putString(CuraConstants.KEY_ICS_CACHE, Json.encodeToString(allEvents)).apply()
-            } catch (e: Exception) { e.printStackTrace() }
+                ScheduleWidgetProvider.triggerUpdate(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                try { pendingResult?.finish() } catch (_: Exception) {}
+            }
         }
     }
 }

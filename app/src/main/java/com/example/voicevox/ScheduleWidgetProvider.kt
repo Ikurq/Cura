@@ -3,6 +3,7 @@ package com.example.voicevox
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -40,5 +41,15 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
         super.onUpdate(context, appWidgetManager, appWidgetIds)
+    }
+
+    companion object {
+        fun triggerUpdate(context: Context) {
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(ComponentName(context, ScheduleWidgetProvider::class.java))
+            if (ids.isNotEmpty()) {
+                manager.notifyAppWidgetViewDataChanged(ids, R.id.widgetScheduleListView)
+            }
+        }
     }
 }

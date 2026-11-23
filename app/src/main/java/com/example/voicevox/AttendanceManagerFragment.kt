@@ -76,8 +76,8 @@ class AttendanceManagerFragment : Fragment() {
                 status == AttendanceStatus.LATE && currentStatus != AttendanceStatus.ABSENT -> {
                     dayStatuses[dayKey] = AttendanceStatus.LATE
                 }
-                status == AttendanceStatus.ATTEND && currentStatus == AttendanceStatus.NONE -> {
-                    dayStatuses[dayKey] = AttendanceStatus.ATTEND
+                (status == AttendanceStatus.ATTEND || status == AttendanceStatus.EARLY) && currentStatus == AttendanceStatus.NONE -> {
+                    dayStatuses[dayKey] = status
                 }
             }
         }
@@ -117,7 +117,7 @@ class AttendanceManagerFragment : Fragment() {
             
             statusByDay[name]?.forEach { (day, status) ->
                 when (status) {
-                    AttendanceStatus.ATTEND -> stats.attended++
+                    AttendanceStatus.ATTEND, AttendanceStatus.EARLY -> stats.attended++
                     AttendanceStatus.ABSENT -> {
                         stats.absent++
                         stats.absentDates.add(day)
@@ -180,14 +180,16 @@ class AttendanceManagerFragment : Fragment() {
     private fun performDeleteSubject(name: String) {
         val ctx = requireContext()
         
-        // 1. 外部連携と手動カウントをリセット
+        // 1. 外部連携・個別ステータス・手動カウントをすべてリセット
         val attendancePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_ATTENDANCE, Context.MODE_PRIVATE)
+        val statusKeysToRemove = attendancePrefs.all.keys.filter { it.startsWith("status_${name}_") }
         attendancePrefs.edit {
             remove("track_$name")
             remove("absent_$name")
+            statusKeysToRemove.forEach { remove(it) }
         }
 
-        // 2. カスタム予定の追跡をオフにする
+        // 2. カスタム予定の追跡をオフにし、出欠ステータスも初期化する
         val schedulePrefs = ctx.getSharedPreferences(CuraConstants.PREFS_SCHEDULE, Context.MODE_PRIVATE)
         val customJson = schedulePrefs.getString(CuraConstants.KEY_EVENT_LIST, null)
         if (customJson != null) {
@@ -195,7 +197,7 @@ class AttendanceManagerFragment : Fragment() {
                 val events = Json.decodeFromString<List<ScheduleEvent>>(customJson)
                 val updatedEvents = events.map { event ->
                     if (event.summary == name && event.isAttendanceTracked) {
-                        event.copy(isAttendanceTracked = false)
+                        event.copy(isAttendanceTracked = false, attendanceStatus = "NONE")
                     } else {
                         event
                     }

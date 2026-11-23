@@ -7,7 +7,8 @@ enum class AttendanceStatus {
     NONE,
     ATTEND,
     ABSENT,
-    LATE;
+    LATE,
+    EARLY;
 
     companion object {
         fun fromString(value: String): AttendanceStatus {

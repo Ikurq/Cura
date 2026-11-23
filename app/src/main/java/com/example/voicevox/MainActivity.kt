@@ -162,35 +162,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startCuraBreathingAnimation() {
+        breathingAnimator?.cancel()
         val image = binding.homeContent.characterImage
-        
-        // より繊細に、よりゆっくりと (0.8%の拡大、5秒周期)
-        val scaleX = ObjectAnimator.ofFloat(image, View.SCALE_X, 1.0f, 1.008f)
-        val scaleY = ObjectAnimator.ofFloat(image, View.SCALE_Y, 1.0f, 1.008f)
-        
+
+        // より繊細に、よりゆっくりと (0.8%の拡大・縮小をREVERSE無限リピート、片道5秒周期)
+        val scaleX = ObjectAnimator.ofFloat(image, View.SCALE_X, 1.0f, 1.008f).apply {
+            duration = 5000
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+        val scaleY = ObjectAnimator.ofFloat(image, View.SCALE_Y, 1.0f, 1.008f).apply {
+            duration = 5000
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+
         breathingAnimator = android.animation.AnimatorSet().apply {
             playTogether(scaleX, scaleY)
-            duration = 5000 // 5秒かけてゆっくり吸う
-            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-            
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    val reverseScaleX = ObjectAnimator.ofFloat(image, View.SCALE_X, 1.008f, 1.0f)
-                    val reverseScaleY = ObjectAnimator.ofFloat(image, View.SCALE_Y, 1.008f, 1.0f)
-                    
-                    android.animation.AnimatorSet().apply {
-                        playTogether(reverseScaleX, reverseScaleY)
-                        duration = 5000 // 5秒かけてゆっくり吐く
-                        interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-                        addListener(object : android.animation.AnimatorListenerAdapter() {
-                            override fun onAnimationEnd(animation: android.animation.Animator) {
-                                startCuraBreathingAnimation()
-                            }
-                        })
-                        start()
-                    }
-                }
-            })
             start()
         }
     }
@@ -786,17 +776,10 @@ class MainActivity : AppCompatActivity() {
         var nextAlarmStr = getString(R.string.dashboard_not_set)
         if (alarmJson != null) {
             try {
-                val activeAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson).filter { it.isEnabled }
-                if (activeAlarms.isNotEmpty()) {
-                    val cal = Calendar.getInstance()
-                    val ch = cal.get(Calendar.HOUR_OF_DAY)
-                    val cm = cal.get(Calendar.MINUTE)
-                    val next = activeAlarms.map { item ->
-                        var diff = (item.hour * 60 + item.minute) - (ch * 60 + cm)
-                        if (diff <= 0) diff += 24 * 60
-                        diff to (item.hour to item.minute)
-                    }.minBy { it.first }.second
-                    nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.first, next.second)
+                val allAlarms = Json.decodeFromString<List<AlarmItem>>(alarmJson)
+                val next = AlarmScheduler.findNextActiveAlarm(allAlarms)
+                if (next != null) {
+                    nextAlarmStr = String.format(Locale.getDefault(), "%02d:%02d", next.hour, next.minute)
                 }
             } catch (e: Exception) {}
         }
@@ -840,12 +823,28 @@ class MainActivity : AppCompatActivity() {
         updateDashboardInfo()
         updateAttendanceButtonVisibility()
         applyCharacterTheme(CharacterThemeManager.getCurrentTheme(this), updateBulge = false)
+
+        systemUpdateHandler.removeCallbacks(systemUpdateRunnable)
+        systemUpdateHandler.post(systemUpdateRunnable)
+        startExpGainTimer()
+        startIdleTimer()
+        if (breathingAnimator?.isRunning != true) {
+            startCuraBreathingAnimation()
+        }
         
         // ホーム画面が表示されている場合のみ、未読の褒め言葉や挨拶をチェック
         if (binding.launcherLayout.isVisible) {
             checkPendingExp()
             showRandomDialogue()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        systemUpdateHandler.removeCallbacks(systemUpdateRunnable)
+        expGainJob?.cancel()
+        idleDialogueJob?.cancel()
+        breathingAnimator?.cancel()
     }
 
     private fun checkPendingExp() {

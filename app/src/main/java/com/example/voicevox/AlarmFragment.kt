@@ -107,6 +107,16 @@ class AlarmFragment : Fragment() {
                 setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             }
 
+            // 「外部予定の最初を選択」ボタン: 未来の最初の予定を選択
+            dialogBinding.btnSelectFirstExternal.setOnClickListener {
+                val now = System.currentTimeMillis()
+                val firstUpcomingIndex = combinedEvents.indexOfFirst { (evt, _) -> evt.startTime > now }
+                    .let { if (it >= 0) it else if (combinedEvents.isNotEmpty()) 0 else -1 }
+                if (firstUpcomingIndex >= 0) {
+                    dialogBinding.spinMandatoryEvent.setSelection(firstUpcomingIndex)
+                }
+            }
+
             val uniqueNames = getFilteredCharacterNames()
             setupSpeakerSpinner(dialogBinding.spinMandatorySpeaker, uniqueNames)
 
@@ -122,11 +132,16 @@ class AlarmFragment : Fragment() {
                 .setView(dialogBinding.root)
                 .setPositiveButton(getString(R.string.dialog_generate)) { _, _ ->
                     val selectedIndex = dialogBinding.spinMandatoryEvent.selectedItemPosition
-                    if (selectedIndex == -1) return@setPositiveButton
+                    if (selectedIndex < 0 || selectedIndex >= combinedEvents.size) {
+                        Toast.makeText(ctx, getString(R.string.dashboard_no_schedule), Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
 
                     val (event, _) = combinedEvents[selectedIndex]
                     val leadTime = dialogBinding.editLeadTime.text.toString().toIntOrNull() ?: 30
-                    val charName = uniqueNames[dialogBinding.spinMandatorySpeaker.selectedItemPosition]
+                    val speakerPos = dialogBinding.spinMandatorySpeaker.selectedItemPosition
+                    if (speakerPos < 0 || speakerPos >= uniqueNames.size) return@setPositiveButton
+                    val charName = uniqueNames[speakerPos]
 
                     val requireQrCode = dialogBinding.dialogMandatoryRequireQrCheckBox.isChecked
                     val categoryIndex = dialogBinding.spinMandatoryCategory.selectedItemPosition
@@ -135,8 +150,8 @@ class AlarmFragment : Fragment() {
                     val model = loadedModels.find { m -> m.characters.any { it.name == charName } }
                     val styleId = model?.characters?.find { it.name == charName }?.talkStyles?.firstOrNull()?.id ?: DEFAULT_STYLE_ID
 
-                    checkLicenseAndRun(charName, model?.id ?: "", styleId) { m, s ->
-                        generateMandatoryAlarm(event, leadTime, m, charName, selectedCategoryId, requireQrCode)
+                    checkLicenseAndRun(charName, model?.id ?: "", styleId) { _, resolvedStyleId ->
+                        generateMandatoryAlarm(event, leadTime, resolvedStyleId, charName, selectedCategoryId, requireQrCode)
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -147,7 +162,7 @@ class AlarmFragment : Fragment() {
     private fun generateMandatoryAlarm(
         event: IcsEvent,
         leadTimeMinutes: Int,
-        modelId: String,
+        styleId: Int,
         speakerName: String,
         categoryId: String? = null,
         requireQrCode: Boolean = false
@@ -159,20 +174,28 @@ class AlarmFragment : Fragment() {
         val hour = alarmCal.get(Calendar.HOUR_OF_DAY)
         val minute = alarmCal.get(Calendar.MINUTE)
 
+        val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            val ctx = context ?: return@launch
-            val template = AlarmTemplateManager.getRandomMandatoryTemplate(ctx, categoryId)
-            val message = AlarmTemplateManager.formatMandatoryAlarmMessage(template, hour, minute, event.summary, leadTimeMinutes)
-            val newId = UUID.randomUUID().toString()
-            val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
+            val ctx = context ?: run {
+                progressDialog.dismiss()
+                return@launch
+            }
+            try {
+                val template = AlarmTemplateManager.getRandomMandatoryTemplate(ctx, categoryId)
+                val message = AlarmTemplateManager.formatMandatoryAlarmMessage(template, hour, minute, event.summary, leadTimeMinutes)
+                val newId = UUID.randomUUID().toString()
+                val outputFile = File(ctx.filesDir, "${newId}_alarm.wav")
 
-            if (CuraVoicevox.createAudio(ctx, message, modelId, outputFile)) {
-                val newItem = AlarmItem(newId, hour, minute, message, modelId.toIntOrNull() ?: DEFAULT_STYLE_ID, speakerName, true, false, true, emptyList(), isOneShot = true, requireQrCode = requireQrCode)
-                alarmList.add(newItem)
-                saveAlarms()
-                scheduleVoiceAlarm(newItem, outputFile.absolutePath)
-                alarmAdapter.notifyDataSetChanged()
-                updateEmptyView()
+                if (CuraVoicevox.createAudio(ctx, message, styleId.toString(), outputFile)) {
+                    val newItem = AlarmItem(newId, hour, minute, message, styleId, speakerName, true, false, true, emptyList(), isOneShot = true, requireQrCode = requireQrCode)
+                    alarmList.add(newItem)
+                    saveAlarms()
+                    scheduleVoiceAlarm(newItem, outputFile.absolutePath)
+                    alarmAdapter.notifyDataSetChanged()
+                    updateEmptyView()
+                }
+            } finally {
+                progressDialog.dismiss()
             }
         }
     }
@@ -182,7 +205,13 @@ class AlarmFragment : Fragment() {
             val ctx = context ?: return@launch
             loadedModels = CuraVoicevox.getModels(ctx)
 
+            // ダイアログを開くたびに初期時刻(07:00)へリセットしてUI表示と内部状態を一致させる
+            currentPickedHour = 7
+            currentPickedMinute = 0
+
             val dialogBinding = DialogAddAlarmBinding.inflate(LayoutInflater.from(ctx))
+            dialogBinding.dialogTimePreview.text = String.format(Locale.getDefault(), "設定時刻：%02d:%02d", currentPickedHour, currentPickedMinute)
+
             val uniqueNames = getFilteredCharacterNames()
             setupSpeakerSpinner(dialogBinding.dialogSpeakerSpinner, uniqueNames)
 
@@ -207,7 +236,7 @@ class AlarmFragment : Fragment() {
 
             dialogBinding.btnPreviewVoice.setOnClickListener {
                 val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
-                if (pos >= 0) {
+                if (pos >= 0 && pos < currentStyles.size) {
                     val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
                     checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s ->
                         startPreviewGeneration(dialogBinding, m, s)
@@ -218,7 +247,7 @@ class AlarmFragment : Fragment() {
             AlertDialog.Builder(ctx).setTitle(getString(R.string.dialog_new_alarm_title)).setView(dialogBinding.root)
                 .setPositiveButton(getString(R.string.dialog_save)) { _, _ ->
                     val pos = dialogBinding.dialogStyleSpinner.selectedItemPosition
-                    if (pos >= 0) {
+                    if (pos >= 0 && pos < currentStyles.size) {
                         val charName = dialogBinding.dialogSpeakerSpinner.selectedItem.toString()
                         checkLicenseAndRun(charName, currentStyles[pos].first, currentStyles[pos].second) { m, s ->
                             startAlarmGeneration(dialogBinding, m, s)
@@ -226,6 +255,18 @@ class AlarmFragment : Fragment() {
                     }
                 }.setNegativeButton(android.R.string.cancel, null).show()
         }
+    }
+
+    private fun extractSelectedRepeatDays(dialogBinding: DialogAddAlarmBinding): List<Int> {
+        val selectedDays = mutableListOf<Int>()
+        if (dialogBinding.toggleSun.isChecked) selectedDays.add(Calendar.SUNDAY)
+        if (dialogBinding.toggleMon.isChecked) selectedDays.add(Calendar.MONDAY)
+        if (dialogBinding.toggleTue.isChecked) selectedDays.add(Calendar.TUESDAY)
+        if (dialogBinding.toggleWed.isChecked) selectedDays.add(Calendar.WEDNESDAY)
+        if (dialogBinding.toggleThu.isChecked) selectedDays.add(Calendar.THURSDAY)
+        if (dialogBinding.toggleFri.isChecked) selectedDays.add(Calendar.FRIDAY)
+        if (dialogBinding.toggleSat.isChecked) selectedDays.add(Calendar.SATURDAY)
+        return selectedDays
     }
 
     private fun checkLicenseAndRun(charName: String, modelId: String, styleId: Int, action: (String, Int) -> Unit) {
@@ -312,11 +353,25 @@ class AlarmFragment : Fragment() {
 
         val readTasks = dialogBinding.dialogReadTasksCheckBox.isChecked
         val vibrate = dialogBinding.dialogVibrateCheckBox.isChecked
+        val repeatDays = extractSelectedRepeatDays(dialogBinding)
 
         val progressDialog = showLoadingDialog(getString(R.string.generating_alarm_audio))
         val newId = UUID.randomUUID().toString()
         val requireQrCode = dialogBinding.dialogRequireQrCheckBox.isChecked
-        val newItem = AlarmItem(newId, currentPickedHour, currentPickedMinute, message, styleId, "$charName ($styleName)", true, readTasks, vibrate, emptyList(), isOneShot = false, requireQrCode = requireQrCode)
+        val newItem = AlarmItem(
+            id = newId,
+            hour = currentPickedHour,
+            minute = currentPickedMinute,
+            message = message,
+            speakerId = styleId,
+            speakerName = "$charName ($styleName)",
+            isEnabled = true,
+            readTasks = readTasks,
+            vibrate = vibrate,
+            repeatDays = repeatDays,
+            isOneShot = false,
+            requireQrCode = requireQrCode
+        )
 
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = context ?: return@launch

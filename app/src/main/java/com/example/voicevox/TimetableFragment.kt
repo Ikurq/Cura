@@ -798,16 +798,22 @@ class TimetableFragment : Fragment() {
                             Toast.makeText(requireContext(), "予定を削除しました", Toast.LENGTH_SHORT).show()
                         }
                         1 -> {
-                            val count = customEvents.count { it.repeatGroupId == targetEvent.repeatGroupId && it.startTime >= targetEvent.startTime }
+                            val toRemove = customEvents.filter { it.repeatGroupId == targetEvent.repeatGroupId && it.startTime >= targetEvent.startTime }
+                            toRemove.forEach { evt ->
+                                TaskScheduleSyncHelper.unlinkTaskFromEvent(requireContext(), evt.id)
+                            }
                             customEvents.removeAll { it.repeatGroupId == targetEvent.repeatGroupId && it.startTime >= targetEvent.startTime }
                             saveCustomEvents()
-                            Toast.makeText(requireContext(), "これ以降の予定（${count}件）を削除しました", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "これ以降の予定（${toRemove.size}件）を削除しました", Toast.LENGTH_SHORT).show()
                         }
                         2 -> {
-                            val count = customEvents.count { it.repeatGroupId == targetEvent.repeatGroupId }
+                            val toRemove = customEvents.filter { it.repeatGroupId == targetEvent.repeatGroupId }
+                            toRemove.forEach { evt ->
+                                TaskScheduleSyncHelper.unlinkTaskFromEvent(requireContext(), evt.id)
+                            }
                             customEvents.removeAll { it.repeatGroupId == targetEvent.repeatGroupId }
                             saveCustomEvents()
-                            Toast.makeText(requireContext(), "繰り返しの予定（${count}件）をすべて削除しました", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "繰り返しの予定（${toRemove.size}件）をすべて削除しました", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

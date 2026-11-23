@@ -40,11 +40,16 @@ object ScheduleLoader {
 
     fun loadTasksForToday(context: Context): List<String> {
         val today = Calendar.getInstance()
-        return loadAllTasks(context)
+        return filterActiveTasksForDate(loadAllTasks(context), today)
+    }
+
+    fun filterActiveTasksForDate(tasks: List<TaskItem>, targetDate: Calendar): List<String> {
+        return tasks
+            .filter { !it.isCompleted }
             .filter {
                 val realDay = Calendar.getInstance().apply { timeInMillis = it.deadlineMillis }
                 val targetDay = it.targetDeadlineMillis?.let { t -> Calendar.getInstance().apply { timeInMillis = t } }
-                isSameDay(realDay, today) || (targetDay != null && isSameDay(targetDay, today))
+                isSameDay(realDay, targetDate) || (targetDay != null && isSameDay(targetDay, targetDate))
             }
             .map { it.title }
     }
